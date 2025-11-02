@@ -118,9 +118,9 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            BASE_DIR / 'config' / 'templates',  # Templates base compartidos
+            BASE_DIR / 'templates',  # Templates globales en la raíz del proyecto
         ],
-        'APP_DIRS': True,
+        'APP_DIRS': True,  # Esto hace que Django busque en app/templates/
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
