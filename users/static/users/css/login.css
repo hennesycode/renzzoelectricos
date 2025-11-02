@@ -1,10 +1,11 @@
 /**
- * Estilos para la página de Login de Renzzo Eléctricos
- * Diseño moderno con colores verde oscuro
+ * Login Page - Renzzo Eléctricos
+ * Diseño responsive, moderno y profesional
+ * Optimizado para móviles, tablets y desktop
  */
 
 /* ============================================
-   RESET Y CONFIGURACIÓN GENERAL
+   RESET Y CONFIGURACIÓN BASE
    ============================================ */
 * {
     margin: 0;
@@ -21,11 +22,11 @@ body {
     justify-content: center;
     padding: 20px;
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 /* ============================================
-   BACKGROUND ANIMADO
+   FONDO ANIMADO
    ============================================ */
 body::before {
     content: '';
@@ -38,6 +39,7 @@ body::before {
         radial-gradient(circle at 20% 50%, rgba(15, 112, 87, 0.2) 0%, transparent 50%),
         radial-gradient(circle at 80% 80%, rgba(10, 77, 60, 0.2) 0%, transparent 50%);
     animation: bgAnimation 15s ease infinite;
+    pointer-events: none;
 }
 
 @keyframes bgAnimation {
@@ -46,13 +48,13 @@ body::before {
 }
 
 /* ============================================
-   CONTENEDOR DE LOGIN
+   CONTENEDOR PRINCIPAL
    ============================================ */
 .login-container {
     position: relative;
     z-index: 1;
     width: 100%;
-    max-width: 450px;
+    max-width: 420px;
     animation: fadeInUp 0.8s ease;
 }
 
@@ -67,12 +69,18 @@ body::before {
     }
 }
 
+/* ============================================
+   TARJETA DE LOGIN
+   ============================================ */
 .login-card {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 25px;
-    padding: 40px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 24px;
+    padding: 40px 35px;
+    box-shadow: 
+        0 25px 80px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* ============================================
@@ -81,23 +89,35 @@ body::before {
 .logo {
     width: 80px;
     height: 80px;
-    margin: 0 auto 20px;
+    margin: 0 auto 25px;
     background: linear-gradient(135deg, #10d98b 0%, #0ea672 100%);
     border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 10px 30px rgba(16, 217, 139, 0.3);
+    box-shadow: 0 12px 35px rgba(16, 217, 139, 0.3);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 12px 35px rgba(16, 217, 139, 0.3);
+    }
+    50% { 
+        transform: scale(1.05);
+        box-shadow: 0 15px 45px rgba(16, 217, 139, 0.5);
+    }
 }
 
 .logo svg {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     fill: white;
 }
 
 /* ============================================
-   HEADER DEL LOGIN
+   HEADER
    ============================================ */
 .login-header {
     text-align: center;
@@ -105,23 +125,25 @@ body::before {
 }
 
 .login-header h1 {
-    font-size: 2rem;
+    font-size: 1.85rem;
     font-weight: 700;
     color: #0a4d3c;
     margin-bottom: 8px;
+    line-height: 1.2;
 }
 
 .login-header p {
     color: #666;
     font-size: 0.95rem;
     font-weight: 300;
+    opacity: 0.8;
 }
 
 /* ============================================
    FORMULARIO
    ============================================ */
 .form-group {
-    margin-bottom: 25px;
+    margin-bottom: 24px;
 }
 
 .form-label {
@@ -130,23 +152,31 @@ body::before {
     font-weight: 600;
     color: #0a4d3c;
     margin-bottom: 8px;
+    letter-spacing: 0.3px;
 }
 
 .form-control {
     width: 100%;
-    padding: 15px 20px;
+    padding: 16px 20px;
     font-size: 1rem;
-    border: 2px solid #e0e0e0;
-    border-radius: 12px;
-    transition: all 0.3s ease;
     font-family: 'Poppins', sans-serif;
-    background: white;
+    border: 2px solid #e8e8e8;
+    border-radius: 14px;
+    background: #fafafa;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
 }
 
 .form-control:focus {
-    outline: none;
     border-color: #10d98b;
+    background: white;
     box-shadow: 0 0 0 4px rgba(16, 217, 139, 0.1);
+    transform: translateY(-1px);
+}
+
+.form-control::placeholder {
+    color: #999;
+    font-weight: 300;
 }
 
 /* ============================================
@@ -155,13 +185,13 @@ body::before {
 .checkbox-group {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 25px;
+    gap: 10px;
+    margin-bottom: 28px;
 }
 
 .checkbox-group input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     cursor: pointer;
     accent-color: #10d98b;
 }
@@ -171,47 +201,66 @@ body::before {
     color: #666;
     cursor: pointer;
     user-select: none;
+    font-weight: 400;
 }
 
 /* ============================================
-   BOTÓN DE LOGIN
+   BOTÓN LOGIN
    ============================================ */
 .btn-login {
     width: 100%;
-    padding: 16px;
+    padding: 17px 20px;
     font-size: 1.1rem;
     font-weight: 600;
     color: white;
     background: linear-gradient(135deg, #10d98b 0%, #0ea672 100%);
     border: none;
-    border-radius: 12px;
+    border-radius: 14px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     font-family: 'Poppins', sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    box-shadow: 0 10px 30px rgba(16, 217, 139, 0.3);
+    gap: 12px;
+    box-shadow: 0 12px 35px rgba(16, 217, 139, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-login::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.6s ease;
+}
+
+.btn-login:hover::before {
+    left: 100%;
 }
 
 .btn-login:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 15px 40px rgba(16, 217, 139, 0.5);
+    transform: translateY(-3px);
+    box-shadow: 0 20px 50px rgba(16, 217, 139, 0.5);
 }
 
 .btn-login:active:not(:disabled) {
-    transform: translateY(0);
+    transform: translateY(-1px);
 }
 
 .btn-login:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+    transform: none;
 }
 
 .btn-login svg {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     fill: currentColor;
 }
 
@@ -219,8 +268,8 @@ body::before {
    SPINNER DE CARGA
    ============================================ */
 .spinner {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border: 3px solid rgba(255, 255, 255, 0.3);
     border-top-color: white;
     border-radius: 50%;
@@ -232,21 +281,23 @@ body::before {
 }
 
 /* ============================================
-   ENLACES
+   ENLACE DE REGRESO
    ============================================ */
 .back-link {
     display: block;
     text-align: center;
-    margin-top: 25px;
+    margin-top: 28px;
     color: #0a4d3c;
     text-decoration: none;
     font-size: 0.95rem;
     font-weight: 500;
-    transition: color 0.3s ease;
+    transition: all 0.3s ease;
+    padding: 8px 0;
 }
 
 .back-link:hover {
     color: #10d98b;
+    transform: translateX(-4px);
 }
 
 /* ============================================
@@ -260,35 +311,172 @@ body::before {
     text-align: center;
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.85rem;
+    font-weight: 300;
     z-index: 0;
 }
 
 /* ============================================
-   SWEETALERT2 PERSONALIZADO
-   ============================================ */
-.swal2-popup {
-    border-radius: 20px;
-    font-family: 'Poppins', sans-serif;
-}
-
-.swal2-confirm {
-    background: linear-gradient(135deg, #10d98b 0%, #0ea672 100%) !important;
-    border-radius: 10px !important;
-    padding: 10px 30px !important;
-    font-weight: 600 !important;
-}
-
-/* ============================================
-   RESPONSIVE DESIGN
+   ESTILOS RESPONSIVOS
    ============================================ */
 
-/* Móviles pequeños */
+/* Tablets */
+@media (max-width: 768px) {
+    .login-container {
+        max-width: 380px;
+    }
+    
+    .login-card {
+        padding: 35px 30px;
+        border-radius: 20px;
+    }
+    
+    .login-header h1 {
+        font-size: 1.7rem;
+    }
+    
+    .logo {
+        width: 75px;
+        height: 75px;
+    }
+    
+    .logo svg {
+        width: 38px;
+        height: 38px;
+    }
+}
+
+/* Móviles */
 @media (max-width: 480px) {
+    body {
+        padding: 15px;
+    }
+    
+    .login-container {
+        max-width: 100%;
+    }
+    
     .login-card {
         padding: 30px 25px;
+        border-radius: 18px;
     }
     
     .login-header h1 {
         font-size: 1.6rem;
     }
+    
+    .login-header p {
+        font-size: 0.9rem;
+    }
+    
+    .logo {
+        width: 70px;
+        height: 70px;
+        margin-bottom: 20px;
+    }
+    
+    .logo svg {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .form-control {
+        padding: 15px 18px;
+        font-size: 16px; /* Evita zoom en iOS */
+    }
+    
+    .btn-login {
+        padding: 16px 20px;
+        font-size: 1rem;
+    }
+    
+    .footer {
+        bottom: 15px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Móviles pequeños */
+@media (max-width: 350px) {
+    .login-card {
+        padding: 25px 20px;
+    }
+    
+    .login-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .form-control {
+        padding: 14px 16px;
+    }
+}
+
+/* ============================================
+   PERSONALIZACIÓN SWEETALERT2
+   ============================================ */
+.swal2-popup {
+    border-radius: 20px !important;
+    font-family: 'Poppins', sans-serif !important;
+}
+
+.swal2-title {
+    font-weight: 600 !important;
+    color: #0a4d3c !important;
+}
+
+.swal2-confirm {
+    background: linear-gradient(135deg, #10d98b 0%, #0ea672 100%) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 12px 32px !important;
+    font-weight: 600 !important;
+    font-family: 'Poppins', sans-serif !important;
+    transition: all 0.3s ease !important;
+}
+
+.swal2-confirm:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(16, 217, 139, 0.4) !important;
+}
+
+/* ============================================
+   MODO OSCURO (OPCIONAL)
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+    .login-card {
+        background: rgba(255, 255, 255, 0.95);
+    }
+    
+    .form-control {
+        background: #f8f8f8;
+    }
+    
+    .form-control:focus {
+        background: white;
+    }
+}
+
+/* ============================================
+   ANIMACIONES ADICIONALES
+   ============================================ */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.error-shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* ============================================
+   ESTADOS DE ERROR
+   ============================================ */
+.form-control.error {
+    border-color: #ff4757;
+    box-shadow: 0 0 0 4px rgba(255, 71, 87, 0.1);
+}
+
+.form-control.success {
+    border-color: #10d98b;
+    box-shadow: 0 0 0 4px rgba(16, 217, 139, 0.1);
 }

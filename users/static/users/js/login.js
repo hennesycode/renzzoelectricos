@@ -1,6 +1,7 @@
 /**
- * JavaScript para el Login de Renzzo Eléctricos
- * Maneja autenticación AJAX con SweetAlert2
+ * Login Manager - Renzzo Eléctricos
+ * Sistema de autenticación AJAX moderno y responsive
+ * Optimizado para UX móvil y desktop
  */
 
 /* ============================================
@@ -10,113 +11,185 @@ class LoginManager {
     constructor() {
         this.form = document.getElementById('loginForm');
         this.loginButton = document.getElementById('loginButton');
+        this.usernameInput = document.getElementById('username');
+        this.passwordInput = document.getElementById('password');
+        this.rememberCheckbox = document.getElementById('remember');
+        
         this.init();
     }
 
     /**
-     * Inicializa el gestor de login
+     * Inicializa el sistema de login
      */
     init() {
-        if (!this.form) {
-            console.error('Formulario de login no encontrado');
-            return;
-        }
-
-        this.attachEventListeners();
+        this.bindEvents();
+        this.setupFormValidation();
         console.log('Login Manager inicializado correctamente');
     }
 
     /**
-     * Adjunta event listeners al formulario
+     * Vincula eventos del formulario
      */
-    attachEventListeners() {
+    bindEvents() {
+        // Evento principal del formulario
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        
+        // Validación en tiempo real
+        this.usernameInput.addEventListener('input', () => this.validateField(this.usernameInput));
+        this.passwordInput.addEventListener('input', () => this.validateField(this.passwordInput));
+        
+        // Enter key navigation
+        this.usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.passwordInput.focus();
+            }
+        });
+        
+        // Prevenir envío accidental
+        this.passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.form.dispatchEvent(new Event('submit'));
+            }
+        });
+    }
+
+    /**
+     * Configura validación del formulario
+     */
+    setupFormValidation() {
+        // Eliminar estados de error al hacer focus
+        [this.usernameInput, this.passwordInput].forEach(input => {
+            input.addEventListener('focus', () => {
+                input.classList.remove('error');
+                input.parentElement.classList.remove('error-shake');
+            });
+        });
     }
 
     /**
      * Maneja el envío del formulario
-     * @param {Event} e - Evento del formulario
      */
     async handleSubmit(e) {
         e.preventDefault();
-
+        
         const formData = this.getFormData();
         
-        // Validar datos
+        // Validación básica
         if (!this.validateForm(formData)) {
             return;
         }
-
-        // Procesar login
-        await this.processLogin(formData);
+        
+        // Mostrar estado de carga
+        this.setLoadingState(true);
+        
+        try {
+            const result = await this.sendLoginRequest(formData);
+            await this.handleLoginResponse(result);
+        } catch (error) {
+            console.error('Error en login:', error);
+            await this.handleLoginError(error);
+        } finally {
+            this.setLoadingState(false);
+        }
     }
 
     /**
-     * Obtiene los datos del formulario
-     * @returns {Object} Datos del formulario
+     * Obtiene datos del formulario
      */
     getFormData() {
         return {
-            username: this.form.username.value.trim(),
-            password: this.form.password.value,
-            remember: this.form.remember.checked,
-            csrftoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+            username: this.usernameInput.value.trim(),
+            password: this.passwordInput.value,
+            remember: this.rememberCheckbox.checked,
+            csrfToken: document.querySelector('[name=csrfmiddlewaretoken]').value
         };
     }
 
     /**
-     * Valida los datos del formulario
-     * @param {Object} data - Datos a validar
-     * @returns {boolean} True si es válido
+     * Valida el formulario
      */
     validateForm(data) {
-        if (!data.username || !data.password) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Campos incompletos',
-                text: 'Por favor ingresa tu usuario y contraseña',
-                confirmButtonText: 'Entendido'
-            });
-            return false;
+        let isValid = true;
+        
+        // Validar usuario
+        if (!data.username) {
+            this.showFieldError(this.usernameInput, 'El usuario es requerido');
+            isValid = false;
+        } else if (data.username.length < 3) {
+            this.showFieldError(this.usernameInput, 'Usuario debe tener al menos 3 caracteres');
+            isValid = false;
         }
-        return true;
+        
+        // Validar contraseña
+        if (!data.password) {
+            this.showFieldError(this.passwordInput, 'La contraseña es requerida');
+            isValid = false;
+        } else if (data.password.length < 4) {
+            this.showFieldError(this.passwordInput, 'Contraseña debe tener al menos 4 caracteres');
+            isValid = false;
+        }
+        
+        if (!isValid) {
+            this.showValidationAlert();
+        }
+        
+        return isValid;
     }
 
     /**
-     * Procesa el login mediante AJAX
-     * @param {Object} data - Datos del formulario
+     * Valida campo individual
      */
-    async processLogin(data) {
-        this.setLoadingState(true);
-
-        try {
-            const response = await this.sendLoginRequest(data);
-            const result = await response.json();
-
-            if (result.success) {
-                await this.handleLoginSuccess(result);
-            } else {
-                this.handleLoginError(result);
-            }
-        } catch (error) {
-            this.handleNetworkError(error);
+    validateField(input) {
+        const value = input.value.trim();
+        
+        if (value) {
+            input.classList.remove('error');
+            input.classList.add('success');
+        } else {
+            input.classList.remove('success');
         }
     }
 
     /**
-     * Envía la petición AJAX de login
-     * @param {Object} data - Datos del formulario
-     * @returns {Promise<Response>}
+     * Muestra error en campo específico
+     */
+    showFieldError(input, message) {
+        input.classList.add('error');
+        input.parentElement.classList.add('error-shake');
+        
+        // Remover shake después de la animación
+        setTimeout(() => {
+            input.parentElement.classList.remove('error-shake');
+        }, 500);
+        
+        input.focus();
+    }
+
+    /**
+     * Muestra alerta de validación
+     */
+    showValidationAlert() {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Campos incompletos',
+            text: 'Por favor verifica que todos los campos estén correctamente completados',
+            confirmButtonText: 'Entendido',
+            timer: 3000,
+            timerProgressBar: true
+        });
+    }
+
+    /**
+     * Envía petición de login
      */
     async sendLoginRequest(data) {
-        // Obtener la URL del formulario
-        const loginUrl = this.form.action || window.location.href;
-
-        return await fetch(loginUrl, {
+        const response = await fetch('/login/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': data.csrftoken,
+                'X-CSRFToken': data.csrfToken,
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: new URLSearchParams({
@@ -125,64 +198,81 @@ class LoginManager {
                 'remember': data.remember ? 'on' : ''
             })
         });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
     }
 
     /**
-     * Maneja login exitoso
-     * @param {Object} result - Resultado del servidor
+     * Maneja respuesta exitosa
      */
-    async handleLoginSuccess(result) {
+    async handleLoginResponse(result) {
+        if (result.success) {
+            // Marcar campos como exitosos
+            this.usernameInput.classList.add('success');
+            this.passwordInput.classList.add('success');
+            
+            // Mostrar mensaje de éxito
+            await Swal.fire({
+                icon: 'success',
+                title: '¡Bienvenido!',
+                text: `Hola ${result.user?.username || 'Usuario'}, accediendo al sistema...`,
+                timer: 2000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            // Redirigir
+            this.redirectToApp(result.redirect_url);
+        } else {
+            await this.handleLoginError({
+                message: result.message || 'Credenciales incorrectas'
+            });
+        }
+    }
+
+    /**
+     * Maneja errores de login
+     */
+    async handleLoginError(error) {
+        // Marcar campos con error
+        this.usernameInput.classList.add('error');
+        this.passwordInput.classList.add('error');
+        
+        // Shake animation
+        this.form.classList.add('error-shake');
+        setTimeout(() => {
+            this.form.classList.remove('error-shake');
+        }, 500);
+        
+        // Mostrar error
         await Swal.fire({
-            icon: 'success',
-            title: '¡Bienvenido!',
-            text: `Hola ${result.user.username}, accediendo al sistema...`,
-            timer: 1500,
-            showConfirmButton: false
-        });
-
-        // Redirigir al dashboard
-        window.location.href = result.redirect_url;
-    }
-
-    /**
-     * Maneja error de login
-     * @param {Object} result - Resultado del servidor
-     */
-    handleLoginError(result) {
-        this.setLoadingState(false);
-
-        Swal.fire({
             icon: 'error',
             title: 'Error de autenticación',
-            text: result.message || 'Usuario o contraseña incorrectos',
-            confirmButtonText: 'Intentar de nuevo'
+            text: error.message || 'No se pudo conectar con el servidor. Verifica tu conexión e intenta nuevamente.',
+            confirmButtonText: 'Intentar de nuevo',
+            allowOutsideClick: false
         });
+        
+        // Enfocar campo de usuario
+        this.usernameInput.focus();
+        this.passwordInput.value = ''; // Limpiar contraseña por seguridad
     }
 
     /**
-     * Maneja error de red
-     * @param {Error} error - Error capturado
+     * Establece estado de carga
      */
-    handleNetworkError(error) {
-        console.error('Error de red:', error);
-        this.setLoadingState(false);
-
-        Swal.fire({
-            icon: 'error',
-            title: 'Error de conexión',
-            text: 'No se pudo conectar con el servidor. Por favor intenta de nuevo.',
-            confirmButtonText: 'Entendido'
-        });
-    }
-
-    /**
-     * Establece el estado de carga del botón
-     * @param {boolean} isLoading - Si está cargando
-     */
-    setLoadingState(isLoading) {
-        if (isLoading) {
+    setLoadingState(loading) {
+        if (loading) {
             this.loginButton.disabled = true;
-            this.loginButton.innerHTML = '<div class="spinner"></div> Verificando...';
+            this.loginButton.innerHTML = `
+                <div class="spinner"></div>
+                Verificando...
+            `;
         } else {
             this.loginButton.disabled = false;
             this.loginButton.innerHTML = `
@@ -194,6 +284,21 @@ class LoginManager {
             `;
         }
     }
+
+    /**
+     * Redirección al sistema
+     */
+    redirectToApp(url) {
+        const targetUrl = url || '/dashboard/';
+        
+        // Animación de salida
+        document.body.style.opacity = '0';
+        document.body.style.transition = 'opacity 0.5s ease';
+        
+        setTimeout(() => {
+            window.location.href = targetUrl;
+        }, 300);
+    }
 }
 
 /* ============================================
@@ -201,65 +306,119 @@ class LoginManager {
    ============================================ */
 const LoginUtils = {
     /**
-     * Valida fortaleza de contraseña
-     * @param {string} password - Contraseña a validar
-     * @returns {Object} Resultado de validación
+     * Detecta si es un dispositivo móvil
      */
-    validatePasswordStrength(password) {
-        const minLength = 8;
-        const hasUpperCase = /[A-Z]/.test(password);
-        const hasLowerCase = /[a-z]/.test(password);
-        const hasNumbers = /\d/.test(password);
-        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-
-        return {
-            isValid: password.length >= minLength,
-            strength: hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar ? 'strong' : 'weak',
-            length: password.length
-        };
+    isMobile() {
+        return window.innerWidth <= 768;
     },
 
     /**
-     * Almacena credenciales en localStorage (solo username)
-     * @param {string} username - Nombre de usuario
+     * Valida formato de email (si se usa)
      */
-    rememberUser(username) {
-        if (username) {
-            localStorage.setItem('remembered_user', username);
+    isValidEmail(email) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+    },
+
+    /**
+     * Genera contraseña temporal (para testing)
+     */
+    generateTempPassword(length = 8) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
         }
+        return result;
     },
 
     /**
-     * Obtiene usuario recordado
-     * @returns {string|null}
+     * Formatear tiempo transcurrido
      */
-    getRememberedUser() {
-        return localStorage.getItem('remembered_user');
+    formatElapsedTime(startTime) {
+        const elapsed = Date.now() - startTime;
+        return `${(elapsed / 1000).toFixed(1)}s`;
     },
 
     /**
-     * Limpia usuario recordado
+     * Detectar capacidades del dispositivo
      */
-    clearRememberedUser() {
-        localStorage.removeItem('remembered_user');
+    getDeviceCapabilities() {
+        return {
+            touchSupport: 'ontouchstart' in window,
+            webGL: !!window.WebGLRenderingContext,
+            localStorage: !!window.localStorage,
+            sessionStorage: !!window.sessionStorage,
+            geolocation: !!navigator.geolocation,
+            online: navigator.onLine
+        };
     }
 };
 
 /* ============================================
    INICIALIZACIÓN
    ============================================ */
-
-// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
+    // Inicializar Login Manager
     new LoginManager();
     
-    // Cargar usuario recordado si existe
-    const rememberedUser = LoginUtils.getRememberedUser();
-    if (rememberedUser) {
-        const usernameInput = document.getElementById('username');
-        if (usernameInput) {
-            usernameInput.value = rememberedUser;
-            document.getElementById('remember').checked = true;
-        }
+    // Log de información del dispositivo (solo en desarrollo)
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        console.log('🔧 Modo desarrollo - Renzzo Eléctricos');
+        console.log('📱 Dispositivo móvil:', LoginUtils.isMobile());
+        console.log('⚡ Capacidades:', LoginUtils.getDeviceCapabilities());
     }
+    
+    // Optimización para dispositivos táctiles
+    if (LoginUtils.isMobile()) {
+        document.body.classList.add('mobile-device');
+        
+        // Mejorar UX en móviles
+        const inputs = document.querySelectorAll('.form-control');
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                // Scroll suave al input en móviles
+                setTimeout(() => {
+                    input.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }, 300);
+            });
+        });
+    }
+});
+
+/* ============================================
+   MANEJO DE ERRORES GLOBALES
+   ============================================ */
+window.addEventListener('error', (event) => {
+    console.error('Error global capturado:', event.error);
+    
+    // Solo mostrar en desarrollo
+    if (window.location.hostname === 'localhost') {
+        console.error('Detalles del error:', {
+            message: event.message,
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno
+        });
+    }
+});
+
+/* ============================================
+   DETECCIÓN DE CONEXIÓN
+   ============================================ */
+window.addEventListener('online', () => {
+    console.log('✅ Conexión restaurada');
+});
+
+window.addEventListener('offline', () => {
+    console.log('❌ Sin conexión a internet');
+    Swal.fire({
+        icon: 'warning',
+        title: 'Sin conexión',
+        text: 'Verifica tu conexión a internet para continuar',
+        confirmButtonText: 'Entendido'
+    });
 });
