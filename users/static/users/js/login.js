@@ -395,35 +395,36 @@ class LoginManager {
 
     /**
      * Maneja respuesta exitosa del login.
-     * Sistema simple: guarda/actualiza/borra SOLO el último username según "recordarme".
-     * SIN dropdown, SIN lista de recientes - solo el último usuario guardado.
+     * Sistema simple: guarda/actualiza/borra EXACTAMENTE lo que el usuario escribió.
+     * SIN dropdown, SIN lista de recientes - solo el último valor ingresado.
      */
     async handleLoginResponse(result) {
         if (result.success) {
-            // Guardar información del usuario logueado
-            const newUsername = result.user?.username || this.usernameInput.value.trim();
-            const previousUsername = localStorage.getItem(this.cacheKeys.username);
+            // Guardar EXACTAMENTE lo que el usuario escribió en el campo
+            // (puede ser username, email, teléfono, etc.)
+            const inputValue = this.usernameInput.value.trim();
+            const previousValue = localStorage.getItem(this.cacheKeys.username);
             
             // Guardar timestamp del último login
             localStorage.setItem(this.cacheKeys.lastLogin, Date.now().toString());
 
-            // Si "recordarme" está marcado: guardar SOLO el último username
+            // Si "recordarme" está marcado: guardar el valor ingresado
             if (result.remember_me) {
-                // Log de cambio de usuario si es diferente
-                if (previousUsername && previousUsername !== newUsername) {
-                    console.log(`🔄 Actualizando: '${previousUsername}' → '${newUsername}'`);
+                // Log de cambio si es diferente
+                if (previousValue && previousValue !== inputValue) {
+                    console.log(`🔄 Actualizando: '${previousValue}' → '${inputValue}'`);
                 }
                 
-                // GUARDAR: establecer el nuevo username como único valor
-                localStorage.setItem(this.cacheKeys.username, newUsername);
+                // GUARDAR: establecer el valor ingresado como único valor
+                localStorage.setItem(this.cacheKeys.username, inputValue);
                 this.saveUserPreference('rememberMe', true);
                 
-                console.log(`✅ Usuario guardado: ${newUsername}`);
+                console.log(`✅ Valor guardado: ${inputValue}`);
             } else {
                 // "Recordarme" NO está activo: limpiar TODO
                 console.log(`🗑️ Recordarme desactivado, limpiando cache`);
                 
-                // LIMPIAR: eliminar username permanente guardado
+                // LIMPIAR: eliminar valor permanente guardado
                 localStorage.removeItem(this.cacheKeys.username);
                 this.saveUserPreference('rememberMe', false);
             }
