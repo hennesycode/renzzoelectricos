@@ -128,13 +128,18 @@ class LoginManager {
      */
     setupAutoComplete() {
         // Lista de usuarios recientes para autocompletado
+        const userPrefs = this.getUserPreferences();
         const recentUsers = this.getRecentUsers();
-        
-        if (recentUsers.length > 0) {
-            this.createAutoCompleteDropdown(recentUsers);
+
+        // Si el usuario indicó "recordarme", preferimos usar el único
+        // username guardado y NO mostrar el dropdown de recientes.
+        if (!userPrefs.rememberMe) {
+            if (recentUsers.length > 0) {
+                this.createAutoCompleteDropdown(recentUsers);
+            }
         }
-        
-        // Detectar email vs username
+
+        // Detectar email vs username (siempre útil)
         this.usernameInput.addEventListener('input', (e) => {
             const value = e.target.value;
             if (value.includes('@')) {
@@ -238,7 +243,14 @@ class LoginManager {
     saveTempUsername() {
         const username = this.usernameInput.value.trim();
         if (username.length >= 3) {
-            localStorage.setItem(this.cacheKeys.username, username);
+            // Guardar temporalmente SOLO si el usuario tiene activa la
+            // preferencia 'rememberMe'. Evita sobreescribir el valor
+            // permanente sin que el usuario confirme el login con la
+            // palomilla marcada.
+            const prefs = this.getUserPreferences();
+            if (prefs.rememberMe) {
+                localStorage.setItem(this.cacheKeys.username, username);
+            }
         }
     }
 
@@ -286,17 +298,27 @@ class LoginManager {
      */
     saveRecentUser(username) {
         try {
+            // Si el usuario tiene activa la preferencia 'rememberMe', no
+            // mantenemos una lista de recientes: guardamos el único
+            // username y eliminamos la lista previa.
+            const prefs = this.getUserPreferences();
+            if (prefs.rememberMe) {
+                localStorage.setItem(this.cacheKeys.username, username);
+                localStorage.removeItem('renzzoelectricos_recent_users');
+                return;
+            }
+
             let recent = this.getRecentUsers();
-            
+
             // Remover si ya existe
             recent = recent.filter(u => u !== username);
-            
+
             // Agregar al principio
             recent.unshift(username);
-            
+
             // Mantener solo los últimos 5
             recent = recent.slice(0, 5);
-            
+
             localStorage.setItem('renzzoelectricos_recent_users', JSON.stringify(recent));
         } catch (error) {
             console.warn('Error al guardar usuario reciente:', error);
@@ -465,19 +487,22 @@ class LoginManager {
         if (result.success) {
             // Guardar información del usuario logueado
             const username = result.user?.username || this.usernameInput.value.trim();
-            
-            // Guardar en usuarios recientes
-            this.saveRecentUser(username);
-            
             // Guardar timestamp del último login
             localStorage.setItem(this.cacheKeys.lastLogin, Date.now().toString());
-            
-            // Si "recordarme" está marcado, guardar username permanentemente
+
+            // Si "recordarme" está marcado, guardar SOLO el último username
+            // en el cache y eliminar la lista de recientes; si no, mantener
+            // la lista de recientes para autocompletado.
             if (result.remember_me) {
+                // Guardar el último username como único valor cacheado
                 localStorage.setItem(this.cacheKeys.username, username);
+                // Borrar la lista de recientes para evitar dropdown con valores anteriores
+                localStorage.removeItem('renzzoelectricos_recent_users');
                 this.saveUserPreference('rememberMe', true);
             } else {
-                // Si no, limpiar datos guardados
+                // Guardar en usuarios recientes (solo si NO está recordarme)
+                this.saveRecentUser(username);
+                // Si no quiere ser recordado, eliminar el username permanente
                 localStorage.removeItem(this.cacheKeys.username);
                 this.saveUserPreference('rememberMe', false);
             }
