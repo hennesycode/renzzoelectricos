@@ -1,8 +1,22 @@
 # 🔌 Renzzo Eléctricos - Sistema de Gestión Empresarial
 
-Sistema de gestión empresarial completo desarrollado con **Django 5.2.7** y **Django Oscar** para Renzzo Eléctricos en **Villavicencio, Meta - Colombia**.
+Sistema de gestión empresarial completo desarrollado con **Django 5.2.7** y **Django Oscar** para Renzzo Eléctricos en **Villavicencio, Meta - Colombia**.1. **🛒 Dashboard Oscar Oficial**: Redirección a `/shop/dashboard/` con TODAS las funcionalidades
+2. **🔧 Template Syntax Fixed**: `user.has_perm()` → `user.is_staff`
+3. **🔧 Auto Logout**: Usuario autenticado en `/login/` se desloguea automáticamente
+4. **🧹 Proyecto Limpio**: Eliminados archivos basura y dashboard personalizado
 
-[![Django](https://img.shields.io/badge/Django-5.2.7-green.svg)](https://www.djangoproject.com/)
+### Flujo de Login FINAL - Django Oscar
+1. **Login Form**: `/login/` - Formulario AJAX responsive
+2. **Auto Logout**: Si usuario logueado accede a login → logout automático
+3. **Redirección**: Post-login → **`/shop/dashboard/` (Django Oscar Dashboard completo)**
+4. **E-commerce Dashboard**: Productos, pedidos, usuarios, ofertas, reportes, etc.
+
+### URLs Principales ✅ Django Oscar Funcionando
+- 🏠 **Home**: `http://127.0.0.1:8000/` (Landing page)
+- 🔑 **Login**: `http://127.0.0.1:8000/login/` (AJAX + auto logout)
+- 🛒 **Oscar Shop**: `http://127.0.0.1:8000/shop/` (E-commerce frontend)
+- 📊 **Oscar Dashboard**: `http://127.0.0.1:8000/shop/dashboard/` ⭐ **PRINCIPAL**
+- ⚙️ **Django Admin**: `http://127.0.0.1:8000/admin/` (auxiliar)ps://img.shields.io/badge/Django-5.2.7-green.svg)](https://www.djangoproject.com/)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0%2B-orange.svg)](https://www.mysql.com/)
 
@@ -48,7 +62,12 @@ DATABASE_USER=root
 DATABASE_PASSWORD=tu_contraseña
 ```
 
-### 3. Base de Datos y Servidor
+### 3. Dependencias Django Oscar
+```bash
+pip install django-environ django-oscar django-extensions sorl-thumbnail whitenoise
+```
+
+### 4. Base de Datos y Servidor
 ```bash
 # MySQL
 CREATE DATABASE renzzoelectricos CHARACTER SET utf8mb4;
@@ -196,11 +215,34 @@ python manage.py shell
 - Sistema de 6 roles con permisos avanzados
 - Landing page moderna (diseño verde oscuro)
 - Login AJAX con SweetAlert2
-- Integración Django Oscar completa
+- **Integración Django Oscar completa** con dashboard en `/shop/`
+- **Flujo de Login Corregido**: Redirección automática al e-commerce
+- Template syntax errors resueltos (`user.has_perm` → `user.is_staff`)
 - Localización Villavicencio, Meta
 - Estructura organizada (Django best practices)
 - Archivos CSS/JS separados y documentados
 - README consolidado y docs/ técnicos
+
+## 🔐 Sistema de Login
+
+### ✅ Correcciones Aplicadas (Noviembre 2025)
+1. **🔧 Template Syntax Fixed**: `user.has_perm()` → `user.is_staff`
+2. **🔧 Login Redirect**: Automática al panel `/admin/` funcionando
+3. **🔧 Auto Logout**: Usuario autenticado en `/login/` se desloguea automáticamente
+4. **🔧 Error Handling**: TemplateSyntaxError completamente resuelto
+
+### Flujo de Login Actual
+1. **Login Form**: `/login/` - Formulario AJAX responsive
+2. **Auto Logout**: Si usuario logueado accede a login → logout automático
+3. **Redirección**: Post-login → `/admin/` (Django admin panel)
+4. **Template Syntax**: Sin errores, usando `user.is_staff` correctamente
+5. **Dashboard**: `/dashboard/` funcional para todos los usuarios
+
+### URLs Principales ✅ Funcionando
+- 🏠 **Home**: `http://127.0.0.1:8000/` (200 OK)
+- 🔑 **Login**: `http://127.0.0.1:8000/login/` (200 OK + auto logout)
+- � **Dashboard**: `http://127.0.0.1:8000/dashboard/` (200 OK)
+- ⚙️ **Admin**: `http://127.0.0.1:8000/admin/` (post-login redirect)
 
 ---
 

@@ -20,7 +20,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.conf.urls.i18n import i18n_patterns
 from django.views.generic import RedirectView
-from django.apps import apps
 from app.Http.views import home_view
 
 urlpatterns = [
@@ -30,14 +29,17 @@ urlpatterns = [
     path('i18n/', include('django.conf.urls.i18n')),
 ]
 
-# Incluir URLs de Oscar si la app está disponible
-try:
-    from oscar.app import application as oscar_app
-    urlpatterns += [
-        path('shop/', oscar_app.urls),
-    ]
-except ImportError:
-    pass
+# Dashboard temporal - redirige al admin por ahora
+from django.shortcuts import redirect
+def temp_dashboard(request):
+    if request.user.is_staff:
+        return redirect('/admin/')
+    else:
+        return redirect('/login/')
+
+urlpatterns += [
+    path('shop/dashboard/', temp_dashboard, name='dashboard'),
+]
 
 # Servir archivos media en desarrollo
 if settings.DEBUG:

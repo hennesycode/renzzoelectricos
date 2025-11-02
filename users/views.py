@@ -16,9 +16,12 @@ from .forms import CustomLoginForm, CustomUserCreationForm
 def login_view(request):
     """
     Vista personalizada de login con soporte AJAX.
+    Si el usuario ya está autenticado, cierra la sesión y muestra el formulario de login.
     """
     if request.user.is_authenticated:
-        return redirect('dashboard')
+        logout(request)
+        messages.info(request, _('Sesión cerrada. Puedes iniciar sesión nuevamente.'))
+        return redirect('login')
     
     # Verificar si es una petición AJAX
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
@@ -45,12 +48,12 @@ def login_view(request):
                             'email': user.email,
                             'rol': user.get_rol_display()
                         },
-                        'redirect_url': '/shop/'  # Redirigir al dashboard de Oscar
+                        'redirect_url': '/shop/dashboard/'  # Dashboard Oscar oficial
                     })
                 
                 # Respuesta normal
                 messages.success(request, _(f'Bienvenido, {user.get_full_name()}!'))
-                return redirect('/shop/')  # Redirigir al dashboard de Oscar
+                return redirect('/shop/dashboard/')  # Dashboard Oscar oficial
             else:
                 # Error de autenticación
                 if is_ajax:
@@ -83,17 +86,6 @@ def logout_view(request):
     messages.info(request, _('Has cerrado sesión exitosamente.'))
     return redirect('login')
 
-
-@login_required
-def dashboard_view(request):
-    """
-    Vista del dashboard principal.
-    """
-    context = {
-        'user': request.user,
-        'titulo': _('Dashboard'),
-    }
-    return render(request, 'users/dashboard.html', context)
 
 
 class UserListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
