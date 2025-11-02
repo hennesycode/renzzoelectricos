@@ -70,7 +70,28 @@ class LoginManager {
         
         // Manejar cambios en "recordarme"
         this.rememberCheckbox.addEventListener('change', (e) => {
-            this.saveUserPreference('rememberMe', e.target.checked);
+            const isChecked = e.target.checked;
+            this.saveUserPreference('rememberMe', isChecked);
+            
+            // Eliminar o crear dropdown según el estado de "recordarme"
+            const existingDropdown = this.usernameInput.parentElement.querySelector('.autocomplete-dropdown');
+            
+            if (isChecked) {
+                // Si marca "recordarme", eliminar dropdown de recientes
+                if (existingDropdown) {
+                    existingDropdown.remove();
+                    console.log('🗑️ Dropdown eliminado (recordarme activado)');
+                }
+            } else {
+                // Si desmarca "recordarme", crear dropdown si hay recientes
+                if (!existingDropdown) {
+                    const recentUsers = this.getRecentUsers();
+                    if (recentUsers.length > 0) {
+                        this.createAutoCompleteDropdown(recentUsers);
+                        console.log('✅ Dropdown creado (recordarme desactivado)');
+                    }
+                }
+            }
         });
     }
 
@@ -141,19 +162,45 @@ class LoginManager {
     }
 
     /**
-     * Configura autocompletado inteligente
+     * Configura autocompletado inteligente.
+     * SOLO se activa cuando "recordarme" NO está marcado.
      */
     setupAutoComplete() {
-        // Lista de usuarios recientes para autocompletado
+        // Verificar preferencias del usuario
         const userPrefs = this.getUserPreferences();
         const recentUsers = this.getRecentUsers();
 
-        // Si el usuario indicó "recordarme", preferimos usar el único
-        // username guardado y NO mostrar el dropdown de recientes.
-        if (!userPrefs.rememberMe) {
-            if (recentUsers.length > 0) {
-                this.createAutoCompleteDropdown(recentUsers);
+        // Si "recordarme" está activo, NO crear dropdown ni listeners
+        // El usuario quiere ver SOLO su username guardado, sin opciones
+        if (userPrefs.rememberMe) {
+            console.log('ℹ️ Autocompletado desactivado (recordarme activo)');
+            
+            // Limpiar cualquier dropdown existente
+            const existingDropdown = this.usernameInput.parentElement.querySelector('.autocomplete-dropdown');
+            if (existingDropdown) {
+                existingDropdown.remove();
+                console.log('🗑️ Dropdown existente eliminado');
             }
+            
+            // Solo mantener el listener de detección de email vs username
+            this.usernameInput.addEventListener('input', (e) => {
+                const value = e.target.value;
+                if (value.includes('@')) {
+                    this.usernameInput.setAttribute('type', 'email');
+                    this.usernameInput.setAttribute('placeholder', 'Ingrese su email');
+                } else {
+                    this.usernameInput.setAttribute('type', 'text');
+                    this.usernameInput.setAttribute('placeholder', 'Ingrese su usuario o email');
+                }
+            });
+            
+            return; // Salir sin crear dropdown
+        }
+
+        // Si "recordarme" NO está activo y hay recientes, crear dropdown
+        if (recentUsers.length > 0) {
+            console.log(`✅ Autocompletado activado con ${recentUsers.length} usuarios recientes`);
+            this.createAutoCompleteDropdown(recentUsers);
         }
 
         // Detectar email vs username (siempre útil)
