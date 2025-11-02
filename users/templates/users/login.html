@@ -38,35 +38,45 @@
             <form id="loginForm" action="{% url 'login' %}" method="POST">
                 {% csrf_token %}
                 
+                {% if form.errors %}
+                    <div class="error-messages">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <div class="error-message">{{ error }}</div>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
                 <div class="form-group">
-                    <label for="username" class="form-label">Usuario</label>
-                    <input 
-                        type="text" 
-                        id="username" 
-                        name="username" 
-                        class="form-control" 
-                        placeholder="Ingresa tu usuario"
-                        required
-                        autocomplete="username"
-                    >
+                    <label for="{{ form.username.id_for_label }}" class="form-label">{{ form.username.label }}</label>
+                    {{ form.username }}
+                    {% if form.username.errors %}
+                        <div class="field-errors">
+                            {% for error in form.username.errors %}
+                                <span class="field-error">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
                 
                 <div class="form-group">
-                    <label for="password" class="form-label">Contraseña</label>
-                    <input 
-                        type="password" 
-                        id="password" 
-                        name="password" 
-                        class="form-control" 
-                        placeholder="Ingresa tu contraseña"
-                        required
-                        autocomplete="current-password"
-                    >
+                    <label for="{{ form.password.id_for_label }}" class="form-label">{{ form.password.label }}</label>
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                        <div class="field-errors">
+                            {% for error in form.password.errors %}
+                                <span class="field-error">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
                 
-                <div class="checkbox-group">
-                    <input type="checkbox" id="remember" name="remember">
-                    <label for="remember">Recordarme</label>
+                <div class="form-check">
+                    {{ form.remember_me }}
+                    <label for="{{ form.remember_me.id_for_label }}" class="form-check-label">
+                        {{ form.remember_me.label }}
+                    </label>
                 </div>
                 
                 <button type="submit" class="btn-login" id="loginButton">
@@ -74,12 +84,18 @@
                         <path d="M10 17l5-5-5-5v10z"/>
                         <path d="M3 3h8v2H5v14h6v2H3V3zm16 0v18h-2V3h2z"/>
                     </svg>
-                    Iniciar Sesión
+                    <span class="btn-text">Iniciar Sesión</span>
+                    <span class="loading-spinner" style="display: none;">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        Iniciando...
+                    </span>
                 </button>
             </form>
             
             <!-- Enlaces -->
-            <a href="{% url 'home' %}" class="back-link">← Volver al inicio</a>
+            <a href="/" class="back-link">← Volver al inicio</a>
         </div>
     </div>
     

@@ -40,11 +40,11 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/shop/dashboard/">
-                            <i class="bi bi-speedometer2"></i> Dashboard Oscar
+                        <a class="nav-link" href="{% url 'dashboard' %}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
                         </a>
                     </li>
-                    {% if user.is_staff %}
+                    {% if user.has_perm('users.can_manage_users') %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'user_list' %}">
                             <i class="bi bi-people"></i> Usuarios

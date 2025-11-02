@@ -180,23 +180,26 @@ body::before {
 }
 
 /* ============================================
-   CHECKBOX
+   CHECKBOX Y FORM-CHECK
    ============================================ */
-.checkbox-group {
+.checkbox-group,
+.form-check {
     display: flex;
     align-items: center;
     gap: 10px;
     margin-bottom: 28px;
 }
 
-.checkbox-group input[type="checkbox"] {
+.checkbox-group input[type="checkbox"],
+.form-check-input {
     width: 20px;
     height: 20px;
     cursor: pointer;
     accent-color: #10d98b;
 }
 
-.checkbox-group label {
+.checkbox-group label,
+.form-check-label {
     font-size: 0.9rem;
     color: #666;
     cursor: pointer;
@@ -479,4 +482,61 @@ body::before {
 .form-control.success {
     border-color: #10d98b;
     box-shadow: 0 0 0 4px rgba(16, 217, 139, 0.1);
+}
+
+/* ============================================
+   MENSAJES DE ERROR
+   ============================================ */
+.error-messages {
+    background: #ffe6e6;
+    border: 1px solid #ffb3b3;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+}
+
+.error-message {
+    color: #d63384;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.error-message:last-child {
+    margin-bottom: 0;
+}
+
+.field-errors {
+    margin-top: 5px;
+}
+
+.field-error {
+    display: block;
+    color: #d63384;
+    font-size: 0.85rem;
+    margin-bottom: 3px;
+}
+
+.field-error:last-child {
+    margin-bottom: 0;
+}
+
+/* ============================================
+   LOADING SPINNER EN BOTÓN
+   ============================================ */
+.loading-spinner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.loading-spinner svg {
+    animation: spin 0.8s linear infinite;
+}
+
+.btn-login:disabled .btn-text {
+    display: none;
+}
+
+.btn-login:disabled .loading-spinner {
+    display: flex !important;
 }

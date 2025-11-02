@@ -20,25 +20,24 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.conf.urls.i18n import i18n_patterns
 from django.views.generic import RedirectView
+from django.apps import apps
 from app.Http.views import home_view
 
 urlpatterns = [
-    path('', home_view, name='home'),
-    path('admin/', admin.site.urls),
-    path('', include('users.urls')),
     path('i18n/', include('django.conf.urls.i18n')),
-]
-
-# Dashboard temporal - redirige al admin por ahora
-from django.shortcuts import redirect
-def temp_dashboard(request):
-    if request.user.is_staff:
-        return redirect('/admin/')
-    else:
-        return redirect('/login/')
-
-urlpatterns += [
-    path('shop/dashboard/', temp_dashboard, name='dashboard'),
+    
+    # El admin de Django (no es la interfaz principal de Oscar)
+    path('admin/', admin.site.urls),
+    
+    # URLs de usuarios (login, registro, etc.) - ANTES que Oscar
+    path('accounts/', include('users.urls')),
+    
+    # Página de inicio personalizada - ANTES que Oscar
+    path('', home_view, name='home_custom'),
+    path('home/', home_view, name='home_alt'),
+    
+    # URLs de Oscar (incluye el dashboard y la tienda)
+    path('', include(apps.get_app_config('oscar').urls[0])),
 ]
 
 # Servir archivos media en desarrollo

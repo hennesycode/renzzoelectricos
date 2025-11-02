@@ -263,8 +263,18 @@ AUTHENTICATION_BACKENDS = (
 
 # URLs de login/logout
 LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/'
+# Los usuarios staff van al dashboard, los clientes al perfil - esto se maneja en la vista
+LOGIN_REDIRECT_URL = '/accounts/profile/'  # Por defecto al perfil de cliente
 LOGOUT_REDIRECT_URL = '/'
+
+# Configuración del pipeline de órdenes de Oscar
+OSCAR_INITIAL_ORDER_STATUS = 'Pending'
+OSCAR_INITIAL_LINE_STATUS = 'Pending'
+OSCAR_ORDER_STATUS_PIPELINE = {
+    'Pending': ('Being processed', 'Cancelled',),
+    'Being processed': ('Processed', 'Cancelled',),
+    'Cancelled': (),
+}
 
 # Configuración de sesión
 SESSION_COOKIE_AGE = 1209600  # 2 semanas

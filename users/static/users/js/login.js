@@ -1,6 +1,6 @@
 /**
  * Login Manager - Renzzo Eléctricos
- * Sistema de autenticación AJAX moderno y responsive
+ * Sistema de autenticación AJAX moderno con cache y "recordarme"
  * Optimizado para UX móvil y desktop
  */
 
@@ -11,9 +11,18 @@ class LoginManager {
     constructor() {
         this.form = document.getElementById('loginForm');
         this.loginButton = document.getElementById('loginButton');
-        this.usernameInput = document.getElementById('username');
-        this.passwordInput = document.getElementById('password');
-        this.rememberCheckbox = document.getElementById('remember');
+        
+        // Buscar inputs usando los IDs generados por Django
+        this.usernameInput = document.querySelector('input[name="username"]');
+        this.passwordInput = document.querySelector('input[name="password"]');
+        this.rememberCheckbox = document.querySelector('input[name="remember_me"]');
+        
+        // Cache keys para localStorage
+        this.cacheKeys = {
+            username: 'renzzoelectricos_saved_username',
+            lastLogin: 'renzzoelectricos_last_login',
+            userPreferences: 'renzzoelectricos_user_prefs'
+        };
         
         this.init();
     }
@@ -24,6 +33,8 @@ class LoginManager {
     init() {
         this.bindEvents();
         this.setupFormValidation();
+        this.loadCachedCredentials();
+        this.setupAutoComplete();
         console.log('Login Manager inicializado correctamente');
     }
 
@@ -37,6 +48,9 @@ class LoginManager {
         // Validación en tiempo real
         this.usernameInput.addEventListener('input', () => this.validateField(this.usernameInput));
         this.passwordInput.addEventListener('input', () => this.validateField(this.passwordInput));
+        
+        // Guardar username cuando cambia (para cache)
+        this.usernameInput.addEventListener('input', () => this.saveTempUsername());
         
         // Enter key navigation
         this.usernameInput.addEventListener('keypress', (e) => {
@@ -53,6 +67,11 @@ class LoginManager {
                 this.form.dispatchEvent(new Event('submit'));
             }
         });
+        
+        // Manejar cambios en "recordarme"
+        this.rememberCheckbox.addEventListener('change', (e) => {
+            this.saveUserPreference('rememberMe', e.target.checked);
+        });
     }
 
     /**
@@ -66,6 +85,230 @@ class LoginManager {
                 input.parentElement.classList.remove('error-shake');
             });
         });
+    }
+
+    /**
+     * Carga credenciales guardadas desde localStorage y cookies
+     */
+    loadCachedCredentials() {
+        try {
+            // Cargar desde localStorage
+            const savedUsername = localStorage.getItem(this.cacheKeys.username);
+            const userPrefs = this.getUserPreferences();
+            
+            // Cargar desde cookie (si existe)
+            const cookieUsername = this.getCookieValue('saved_username');
+            
+            // Usar cookie primero, luego localStorage
+            const usernameToLoad = cookieUsername || savedUsername;
+            
+            if (usernameToLoad) {
+                this.usernameInput.value = usernameToLoad;
+                this.usernameInput.classList.add('success');
+                
+                // Marcar "recordarme" si tiene preferencia guardada
+                if (userPrefs.rememberMe !== false) {
+                    this.rememberCheckbox.checked = true;
+                }
+                
+                // Enfocar contraseña si hay usuario guardado
+                setTimeout(() => {
+                    this.passwordInput.focus();
+                }, 100);
+            }
+            
+            console.log('✅ Credenciales cargadas desde cache');
+        } catch (error) {
+            console.warn('⚠️ Error al cargar credenciales desde cache:', error);
+        }
+    }
+
+    /**
+     * Configura autocompletado inteligente
+     */
+    setupAutoComplete() {
+        // Lista de usuarios recientes para autocompletado
+        const recentUsers = this.getRecentUsers();
+        
+        if (recentUsers.length > 0) {
+            this.createAutoCompleteDropdown(recentUsers);
+        }
+        
+        // Detectar email vs username
+        this.usernameInput.addEventListener('input', (e) => {
+            const value = e.target.value;
+            if (value.includes('@')) {
+                this.usernameInput.setAttribute('type', 'email');
+                this.usernameInput.setAttribute('placeholder', 'Ingrese su email');
+            } else {
+                this.usernameInput.setAttribute('type', 'text');
+                this.usernameInput.setAttribute('placeholder', 'Ingrese su usuario o email');
+            }
+        });
+    }
+
+    /**
+     * Crea dropdown de autocompletado
+     */
+    createAutoCompleteDropdown(users) {
+        const dropdown = document.createElement('div');
+        dropdown.className = 'autocomplete-dropdown';
+        dropdown.style.cssText = `
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        `;
+        
+        this.usernameInput.parentElement.style.position = 'relative';
+        this.usernameInput.parentElement.appendChild(dropdown);
+        
+        // Mostrar/ocultar dropdown
+        this.usernameInput.addEventListener('focus', () => {
+            this.updateAutoCompleteDropdown(dropdown, users);
+        });
+        
+        this.usernameInput.addEventListener('input', (e) => {
+            this.updateAutoCompleteDropdown(dropdown, users, e.target.value);
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (!this.usernameInput.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+    }
+
+    /**
+     * Actualiza dropdown de autocompletado
+     */
+    updateAutoCompleteDropdown(dropdown, users, filter = '') {
+        const filteredUsers = users.filter(user => 
+            user.toLowerCase().includes(filter.toLowerCase())
+        );
+        
+        if (filteredUsers.length === 0 || (filteredUsers.length === 1 && filteredUsers[0] === filter)) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        
+        dropdown.innerHTML = '';
+        filteredUsers.forEach(user => {
+            const item = document.createElement('div');
+            item.textContent = user;
+            item.style.cssText = `
+                padding: 12px 16px;
+                cursor: pointer;
+                border-bottom: 1px solid #f0f0f0;
+                transition: background 0.2s;
+            `;
+            
+            item.addEventListener('mouseenter', () => {
+                item.style.background = '#f8f9fa';
+            });
+            
+            item.addEventListener('mouseleave', () => {
+                item.style.background = 'white';
+            });
+            
+            item.addEventListener('click', () => {
+                this.usernameInput.value = user;
+                this.usernameInput.classList.add('success');
+                dropdown.style.display = 'none';
+                this.passwordInput.focus();
+            });
+            
+            dropdown.appendChild(item);
+        });
+        
+        dropdown.style.display = 'block';
+    }
+
+    /**
+     * Guarda username temporalmente mientras el usuario escribe
+     */
+    saveTempUsername() {
+        const username = this.usernameInput.value.trim();
+        if (username.length >= 3) {
+            localStorage.setItem(this.cacheKeys.username, username);
+        }
+    }
+
+    /**
+     * Guarda preferencias de usuario
+     */
+    saveUserPreference(key, value) {
+        try {
+            let prefs = this.getUserPreferences();
+            prefs[key] = value;
+            localStorage.setItem(this.cacheKeys.userPreferences, JSON.stringify(prefs));
+        } catch (error) {
+            console.warn('Error al guardar preferencias:', error);
+        }
+    }
+
+    /**
+     * Obtiene preferencias de usuario
+     */
+    getUserPreferences() {
+        try {
+            const prefs = localStorage.getItem(this.cacheKeys.userPreferences);
+            return prefs ? JSON.parse(prefs) : {};
+        } catch (error) {
+            console.warn('Error al obtener preferencias:', error);
+            return {};
+        }
+    }
+
+    /**
+     * Obtiene usuarios recientes
+     */
+    getRecentUsers() {
+        try {
+            const recent = localStorage.getItem('renzzoelectricos_recent_users');
+            return recent ? JSON.parse(recent) : [];
+        } catch (error) {
+            console.warn('Error al obtener usuarios recientes:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Guarda usuario en la lista de recientes
+     */
+    saveRecentUser(username) {
+        try {
+            let recent = this.getRecentUsers();
+            
+            // Remover si ya existe
+            recent = recent.filter(u => u !== username);
+            
+            // Agregar al principio
+            recent.unshift(username);
+            
+            // Mantener solo los últimos 5
+            recent = recent.slice(0, 5);
+            
+            localStorage.setItem('renzzoelectricos_recent_users', JSON.stringify(recent));
+        } catch (error) {
+            console.warn('Error al guardar usuario reciente:', error);
+        }
+    }
+
+    /**
+     * Obtiene valor de cookie
+     */
+    getCookieValue(name) {
+        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? decodeURIComponent(match[2]) : null;
     }
 
     /**
@@ -99,10 +342,14 @@ class LoginManager {
      * Obtiene datos del formulario
      */
     getFormData() {
+        const username = this.usernameInput.value.trim();
+        const password = this.passwordInput.value;
+        const remember = this.rememberCheckbox.checked;
+        
         return {
-            username: this.usernameInput.value.trim(),
-            password: this.passwordInput.value,
-            remember: this.rememberCheckbox.checked,
+            username: username,
+            password: password,
+            remember_me: remember, // Cambiar a remember_me para coincidir con Django
             csrfToken: document.querySelector('[name=csrfmiddlewaretoken]').value
         };
     }
@@ -185,8 +432,13 @@ class LoginManager {
      * Envía petición de login
      */
     async sendLoginRequest(data) {
-        const response = await fetch('/login/', {
+        // Incluir credenciales same-origin para que el navegador acepte
+        // la cabecera Set-Cookie que el servidor devuelve en respuesta AJAX.
+        // Sin esto, la cookie 'saved_username' no se actualizará cuando
+        // usamos fetch para autenticación AJAX y el valor anterior se mantiene.
+        const response = await fetch('/accounts/login/', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-CSRFToken': data.csrfToken,
@@ -195,7 +447,7 @@ class LoginManager {
             body: new URLSearchParams({
                 'username': data.username,
                 'password': data.password,
-                'remember': data.remember ? 'on' : ''
+                'remember_me': data.remember_me ? 'on' : ''
             })
         });
         
@@ -211,6 +463,25 @@ class LoginManager {
      */
     async handleLoginResponse(result) {
         if (result.success) {
+            // Guardar información del usuario logueado
+            const username = result.user?.username || this.usernameInput.value.trim();
+            
+            // Guardar en usuarios recientes
+            this.saveRecentUser(username);
+            
+            // Guardar timestamp del último login
+            localStorage.setItem(this.cacheKeys.lastLogin, Date.now().toString());
+            
+            // Si "recordarme" está marcado, guardar username permanentemente
+            if (result.remember_me) {
+                localStorage.setItem(this.cacheKeys.username, username);
+                this.saveUserPreference('rememberMe', true);
+            } else {
+                // Si no, limpiar datos guardados
+                localStorage.removeItem(this.cacheKeys.username);
+                this.saveUserPreference('rememberMe', false);
+            }
+            
             // Marcar campos como exitosos
             this.usernameInput.classList.add('success');
             this.passwordInput.classList.add('success');
@@ -219,7 +490,7 @@ class LoginManager {
             await Swal.fire({
                 icon: 'success',
                 title: '¡Bienvenido!',
-                text: `Hola ${result.user?.username || 'Usuario'}, accediendo al sistema...`,
+                text: `Hola ${result.user?.full_name || result.user?.username || 'Usuario'}, accediendo al sistema...`,
                 timer: 2000,
                 timerProgressBar: true,
                 showConfirmButton: false,
@@ -230,7 +501,8 @@ class LoginManager {
             this.redirectToApp(result.redirect_url);
         } else {
             await this.handleLoginError({
-                message: result.message || 'Credenciales incorrectas'
+                message: result.message || 'Credenciales incorrectas',
+                errors: result.errors
             });
         }
     }
@@ -269,19 +541,19 @@ class LoginManager {
     setLoadingState(loading) {
         if (loading) {
             this.loginButton.disabled = true;
-            this.loginButton.innerHTML = `
-                <div class="spinner"></div>
-                Verificando...
-            `;
+            // Usar las clases del template
+            const btnText = this.loginButton.querySelector('.btn-text');
+            const loadingSpinner = this.loginButton.querySelector('.loading-spinner');
+            
+            if (btnText) btnText.style.display = 'none';
+            if (loadingSpinner) loadingSpinner.style.display = 'flex';
         } else {
             this.loginButton.disabled = false;
-            this.loginButton.innerHTML = `
-                <svg viewBox="0 0 24 24">
-                    <path d="M10 17l5-5-5-5v10z"/>
-                    <path d="M3 3h8v2H5v14h6v2H3V3zm16 0v18h-2V3h2z"/>
-                </svg>
-                Iniciar Sesión
-            `;
+            const btnText = this.loginButton.querySelector('.btn-text');
+            const loadingSpinner = this.loginButton.querySelector('.loading-spinner');
+            
+            if (btnText) btnText.style.display = 'block';
+            if (loadingSpinner) loadingSpinner.style.display = 'none';
         }
     }
 
