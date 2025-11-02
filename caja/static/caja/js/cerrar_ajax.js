@@ -352,11 +352,16 @@ async function openCerrarModal(){
             
             // Validar distribución del dinero
             const limpiarNumero = (texto) => {
-                return texto.replace(/[^\d]/g, '');
+                if (!texto || texto === '') return '0';
+                return texto.toString().replace(/[^\d]/g, '');
             };
             
-            const dineroCajaLimpio = limpiarNumero(dineroCajaInput.value || '$ 0');
-            const dineroGuardadoLimpio = limpiarNumero(dineroGuardadoInput.value || '$ 0');
+            // Leer valores de los inputs
+            let dineroCajaValue = dineroCajaInput.value || '$ 0';
+            let dineroGuardadoValue = dineroGuardadoInput.value || '$ 0';
+            
+            const dineroCajaLimpio = limpiarNumero(dineroCajaValue);
+            const dineroGuardadoLimpio = limpiarNumero(dineroGuardadoValue);
             
             const dineroCaja = parseFloat(dineroCajaLimpio) || 0;
             const dineroGuardado = parseFloat(dineroGuardadoLimpio) || 0;
@@ -364,8 +369,8 @@ async function openCerrarModal(){
             
             // Debug: ver qué valores se están leyendo
             console.log('Debug valores:', {
-                dineroCajaInput: dineroCajaInput.value,
-                dineroGuardadoInput: dineroGuardadoInput.value,
+                dineroCajaValue,
+                dineroGuardadoValue,
                 dineroCajaLimpio,
                 dineroGuardadoLimpio,
                 dineroCaja,
