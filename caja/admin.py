@@ -123,7 +123,12 @@ class CajaRegistradoraAdmin(admin.ModelAdmin):
     def monto_inicial_fmt(self, obj):
         """Formatea el monto inicial."""
         try:
-            return format_html('${:,.0f}', float(obj.monto_inicial))
+            monto = obj.monto_inicial
+            if isinstance(monto, str):
+                monto = float(monto)
+            else:
+                monto = float(monto)
+            return format_html('${:,.0f}', monto)
         except (ValueError, TypeError, AttributeError) as e:
             return format_html('<span style="color: red;">Error: {}</span>', str(e))
     monto_inicial_fmt.short_description = 'Monto Inicial'
@@ -133,7 +138,12 @@ class CajaRegistradoraAdmin(admin.ModelAdmin):
         """Formatea el monto final declarado."""
         try:
             if obj.monto_final_declarado:
-                return format_html('${:,.0f}', float(obj.monto_final_declarado))
+                monto = obj.monto_final_declarado
+                if isinstance(monto, str):
+                    monto = float(monto)
+                else:
+                    monto = float(monto)
+                return format_html('${:,.0f}', monto)
             return '-'
         except (ValueError, TypeError, AttributeError) as e:
             return format_html('<span style="color: red;">Error: {}</span>', str(e))
@@ -144,7 +154,12 @@ class CajaRegistradoraAdmin(admin.ModelAdmin):
         """Formatea el monto final del sistema."""
         try:
             if obj.monto_final_sistema:
-                return format_html('${:,.0f}', float(obj.monto_final_sistema))
+                monto = obj.monto_final_sistema
+                if isinstance(monto, str):
+                    monto = float(monto)
+                else:
+                    monto = float(monto)
+                return format_html('${:,.0f}', monto)
             return '-'
         except (ValueError, TypeError, AttributeError) as e:
             return format_html('<span style="color: red;">Error: {}</span>', str(e))
@@ -155,11 +170,16 @@ class CajaRegistradoraAdmin(admin.ModelAdmin):
         """Formatea la diferencia con color."""
         try:
             if obj.diferencia is not None:
-                color = 'red' if obj.diferencia < 0 else ('green' if obj.diferencia > 0 else 'gray')
+                diferencia = obj.diferencia
+                if isinstance(diferencia, str):
+                    diferencia = float(diferencia)
+                else:
+                    diferencia = float(diferencia)
+                color = 'red' if diferencia < 0 else ('green' if diferencia > 0 else 'gray')
                 return format_html(
                     '<span style="color: {}; font-weight: bold;">${:,.0f}</span>',
                     color,
-                    float(obj.diferencia)
+                    diferencia
                 )
             return '-'
         except (ValueError, TypeError, AttributeError) as e:
@@ -204,8 +224,13 @@ class CajaRegistradoraAdmin(admin.ModelAdmin):
             total = obj.movimientos.filter(tipo='INGRESO').aggregate(
                 total=Sum('monto')
             )['total'] or Decimal('0.00')
-            return format_html('${:,.0f}', float(total))
-        except Exception as e:
+            # Asegurar conversión correcta
+            if isinstance(total, str):
+                total = float(total)
+            else:
+                total = float(total)
+            return format_html('${:,.0f}', total)
+        except (ValueError, TypeError, AttributeError) as e:
             return format_html('<span style="color: red;">Error: {}</span>', str(e))
     total_ingresos.short_description = 'Total Ingresos'
     
@@ -217,8 +242,13 @@ class CajaRegistradoraAdmin(admin.ModelAdmin):
             total = obj.movimientos.filter(tipo='EGRESO').aggregate(
                 total=Sum('monto')
             )['total'] or Decimal('0.00')
-            return format_html('${:,.0f}', float(total))
-        except Exception as e:
+            # Asegurar conversión correcta
+            if isinstance(total, str):
+                total = float(total)
+            else:
+                total = float(total)
+            return format_html('${:,.0f}', total)
+        except (ValueError, TypeError, AttributeError) as e:
             return format_html('<span style="color: red;">Error: {}</span>', str(e))
     total_egresos.short_description = 'Total Egresos'
 
@@ -305,11 +335,16 @@ class MovimientoCajaAdmin(admin.ModelAdmin):
         try:
             color = 'green' if obj.tipo == 'INGRESO' else 'red'
             signo = '+' if obj.tipo == 'INGRESO' else '-'
+            monto = obj.monto
+            if isinstance(monto, str):
+                monto = float(monto)
+            else:
+                monto = float(monto)
             return format_html(
                 '<span style="color: {}; font-weight: bold;">{} ${:,.0f}</span>',
                 color,
                 signo,
-                float(obj.monto)
+                monto
             )
         except (ValueError, TypeError, AttributeError) as e:
             return format_html('<span style="color: red;">Error: {}</span>', str(e))
@@ -386,9 +421,15 @@ class DenominacionMonedaAdmin(admin.ModelAdmin):
     def valor_fmt(self, obj):
         """Formatea el valor."""
         try:
-            return format_html('${:,.0f}', float(obj.valor))
-        except (ValueError, TypeError):
-            return format_html('<span style="color: red;">Error: {}</span>', obj.valor)
+            # Asegurar que valor sea un número
+            valor = obj.valor
+            if isinstance(valor, str):
+                valor = float(valor)
+            else:
+                valor = float(valor)
+            return format_html('${:,.0f}', valor)
+        except (ValueError, TypeError, AttributeError) as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     valor_fmt.short_description = 'Valor'
     valor_fmt.admin_order_field = 'valor'
     
@@ -434,7 +475,13 @@ class DetalleConteoInline(admin.TabularInline):
     def subtotal_fmt(self, obj):
         """Muestra el subtotal formateado."""
         try:
-            return format_html('${:,.0f}', float(obj.subtotal))
+            # Asegurar que subtotal sea un número
+            subtotal = obj.subtotal
+            if isinstance(subtotal, str):
+                subtotal = float(subtotal)
+            else:
+                subtotal = float(subtotal)
+            return format_html('${:,.0f}', subtotal)
         except (ValueError, TypeError, AttributeError) as e:
             return format_html('<span style="color: red;">Error: {}</span>', str(e))
     subtotal_fmt.short_description = 'Subtotal'
@@ -533,7 +580,13 @@ class ConteoEfectivoAdmin(admin.ModelAdmin):
     def total_fmt(self, obj):
         """Formatea el total."""
         try:
-            return format_html('<strong>${:,.0f}</strong>', float(obj.total))
+            # Asegurar que total sea un número
+            total = obj.total
+            if isinstance(total, str):
+                total = float(total)
+            else:
+                total = float(total)
+            return format_html('<strong>${:,.0f}</strong>', total)
         except (ValueError, TypeError, AttributeError) as e:
             return format_html('<span style="color: red;">Error: {}</span>', str(e))
     total_fmt.short_description = 'Total Contado'
@@ -547,8 +600,13 @@ class ConteoEfectivoAdmin(admin.ModelAdmin):
             total = obj.detalles.aggregate(
                 total=Sum('subtotal')
             )['total'] or Decimal('0.00')
-            return format_html('${:,.0f}', float(total))
-        except Exception as e:
+            # Asegurar conversión correcta
+            if isinstance(total, str):
+                total = float(total)
+            else:
+                total = float(total)
+            return format_html('${:,.0f}', total)
+        except (ValueError, TypeError, AttributeError) as e:
             return format_html('<span style="color: red;">Error: {}</span>', str(e))
     total_calculado.short_description = 'Total Calculado (desde detalles)'
 
@@ -583,13 +641,21 @@ class DetalleConteoAdmin(admin.ModelAdmin):
     def conteo_info(self, obj):
         """Muestra información del conteo."""
         try:
+            # Usar comparación directa en lugar de get_tipo_conteo_display()
+            if obj.conteo.tipo_conteo == 'APERTURA':
+                tipo_display = 'Apertura'
+            elif obj.conteo.tipo_conteo == 'CIERRE':
+                tipo_display = 'Cierre'
+            else:
+                tipo_display = obj.conteo.tipo_conteo
+                
             return format_html(
                 'Conteo #{} - {}<br><small>Caja #{}</small>',
                 obj.conteo.id,
-                obj.conteo.get_tipo_conteo_display(),
+                tipo_display,
                 obj.conteo.caja.id
             )
-        except Exception as e:
+        except (AttributeError, ValueError, TypeError) as e:
             return format_html('<span style="color: red;">Error: {}</span>', str(e))
     conteo_info.short_description = 'Conteo'
     
@@ -597,12 +663,18 @@ class DetalleConteoAdmin(admin.ModelAdmin):
         """Formatea la denominación."""
         try:
             icon = '💵' if obj.denominacion.tipo == 'BILLETE' else '🪙'
+            # Asegurar que valor sea un número
+            valor = obj.denominacion.valor
+            if isinstance(valor, str):
+                valor = float(valor)
+            else:
+                valor = float(valor)
             return format_html(
                 '{} ${:,.0f}',
                 icon,
-                float(obj.denominacion.valor)
+                valor
             )
-        except Exception as e:
+        except (AttributeError, ValueError, TypeError) as e:
             return format_html('<span style="color: red;">Error: {}</span>', str(e))
     denominacion_fmt.short_description = 'Denominación'
     denominacion_fmt.admin_order_field = 'denominacion__valor'
@@ -610,7 +682,13 @@ class DetalleConteoAdmin(admin.ModelAdmin):
     def subtotal_fmt(self, obj):
         """Formatea el subtotal."""
         try:
-            return format_html('<strong>${:,.0f}</strong>', float(obj.subtotal))
+            # Asegurar que subtotal sea un número
+            subtotal = obj.subtotal
+            if isinstance(subtotal, str):
+                subtotal = float(subtotal)
+            else:
+                subtotal = float(subtotal)
+            return format_html('<strong>${:,.0f}</strong>', subtotal)
         except (ValueError, TypeError, AttributeError) as e:
             return format_html('<span style="color: red;">Error: {}</span>', str(e))
     subtotal_fmt.short_description = 'Subtotal'
