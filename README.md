@@ -16,6 +16,61 @@ Sistema de gestión empresarial completo desarrollado con **Django 5.2.7** y **D
 - **Autenticación AJAX**: Login moderno con SweetAlert2
 - **Dashboard Personalizado**: Interfaz específica por rol
 
+#### 💾 Sistema "Recordarme" (Remember Me)
+Sistema avanzado de persistencia de credenciales que mantiene sincronizado el último usuario ingresado entre el cliente y el servidor.
+
+**Funcionamiento:**
+- **Cuando está ACTIVO** (`recordarme` marcado):
+  - Guarda **SOLO el último usuario/email** ingresado en:
+    - **Cookie httponly** `saved_username` (30 días, servidor → cliente)
+    - **localStorage** `renzzoelectricos_saved_username` (cliente)
+  - **Limpia automáticamente** el usuario anterior cuando ingresa uno nuevo
+  - **Elimina** la lista de usuarios recientes (sin dropdown de autocompletado)
+  - **Sesión persistente**: 30 días de duración
+  
+- **Cuando está DESACTIVADO**:
+  - **Elimina** el usuario guardado permanentemente del cache
+  - **Mantiene** una lista de hasta 5 usuarios recientes para dropdown de autocompletado
+  - **Sesión temporal**: expira al cerrar el navegador
+
+**Sincronización Automática:**
+- **Prioridad**: Cookie (servidor) > localStorage (cliente)
+- **Al cargar página**: si cookie y localStorage difieren, se sincroniza automáticamente
+- **Al hacer login AJAX**: servidor actualiza cookie → cliente acepta con `credentials: 'same-origin'` → localStorage se actualiza
+
+**Ubicación de código:**
+- Frontend: `users/static/users/js/login.js` (métodos `loadCachedCredentials`, `handleLoginResponse`, `clearRememberMeCache`)
+- Backend: `users/views.py` (vista `login_view` con lógica de Set-Cookie)
+
+**Claves de almacenamiento:**
+```javascript
+// localStorage
+renzzoelectricos_saved_username    // Usuario permanente (recordarme ON)
+renzzoelectricos_recent_users      // Lista recientes (recordarme OFF)
+renzzoelectricos_user_prefs        // Preferencias { rememberMe: true/false }
+renzzoelectricos_last_login        // Timestamp último login
+
+// Cookies (httponly, secure, samesite=Strict)
+saved_username                     // Usuario guardado (servidor)
+```
+
+**Ejemplos de flujo:**
+1. **Login con "recordarme" activo (admin → admin@renzzoelectricos.com)**:
+   ```
+   Cache antes: admin
+   Login con: admin@renzzoelectricos.com
+   Cache después: admin@renzzoelectricos.com
+   → Limpia 'admin', guarda 'admin@renzzoelectricos.com'
+   ```
+
+2. **Desactivar "recordarme"**:
+   ```
+   Cache antes: admin@renzzoelectricos.com
+   Login sin marcar recordarme
+   Cache después: [vacío]
+   Lista recientes: ['admin@renzzoelectricos.com', ...]
+   ```
+
 ### 🛒 E-commerce con Django Oscar
 - Catálogo de productos eléctricos | Carrito de compras | Gestión de pedidos | Reportes de ventas
 

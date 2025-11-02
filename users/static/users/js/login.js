@@ -88,7 +88,9 @@ class LoginManager {
     }
 
     /**
-     * Carga credenciales guardadas desde localStorage y cookies
+     * Carga credenciales guardadas desde localStorage y cookies.
+     * Sincroniza cookie (servidor) con localStorage (cliente) dando prioridad
+     * a la cookie si difieren, ya que el servidor tiene la verdad absoluta.
      */
     loadCachedCredentials() {
         try {
@@ -96,11 +98,24 @@ class LoginManager {
             const savedUsername = localStorage.getItem(this.cacheKeys.username);
             const userPrefs = this.getUserPreferences();
             
-            // Cargar desde cookie (si existe)
+            // Cargar desde cookie (si existe) - fuente de verdad del servidor
             const cookieUsername = this.getCookieValue('saved_username');
             
-            // Usar cookie primero, luego localStorage
-            const usernameToLoad = cookieUsername || savedUsername;
+            // Sincronización: cookie tiene prioridad sobre localStorage
+            let usernameToLoad = null;
+            
+            if (cookieUsername) {
+                // Cookie existe: usarla y sincronizar localStorage si difiere
+                usernameToLoad = cookieUsername;
+                if (savedUsername !== cookieUsername) {
+                    console.log(`🔄 Sincronizando cache: '${savedUsername}' → '${cookieUsername}'`);
+                    localStorage.setItem(this.cacheKeys.username, cookieUsername);
+                }
+            } else if (savedUsername) {
+                // Solo localStorage existe: usarlo pero cookie puede haber expirado
+                usernameToLoad = savedUsername;
+                console.log('⚠️ Cookie ausente, usando localStorage');
+            }
             
             if (usernameToLoad) {
                 this.usernameInput.value = usernameToLoad;
@@ -115,9 +130,11 @@ class LoginManager {
                 setTimeout(() => {
                     this.passwordInput.focus();
                 }, 100);
+                
+                console.log(`✅ Credenciales cargadas: ${usernameToLoad}`);
+            } else {
+                console.log('ℹ️ No hay credenciales guardadas');
             }
-            
-            console.log('✅ Credenciales cargadas desde cache');
         } catch (error) {
             console.warn('⚠️ Error al cargar credenciales desde cache:', error);
         }
@@ -334,6 +351,37 @@ class LoginManager {
     }
 
     /**
+     * Limpia TODOS los datos relacionados con "recordarme".
+     * Útil para resetear el sistema de cache cuando el usuario
+     * desactiva la opción o cambia de cuenta completamente.
+     */
+    clearRememberMeCache() {
+        try {
+            // Limpiar username guardado permanentemente
+            localStorage.removeItem(this.cacheKeys.username);
+            
+            // Limpiar lista de usuarios recientes (dropdown)
+            localStorage.removeItem('renzzoelectricos_recent_users');
+            
+            // Limpiar preferencias de usuario (rememberMe)
+            const prefs = this.getUserPreferences();
+            if (prefs.rememberMe !== undefined) {
+                delete prefs.rememberMe;
+                localStorage.setItem(this.cacheKeys.userPreferences, JSON.stringify(prefs));
+            }
+            
+            // Desmarcar checkbox si está visible
+            if (this.rememberCheckbox) {
+                this.rememberCheckbox.checked = false;
+            }
+            
+            console.log('🗑️ Cache de "recordarme" limpiado completamente');
+        } catch (error) {
+            console.warn('⚠️ Error al limpiar cache de recordarme:', error);
+        }
+    }
+
+    /**
      * Maneja el envío del formulario
      */
     async handleSubmit(e) {
@@ -481,30 +529,46 @@ class LoginManager {
     }
 
     /**
-     * Maneja respuesta exitosa
+     * Maneja respuesta exitosa del login.
+     * Limpia el cache anterior y guarda SOLO el último username cuando
+     * "recordarme" está activo, asegurando que siempre esté actualizado.
      */
     async handleLoginResponse(result) {
         if (result.success) {
             // Guardar información del usuario logueado
-            const username = result.user?.username || this.usernameInput.value.trim();
+            const newUsername = result.user?.username || this.usernameInput.value.trim();
+            const previousUsername = localStorage.getItem(this.cacheKeys.username);
+            
             // Guardar timestamp del último login
             localStorage.setItem(this.cacheKeys.lastLogin, Date.now().toString());
 
-            // Si "recordarme" está marcado, guardar SOLO el último username
-            // en el cache y eliminar la lista de recientes; si no, mantener
-            // la lista de recientes para autocompletado.
+            // Si "recordarme" está marcado: guardar SOLO el último username
+            // y limpiar datos anteriores para mantener siempre actualizado.
             if (result.remember_me) {
-                // Guardar el último username como único valor cacheado
-                localStorage.setItem(this.cacheKeys.username, username);
-                // Borrar la lista de recientes para evitar dropdown con valores anteriores
+                // Log de cambio de usuario si es diferente
+                if (previousUsername && previousUsername !== newUsername) {
+                    console.log(`🔄 Actualizando recordarme: '${previousUsername}' → '${newUsername}'`);
+                }
+                
+                // LIMPIAR: eliminar lista de recientes y datos antiguos
                 localStorage.removeItem('renzzoelectricos_recent_users');
+                
+                // GUARDAR: establecer el nuevo username como único valor
+                localStorage.setItem(this.cacheKeys.username, newUsername);
                 this.saveUserPreference('rememberMe', true);
+                
+                console.log(`✅ Recordarme activado para: ${newUsername}`);
             } else {
-                // Guardar en usuarios recientes (solo si NO está recordarme)
-                this.saveRecentUser(username);
-                // Si no quiere ser recordado, eliminar el username permanente
+                // "Recordarme" NO está activo: limpiar datos permanentes
+                // y guardar en lista de recientes (para autocompletado)
+                console.log(`🗑️ Recordarme desactivado, limpiando cache permanente`);
+                
+                // LIMPIAR: eliminar username permanente guardado
                 localStorage.removeItem(this.cacheKeys.username);
                 this.saveUserPreference('rememberMe', false);
+                
+                // GUARDAR: agregar a lista de recientes (dropdown)
+                this.saveRecentUser(newUsername);
             }
             
             // Marcar campos como exitosos
