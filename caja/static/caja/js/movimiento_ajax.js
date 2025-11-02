@@ -1,4 +1,6 @@
-// movimiento_ajax.js - modal para registrar nuevo movimiento vía AJAX
+// movimiento_ajax.js - Modal SIMPLIFICADO para registrar movimientos de entrada/salida
+// Solo apertura y cierre usan denominaciones de billetes y monedas
+// Los movimientos normales (INGRESO/EGRESO) usan input simple de monto
 
 function getCookie(name) {
     let cookieValue = null;
@@ -26,91 +28,84 @@ async function fetchTiposMovimiento(tipo = null){
     return [];
 }
 
-async function fetchDenominaciones(){
-    const resp = await fetch(window.CAJA_URLS.denominaciones);
+async function fetchTiposMovimiento(tipo = null){
+    let url = window.CAJA_URLS.tipos_movimiento;
+    if (tipo) {
+        url += `?tipo=${tipo}`;
+    }
+    const resp = await fetch(url);
     const data = await resp.json();
-    if (resp.ok && data.success) return data.denominaciones;
+    if (resp.ok && data.success) return data.tipos;
     return [];
 }
 
+/**
+ * Modal SIMPLIFICADO para registrar movimientos
+ * Solo pide: Categoría, Monto, Descripción y Referencia
+ * NO usa denominaciones (eso es solo para apertura/cierre)
+ */
 async function openNuevoMovimientoModal(tipoPreseleccionado = null){
     // Cargar tipos de movimiento filtrados por el tipo (INGRESO o EGRESO)
     const tipos = await fetchTiposMovimiento(tipoPreseleccionado);
-    const denoms = await fetchDenominaciones();
-    
-    // Separar y ordenar billetes y monedas
-    const billetes = denoms.filter(d => d.tipo.toUpperCase() === 'BILLETE').sort((a, b) => b.valor - a.valor);
-    const monedas = denoms.filter(d => d.tipo.toUpperCase() === 'MONEDA').sort((a, b) => b.valor - a.valor);
     
     const tipoOptions = tipos.map(t => `<option value="${t.id}">${t.nombre}</option>`).join('');
     
     // Determinar título, icono y colores según el tipo
-    let titulo, icono, confirmColor, totalIcon;
+    let titulo, icono, confirmColor, inputPlaceholder, montoLabel;
     if (tipoPreseleccionado === 'INGRESO') {
-        titulo = '💰 Registrar Entrada';
+        titulo = '💰 Registrar Entrada de Dinero';
         icono = '💵';
         confirmColor = '#5c9de2';
-        totalIcon = '💰';
+        inputPlaceholder = 'Ej: 50000';
+        montoLabel = '� Monto que Ingresa';
     } else if (tipoPreseleccionado === 'EGRESO') {
-        titulo = '💸 Registrar Salida';
+        titulo = '💸 Registrar Salida de Dinero';
         icono = '💸';
         confirmColor = '#f0d05a';
-        totalIcon = '💸';
+        inputPlaceholder = 'Ej: 25000';
+        montoLabel = '💸 Monto que Sale';
     } else {
         titulo = 'Nuevo Movimiento';
         icono = '💰';
         confirmColor = '#3085d6';
-        totalIcon = '💰';
+        inputPlaceholder = 'Ej: 100000';
+        montoLabel = '💰 Monto';
     }
 
-    let html = '<div style="text-align: left;">';
-    html += `<label class="form-label" style="font-weight: 600; margin-bottom: 8px; display: block;">Categoría</label>`;
-    html += `<select id="swal-tipo-mov" class="swal2-input" style="width: 100%; margin-bottom: 15px;">${tipoOptions}</select>`;
+    // HTML del formulario simplificado
+    let html = '<div style="text-align: left; padding: 10px;">';
+    
+    // Categoría
+    html += `<div style="margin-bottom: 20px;">`;
+    html += `<label class="form-label" style="font-weight: 600; margin-bottom: 8px; display: block; color: #333;">📋 Categoría *</label>`;
+    html += `<select id="swal-tipo-mov" class="swal2-input" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #ddd; font-size: 16px;">${tipoOptions}</select>`;
     html += '</div>';
     
-    html += '<div class="denominaciones-container" style="text-align: left;">';
+    // Monto (input simple)
+    html += `<div style="margin-bottom: 20px;">`;
+    html += `<label class="form-label" style="font-weight: 600; margin-bottom: 8px; display: block; color: #333;">${montoLabel} *</label>`;
+    html += `<input id="swal-monto" type="number" class="swal2-input" placeholder="${inputPlaceholder}" min="0" step="1000" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #ddd; font-size: 18px; font-weight: 600;">`;
+    html += '<small style="color: #666; font-size: 13px;">💡 Ingresa el valor en pesos colombianos (sin puntos ni comas)</small>';
+    html += '</div>';
     
-    // Billetes
-    if (billetes.length > 0) {
-        html += '<h4 class="denom-group">💵 Billetes</h4>';
-        html += '<div class="denom-grid">';
-        billetes.forEach(d => {
-            const valorFormateado = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(d.valor);
-            html += `
-                <div class="denom-item">
-                    <label class="denom-label">${valorFormateado}</label>
-                    <input data-denom-id="${d.id}" data-denom-valor="${d.valor}" type="number" min="0" step="1" class="denom-input" placeholder="0" value="0">
-                </div>
-            `;
-        });
-        html += '</div>';
-    }
+    // Descripción
+    html += `<div style="margin-bottom: 20px;">`;
+    html += `<label class="form-label" style="font-weight: 600; margin-bottom: 8px; display: block; color: #333;">📝 Descripción</label>`;
+    html += `<textarea id="swal-desc" class="swal2-textarea" placeholder="Describe el motivo del ${tipoPreseleccionado === 'INGRESO' ? 'ingreso' : 'egreso'}..." style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #ddd; min-height: 80px; resize: vertical;"></textarea>`;
+    html += '</div>';
     
-    // Monedas
-    if (monedas.length > 0) {
-        html += '<h4 class="denom-group">🪙 Monedas</h4>';
-        html += '<div class="denom-grid">';
-        monedas.forEach(d => {
-            const valorFormateado = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(d.valor);
-            html += `
-                <div class="denom-item">
-                    <label class="denom-label">${valorFormateado}</label>
-                    <input data-denom-id="${d.id}" data-denom-valor="${d.valor}" type="number" min="0" step="1" class="denom-input" placeholder="0" value="0">
-                </div>
-            `;
-        });
-        html += '</div>';
-    }
+    // Referencia
+    html += `<div style="margin-bottom: 10px;">`;
+    html += `<label class="form-label" style="font-weight: 600; margin-bottom: 8px; display: block; color: #333;">🔖 Referencia (opcional)</label>`;
+    html += `<input id="swal-ref" class="swal2-input" placeholder="Número de factura, recibo, etc." style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #ddd;">`;
+    html += '</div>';
     
     html += '</div>';
-    html += `<div class="swal-total">${totalIcon} Total ${tipoPreseleccionado === 'INGRESO' ? 'Entrada' : tipoPreseleccionado === 'EGRESO' ? 'Salida' : 'Movimiento'}<br><strong id="swal-total">$0</strong></div>`;
-    html += '<textarea id="swal-desc" class="swal2-textarea" placeholder="Descripción del movimiento (opcional)" style="margin-top: 10px;"></textarea>';
-    html += '<input id="swal-ref" class="swal2-input" placeholder="Referencia (opcional)" style="margin-top: 10px;">';
 
     const { value } = await Swal.fire({
         title: titulo,
         html: html,
-        width: 800,
+        width: 600,
         padding: '20px',
         focusConfirm: false,
         showCancelButton: true,
@@ -122,61 +117,34 @@ async function openNuevoMovimientoModal(tipoPreseleccionado = null){
             container: 'caja-modal-container',
             popup: 'caja-modal-popup'
         },
-        willOpen: () => {
-            const inputs = Swal.getPopup().querySelectorAll('.denom-input');
-            if (inputs && inputs.length) {
-                const totalEl = Swal.getPopup().querySelector('#swal-total');
-                const calcular = () => {
-                    let total = 0;
-                    inputs.forEach(inp => {
-                        const valor = parseFloat(inp.dataset.denomValor || 0);
-                        const cantidad = parseInt(inp.value || 0);
-                        if (!isNaN(valor) && !isNaN(cantidad) && cantidad > 0) {
-                            total += valor * cantidad;
-                        }
-                    });
-                    totalEl.textContent = new Intl.NumberFormat('es-CO', { 
-                        style: 'currency', 
-                        currency: 'COP',
-                        minimumFractionDigits: 0
-                    }).format(total);
-                };
-                inputs.forEach(i => {
-                    i.addEventListener('input', calcular);
-                    i.addEventListener('focus', function() {
-                        if (this.value === '0') this.value = '';
-                    });
-                    i.addEventListener('blur', function() {
-                        if (this.value === '') this.value = '0';
-                    });
+        didOpen: () => {
+            // Enfocar el input de monto
+            const montoInput = document.getElementById('swal-monto');
+            if (montoInput) {
+                montoInput.focus();
+                
+                // Formatear el número mientras se escribe
+                montoInput.addEventListener('input', function() {
+                    // Remover caracteres no numéricos
+                    this.value = this.value.replace(/[^0-9]/g, '');
                 });
-                calcular();
             }
         },
         preConfirm: () => {
             const tipo_mov = document.getElementById('swal-tipo-mov').value;
+            const montoInput = document.getElementById('swal-monto').value;
             const desc = document.getElementById('swal-desc').value;
             const ref = document.getElementById('swal-ref').value;
             
-            const inputs = Swal.getPopup().querySelectorAll('.denom-input');
-            let monto = 0;
-            let any = false;
-            
-            inputs.forEach(inp => {
-                const cantidad = parseInt(inp.value || 0);
-                if (!isNaN(cantidad) && cantidad > 0) {
-                    const valor = parseFloat(inp.dataset.denomValor || 0);
-                    monto += valor * cantidad;
-                    any = true;
-                }
-            });
-            
-            if (!any || monto <= 0) { 
-                Swal.showValidationMessage('⚠️ Ingresa al menos una cantidad para las denominaciones'); 
-                return false; 
-            }
+            // Validaciones
             if (!tipo_mov) { 
                 Swal.showValidationMessage('⚠️ Selecciona una categoría'); 
+                return false; 
+            }
+            
+            const monto = parseFloat(montoInput);
+            if (!montoInput || isNaN(monto) || monto <= 0) { 
+                Swal.showValidationMessage('⚠️ Ingresa un monto válido mayor a cero'); 
                 return false; 
             }
             
@@ -186,14 +154,15 @@ async function openNuevoMovimientoModal(tipoPreseleccionado = null){
 
     if (!value) return;
 
+    // Enviar el movimiento al servidor
     try{
         const token = getCookie('csrftoken');
         const payload = {
             tipo: value.tipo,
             tipo_movimiento: value.tipo_mov,
             monto: value.monto,
-            descripcion: value.desc,
-            referencia: value.ref
+            descripcion: value.desc || '',
+            referencia: value.ref || ''
         };
 
         const resp = await fetch(window.CAJA_URLS.nuevo_movimiento, {
@@ -205,23 +174,46 @@ async function openNuevoMovimientoModal(tipoPreseleccionado = null){
             },
             body: JSON.stringify(payload)
         });
+        
         const data = await resp.json();
+        
         if (resp.ok && data.success){
-            Swal.fire({
+            // Formatear el monto para mostrarlo
+            const montoFormateado = new Intl.NumberFormat('es-CO', { 
+                style: 'currency', 
+                currency: 'COP',
+                minimumFractionDigits: 0
+            }).format(value.monto);
+            
+            await Swal.fire({
                 icon:'success',
-                title:'✅ Registrado',
-                text:data.message,
-                timer:1500,
-                showConfirmButton:false
-            }).then(()=>{
-                window.location.href = window.CAJA_URLS.dashboard;
+                title:'✅ Registrado Correctamente',
+                html: `<p style="font-size: 16px; margin: 10px 0;">
+                    ${tipoPreseleccionado === 'INGRESO' ? '💵 Entrada' : '💸 Salida'} de <strong>${montoFormateado}</strong>
+                </p>
+                <p style="color: #666;">${data.message}</p>`,
+                timer: 2000,
+                showConfirmButton: false
             });
+            
+            // Recargar página para actualizar totales
+            window.location.href = window.CAJA_URLS.dashboard;
         } else {
-            Swal.fire({icon:'error',title:'Error',text: data.error || 'No se pudo registrar el movimiento'});
+            Swal.fire({
+                icon:'error',
+                title:'❌ Error al Registrar',
+                text: data.error || 'No se pudo registrar el movimiento',
+                confirmButtonColor: '#d33'
+            });
         }
     }catch(err){
-        console.error(err);
-        Swal.fire({icon:'error',title:'Error',text:'Error de red al registrar movimiento'});
+        console.error('Error al registrar movimiento:', err);
+        Swal.fire({
+            icon:'error',
+            title:'❌ Error de Conexión',
+            text:'No se pudo conectar con el servidor. Verifica tu conexión a internet.',
+            confirmButtonColor: '#d33'
+        });
     }
 }
 

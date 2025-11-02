@@ -40,9 +40,38 @@ echo -e "${GREEN}✅ Código actualizado${NC}"
 echo ""
 
 # Paso 2: Aplicar migración
-echo -e "${YELLOW}🔄 Paso 2/4: Aplicando migración de base de datos...${NC}"
+echo -e "${YELLOW}🔄 Paso 2/5: Aplicando migración de base de datos...${NC}"
 sudo docker exec -it $CONTAINER_ID python manage.py migrate caja
 echo -e "${GREEN}✅ Migración aplicada${NC}"
+echo ""
+
+# Paso 2.5: Diagnosticar problemas
+echo -e "${YELLOW}🔍 Paso 2.5/5: Diagnosticando estado de denominaciones...${NC}"
+if [ -f "diagnosticar_denominaciones.py" ]; then
+    sudo docker cp diagnosticar_denominaciones.py $CONTAINER_ID:/tmp/diagnosticar_denominaciones.py
+    sudo docker exec -it $CONTAINER_ID python /tmp/diagnosticar_denominaciones.py
+    sudo docker exec -it $CONTAINER_ID rm /tmp/diagnosticar_denominaciones.py
+    
+    echo ""
+    read -p "¿Se encontraron duplicados? ¿Desea ejecutar limpieza? (s/N): " -n 1 -r
+    echo ""
+    
+    if [[ $REPLY =~ ^[Ss]$ ]]; then
+        echo -e "${YELLOW}🧹 Ejecutando limpieza de duplicados...${NC}"
+        if [ -f "limpiar_denominaciones_duplicadas.py" ]; then
+            sudo docker cp limpiar_denominaciones_duplicadas.py $CONTAINER_ID:/tmp/limpiar_denominaciones_duplicadas.py
+            sudo docker exec -it $CONTAINER_ID python /tmp/limpiar_denominaciones_duplicadas.py
+            sudo docker exec -it $CONTAINER_ID rm /tmp/limpiar_denominaciones_duplicadas.py
+            echo -e "${GREEN}✅ Limpieza completada${NC}"
+        else
+            echo -e "${RED}❌ No se encontró limpiar_denominaciones_duplicadas.py${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⏭️  Omitiendo limpieza${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  No se encontró diagnosticar_denominaciones.py, omitiendo diagnóstico${NC}"
+fi
 echo ""
 
 # Paso 3: Crear denominaciones correctamente
