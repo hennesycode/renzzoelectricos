@@ -87,8 +87,36 @@ saved_username                     // Usuario guardado (servidor)
 
 ## 🚀 Instalación Rápida
 
-### 1. Clonar y Configurar
+### Opción 1: Docker (Recomendado para Producción) 🐳
+
 ```bash
+# 1. Clonar repositorio
+git clone https://github.com/hennesycode/renzzoelectricos.git
+cd renzzoelectricos
+
+# 2. Configurar variables de entorno
+cp .env.example .env
+# Editar .env y cambiar contraseñas!
+
+# 3. Iniciar con Make (más fácil)
+make init
+
+# O iniciar manualmente:
+docker-compose build
+docker-compose up -d
+```
+
+**Acceso:**
+- 🌐 Aplicación: http://localhost
+- 🔐 Admin: http://localhost/admin
+- 📊 Dashboard: http://localhost/dashboard
+
+**📚 Ver documentación completa:** [DOCKER.md](DOCKER.md) | [DEPLOY.md](DEPLOY.md)
+
+### Opción 2: Instalación Local (Desarrollo)
+
+```bash
+# 1. Clonar y Configurar
 git clone https://github.com/hennesycode/renzzoelectricos.git
 cd renzzoelectricos
 python -m venv .venv

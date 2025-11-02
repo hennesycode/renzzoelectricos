@@ -37,3 +37,26 @@ db.sqlite3-journal
 # OS
 .DS_Store
 Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Backups
+backups/
+*.sql
+*.dump
+*.backup
+
+# Logs
+logs/
+*.log
+
+# Temporales
+*.tmp
+tmp/
+temp/
+
+# Scripts auxiliares (no necesarios en producción)
+check_caja.py
+fix_cajas_duplicadas.py
+

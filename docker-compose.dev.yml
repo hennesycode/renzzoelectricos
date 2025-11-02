@@ -1,0 +1,78 @@
+# ============================================================================
+# Docker Compose para Desarrollo - Renzzo Eléctricos
+# ============================================================================
+# Uso: docker-compose -f docker-compose.dev.yml up
+
+version: '3.9'
+
+services:
+  # ==========================================================================
+  # BASE DE DATOS MySQL 8.0
+  # ==========================================================================
+  db:
+    image: mysql:8.0
+    container_name: renzzoelectricos_db_dev
+    restart: always
+    environment:
+      MYSQL_DATABASE: renzzoelectricos_dev
+      MYSQL_USER: renzzo_dev
+      MYSQL_PASSWORD: devpassword123
+      MYSQL_ROOT_PASSWORD: rootdevpass123
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+    ports:
+      - "3307:3306"  # Puerto diferente para no conflictar con MySQL local
+    networks:
+      - renzzo_dev_network
+
+  # ==========================================================================
+  # APLICACIÓN DJANGO (Development)
+  # ==========================================================================
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: renzzoelectricos_web_dev
+    restart: always
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "dev-secret-key-not-for-production"
+      ALLOWED_HOSTS: "*"
+      DATABASE_ENGINE: django.db.backends.mysql
+      DATABASE_NAME: renzzoelectricos_dev
+      DATABASE_USER: renzzo_dev
+      DATABASE_PASSWORD: devpassword123
+      DATABASE_HOST: db
+      DATABASE_PORT: 3306
+      DJANGO_SUPERUSER_USERNAME: admin
+      DJANGO_SUPERUSER_EMAIL: admin@dev.local
+      DJANGO_SUPERUSER_PASSWORD: admin123
+    volumes:
+      # Montar código en vivo para hot-reload
+      - .:/app
+      - static_dev_volume:/app/staticfiles
+      - media_dev_volume:/app/media
+    ports:
+      - "8001:8000"  # Puerto diferente
+    networks:
+      - renzzo_dev_network
+    depends_on:
+      - db
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+
+volumes:
+  mysql_dev_data:
+    driver: local
+  static_dev_volume:
+    driver: local
+  media_dev_volume:
+    driver: local
+
+networks:
+  renzzo_dev_network:
+    driver: bridge

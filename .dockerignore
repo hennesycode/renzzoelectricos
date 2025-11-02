@@ -1,0 +1,95 @@
+# ============================================================================
+# .dockerignore - Archivos y directorios a ignorar al construir la imagen
+# ============================================================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+/media
+/staticfiles
+*.pot
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Documentación
+README.md
+docs/
+*.md
+
+# Tests
+tests/
+test_*.py
+*_test.py
+
+# Backups
+backups/
+*.sql
+*.dump
+*.backup
+
+# Temporales
+tmp/
+temp/
+*.tmp
+
+# Node modules (si usas frontend separado)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Archivos de entorno
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# Coverage
+.coverage
+htmlcov/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
