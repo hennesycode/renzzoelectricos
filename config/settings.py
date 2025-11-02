@@ -327,8 +327,18 @@ SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=False)
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
-# CSRF cookie segura en producción
+
+# CSRF - Cross Site Request Forgery Protection
 CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=False)
+CSRF_COOKIE_HTTPONLY = False  # Debe ser False para que JavaScript pueda leer el token
+CSRF_COOKIE_SAMESITE = 'Lax'  # 'Lax' permite cookies en navegación normal, 'Strict' es más restrictivo
+# CSRF_TRUSTED_ORIGINS - Orígenes confiables para peticiones CSRF (REQUERIDO para Cloudflare/HTTPS)
+# Formato: https://dominio.com (con protocolo, sin puerto ni barra final)
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
+    'https://renzzoelectricos.com',
+    'https://www.renzzoelectricos.com'
+])
+
 # HSTS - HTTP Strict Transport Security (solo si se usa HTTPS directo, no con Cloudflare)
 SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=0)  # 0 = desactivado
 # Redirección SSL (False porque Cloudflare maneja HTTPS)

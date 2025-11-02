@@ -111,7 +111,11 @@ docker-compose up -d
 - 🔐 Admin: http://localhost/admin
 - 📊 Dashboard: http://localhost/dashboard
 
-**📚 Ver documentación completa:** [DOCKER.md](DOCKER.md) | [DEPLOY.md](DEPLOY.md)
+**📚 Ver documentación completa:**
+- [DOCKER.md](docs/DOCKER.md) - Guía completa de Docker
+- [DEPLOY.md](docs/DEPLOY.md) - Despliegue a producción
+- [CLOUDFLARE_TUNNEL.md](docs/CLOUDFLARE_TUNNEL.md) - Configuración Cloudflare Tunnel
+- [SOLUCION_WHITENOISE.md](docs/SOLUCION_WHITENOISE.md) - Solución error whitenoise
 
 ### Opción 2: Instalación Local (Desarrollo)
 
@@ -243,10 +247,18 @@ OSCAR_DEFAULT_CURRENCY = 'COP'
 
 Para información técnica completa, consultar la carpeta **`docs/`**:
 
-- **[ARQUITECTURA.md](docs/ARQUITECTURA.md)**: Diseño del sistema
-- **[DESARROLLO.md](docs/DESARROLLO.md)**: Guía de desarrollo
-- **[INSTALLATION.md](docs/INSTALLATION.md)**: Instalación detallada
-- **[PROBLEMAS_CONOCIDOS.md](docs/PROBLEMAS_CONOCIDOS.md)**: Troubleshooting
+### 📖 Documentación del Sistema
+- **[CHANGELOG.md](docs/CHANGELOG.md)**: Historial de cambios
+- **[CAJA_SISTEMA_GLOBAL.md](docs/CAJA_SISTEMA_GLOBAL.md)**: Sistema de caja
+
+### 🐳 Documentación de Despliegue
+- **[DOCKER.md](docs/DOCKER.md)**: Guía completa de Docker
+- **[DOCKER_SETUP_COMPLETO.md](docs/DOCKER_SETUP_COMPLETO.md)**: Setup Docker avanzado
+- **[DEPLOY.md](docs/DEPLOY.md)**: Despliegue a producción
+- **[CLOUDFLARE_TUNNEL.md](docs/CLOUDFLARE_TUNNEL.md)**: Cloudflare Tunnel (puerto 5018)
+
+### 🔧 Solución de Problemas
+- **[SOLUCION_WHITENOISE.md](docs/SOLUCION_WHITENOISE.md)**: Fix ModuleNotFoundError whitenoise
 
 ---
 
