@@ -10,9 +10,10 @@ from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.urls import reverse_lazy, reverse
 from django.http import JsonResponse
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Count, Avg
 from django.db import transaction
 from django.utils import timezone
+from datetime import datetime, timedelta
 from decimal import Decimal
 import json
 
@@ -581,3 +582,346 @@ def obtener_tipos_movimiento(request):
         for t in tipos.order_by('nombre')
     ]
     return JsonResponse({'success': True, 'tipos': data})
+
+
+# ============================================================
+# VISTAS DE INFORMES Y ESTADÍSTICAS
+# ============================================================
+
+@staff_or_permission_required('users.can_view_caja')
+def informes_caja(request):
+    """
+    Vista principal de informes de caja con estadísticas completas.
+    Muestra balance general, historial de arqueos y flujo de efectivo.
+    """
+    context = {
+        'titulo': 'Informes de Caja',
+    }
+    return render(request, 'caja/informes.html', context)
+
+
+@staff_or_permission_required('users.can_view_caja')
+def balance_general_ajax(request):
+    """
+    Devuelve el balance general con filtrado por fechas.
+    Soporta: última semana, últimos 30 días, últimos 2 meses, últimos 3 meses,
+    día actual, día anterior, y rango personalizado.
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        # Obtener parámetros de filtro
+        filtro_tipo = request.GET.get('filtro', 'ultima_semana')
+        fecha_desde = request.GET.get('fecha_desde', '')
+        fecha_hasta = request.GET.get('fecha_hasta', '')
+        
+        # Calcular rango de fechas según el tipo de filtro
+        now = timezone.now()
+        
+        if filtro_tipo == 'dia_actual':
+            fecha_inicio = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            fecha_fin = now
+        elif filtro_tipo == 'dia_anterior':
+            ayer = now - timedelta(days=1)
+            fecha_inicio = ayer.replace(hour=0, minute=0, second=0, microsecond=0)
+            fecha_fin = ayer.replace(hour=23, minute=59, second=59, microsecond=999999)
+        elif filtro_tipo == 'ultima_semana':
+            fecha_inicio = now - timedelta(days=7)
+            fecha_fin = now
+        elif filtro_tipo == 'ultimos_30_dias':
+            fecha_inicio = now - timedelta(days=30)
+            fecha_fin = now
+        elif filtro_tipo == 'ultimos_2_meses':
+            fecha_inicio = now - timedelta(days=60)
+            fecha_fin = now
+        elif filtro_tipo == 'ultimos_3_meses':
+            fecha_inicio = now - timedelta(days=90)
+            fecha_fin = now
+        elif filtro_tipo == 'rango_personalizado':
+            if not fecha_desde or not fecha_hasta:
+                return JsonResponse({'error': 'Fechas requeridas para rango personalizado'}, status=400)
+            fecha_inicio = timezone.make_aware(datetime.strptime(fecha_desde, '%Y-%m-%d'))
+            fecha_fin = timezone.make_aware(datetime.strptime(fecha_hasta + ' 23:59:59', '%Y-%m-%d %H:%M:%S'))
+        else:
+            # Por defecto: última semana
+            fecha_inicio = now - timedelta(days=7)
+            fecha_fin = now
+        
+        # Obtener cajas cerradas en el rango de fechas
+        cajas = CajaRegistradora.objects.filter(
+            estado='CERRADA',
+            fecha_cierre__gte=fecha_inicio,
+            fecha_cierre__lte=fecha_fin
+        )
+        
+        # Calcular totales
+        total_dinero_guardado = cajas.aggregate(
+            total=Sum('dinero_guardado')
+        )['total'] or Decimal('0.00')
+        
+        # Total de ingresos y egresos del periodo
+        movimientos = MovimientoCaja.objects.filter(
+            caja__in=cajas,
+            fecha_movimiento__gte=fecha_inicio,
+            fecha_movimiento__lte=fecha_fin
+        )
+        
+        total_ingresos = movimientos.filter(
+            tipo='INGRESO'
+        ).exclude(
+            tipo_movimiento__codigo='APERTURA'
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+        
+        total_egresos = movimientos.filter(
+            tipo='EGRESO'
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+        
+        flujo_neto = total_ingresos - total_egresos
+        
+        # Estadísticas adicionales
+        num_cajas = cajas.count()
+        total_dinero_en_caja = cajas.aggregate(
+            total=Sum('dinero_en_caja')
+        )['total'] or Decimal('0.00')
+        
+        # Promedio de diferencias (descuadres)
+        promedio_diferencia = cajas.aggregate(
+            promedio=Avg('diferencia')
+        )['promedio'] or Decimal('0.00')
+        
+        return JsonResponse({
+            'success': True,
+            'balance': {
+                'total_dinero_guardado': float(total_dinero_guardado),
+                'total_dinero_en_caja': float(total_dinero_en_caja),
+                'total_ingresos': float(total_ingresos),
+                'total_egresos': float(total_egresos),
+                'flujo_neto': float(flujo_neto),
+                'num_cajas': num_cajas,
+                'promedio_diferencia': float(promedio_diferencia),
+                'fecha_inicio': fecha_inicio.strftime('%Y-%m-%d'),
+                'fecha_fin': fecha_fin.strftime('%Y-%m-%d'),
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': f'Error al calcular balance: {str(e)}'}, status=500)
+
+
+@staff_or_permission_required('users.can_view_caja')
+def historial_arqueos_ajax(request):
+    """
+    Devuelve el historial de arqueos (cajas cerradas) con paginación.
+    Muestra las últimas 5 cajas por defecto.
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        # Parámetros de paginación
+        pagina = int(request.GET.get('pagina', 1))
+        por_pagina = int(request.GET.get('por_pagina', 5))
+        
+        # Filtros de fecha (si se envían)
+        fecha_desde = request.GET.get('fecha_desde', '')
+        fecha_hasta = request.GET.get('fecha_hasta', '')
+        
+        # Query base: cajas cerradas
+        cajas = CajaRegistradora.objects.filter(estado='CERRADA')
+        
+        # Aplicar filtros de fecha si existen
+        if fecha_desde:
+            fecha_inicio = timezone.make_aware(datetime.strptime(fecha_desde, '%Y-%m-%d'))
+            cajas = cajas.filter(fecha_cierre__gte=fecha_inicio)
+        
+        if fecha_hasta:
+            fecha_fin = timezone.make_aware(datetime.strptime(fecha_hasta + ' 23:59:59', '%Y-%m-%d %H:%M:%S'))
+            cajas = cajas.filter(fecha_cierre__lte=fecha_fin)
+        
+        # Ordenar por fecha de cierre descendente
+        cajas = cajas.select_related('cajero').order_by('-fecha_cierre')
+        
+        # Total de registros
+        total = cajas.count()
+        
+        # Calcular paginación
+        inicio = (pagina - 1) * por_pagina
+        fin = inicio + por_pagina
+        cajas_paginadas = cajas[inicio:fin]
+        
+        # Construir lista de cajas con sus datos
+        lista_cajas = []
+        for caja in cajas_paginadas:
+            # Calcular movimientos de la caja
+            movimientos = MovimientoCaja.objects.filter(caja=caja)
+            total_entradas = movimientos.filter(
+                tipo='INGRESO'
+            ).exclude(
+                tipo_movimiento__codigo='APERTURA'
+            ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+            
+            total_salidas = movimientos.filter(
+                tipo='EGRESO'
+            ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+            
+            # Saldo teórico
+            saldo_teorico = caja.monto_inicial + total_entradas - total_salidas
+            
+            # Obtener nombre del cajero
+            cajero_nombre = str(caja.cajero.username)
+            try:
+                full_name = caja.cajero.get_full_name()
+                if full_name and full_name.strip():
+                    cajero_nombre = full_name
+            except:
+                pass
+            
+            lista_cajas.append({
+                'id': caja.id,
+                'cajero': cajero_nombre,
+                'fecha_apertura': caja.fecha_apertura.strftime('%d/%m/%Y %H:%M'),
+                'fecha_cierre': caja.fecha_cierre.strftime('%d/%m/%Y %H:%M') if caja.fecha_cierre else '-',
+                'saldo_inicial': float(caja.monto_inicial),
+                'total_entradas': float(total_entradas),
+                'total_salidas': float(total_salidas),
+                'saldo_teorico': float(saldo_teorico),
+                'saldo_real': float(caja.monto_final_declarado or 0),
+                'diferencia': float(caja.diferencia or 0),
+                'dinero_en_caja': float(caja.dinero_en_caja or 0),
+                'dinero_guardado': float(caja.dinero_guardado or 0),
+            })
+        
+        # Calcular total de páginas
+        total_paginas = (total + por_pagina - 1) // por_pagina
+        
+        return JsonResponse({
+            'success': True,
+            'cajas': lista_cajas,
+            'paginacion': {
+                'pagina_actual': pagina,
+                'por_pagina': por_pagina,
+                'total_registros': total,
+                'total_paginas': total_paginas,
+                'tiene_anterior': pagina > 1,
+                'tiene_siguiente': pagina < total_paginas,
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': f'Error al cargar historial: {str(e)}'}, status=500)
+
+
+@staff_or_permission_required('users.can_view_caja')
+def flujo_efectivo_ajax(request):
+    """
+    Devuelve el reporte de flujo de efectivo consolidado por periodo.
+    Permite analizar ingresos, egresos y flujo neto en un rango de fechas.
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        # Obtener parámetros de filtro
+        filtro_tipo = request.GET.get('filtro', 'ultima_semana')
+        fecha_desde = request.GET.get('fecha_desde', '')
+        fecha_hasta = request.GET.get('fecha_hasta', '')
+        
+        # Calcular rango de fechas
+        now = timezone.now()
+        
+        if filtro_tipo == 'dia_actual':
+            fecha_inicio = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            fecha_fin = now
+        elif filtro_tipo == 'dia_anterior':
+            ayer = now - timedelta(days=1)
+            fecha_inicio = ayer.replace(hour=0, minute=0, second=0, microsecond=0)
+            fecha_fin = ayer.replace(hour=23, minute=59, second=59, microsecond=999999)
+        elif filtro_tipo == 'ultima_semana':
+            fecha_inicio = now - timedelta(days=7)
+            fecha_fin = now
+        elif filtro_tipo == 'ultimos_30_dias':
+            fecha_inicio = now - timedelta(days=30)
+            fecha_fin = now
+        elif filtro_tipo == 'ultimos_2_meses':
+            fecha_inicio = now - timedelta(days=60)
+            fecha_fin = now
+        elif filtro_tipo == 'ultimos_3_meses':
+            fecha_inicio = now - timedelta(days=90)
+            fecha_fin = now
+        elif filtro_tipo == 'rango_personalizado':
+            if not fecha_desde or not fecha_hasta:
+                return JsonResponse({'error': 'Fechas requeridas para rango personalizado'}, status=400)
+            fecha_inicio = timezone.make_aware(datetime.strptime(fecha_desde, '%Y-%m-%d'))
+            fecha_fin = timezone.make_aware(datetime.strptime(fecha_hasta + ' 23:59:59', '%Y-%m-%d %H:%M:%S'))
+        else:
+            fecha_inicio = now - timedelta(days=7)
+            fecha_fin = now
+        
+        # Obtener todos los movimientos del periodo
+        movimientos = MovimientoCaja.objects.filter(
+            fecha_movimiento__gte=fecha_inicio,
+            fecha_movimiento__lte=fecha_fin
+        ).select_related('tipo_movimiento')
+        
+        # Calcular totales por tipo de movimiento
+        ingresos_por_tipo = movimientos.filter(
+            tipo='INGRESO'
+        ).exclude(
+            tipo_movimiento__codigo='APERTURA'
+        ).values(
+            'tipo_movimiento__nombre'
+        ).annotate(
+            total=Sum('monto'),
+            cantidad=Count('id')
+        ).order_by('-total')
+        
+        egresos_por_tipo = movimientos.filter(
+            tipo='EGRESO'
+        ).values(
+            'tipo_movimiento__nombre'
+        ).annotate(
+            total=Sum('monto'),
+            cantidad=Count('id')
+        ).order_by('-total')
+        
+        # Totales generales
+        total_ingresos = sum(item['total'] for item in ingresos_por_tipo)
+        total_egresos = sum(item['total'] for item in egresos_por_tipo)
+        flujo_neto = total_ingresos - total_egresos
+        
+        # Convertir a listas serializables
+        ingresos_lista = [
+            {
+                'tipo': item['tipo_movimiento__nombre'],
+                'total': float(item['total']),
+                'cantidad': item['cantidad']
+            }
+            for item in ingresos_por_tipo
+        ]
+        
+        egresos_lista = [
+            {
+                'tipo': item['tipo_movimiento__nombre'],
+                'total': float(item['total']),
+                'cantidad': item['cantidad']
+            }
+            for item in egresos_por_tipo
+        ]
+        
+        return JsonResponse({
+            'success': True,
+            'flujo': {
+                'total_ingresos': float(total_ingresos),
+                'total_egresos': float(total_egresos),
+                'flujo_neto': float(flujo_neto),
+                'ingresos_por_tipo': ingresos_lista,
+                'egresos_por_tipo': egresos_lista,
+                'fecha_inicio': fecha_inicio.strftime('%Y-%m-%d'),
+                'fecha_fin': fecha_fin.strftime('%Y-%m-%d'),
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': f'Error al calcular flujo: {str(e)}'}, status=500)
+

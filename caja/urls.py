@@ -22,6 +22,12 @@ urlpatterns = [
     path('historial/', views.CajaListView.as_view(), name='historial'),
     path('detalle/<int:pk>/', views.CajaDetailView.as_view(), name='detalle'),
     
+    # Informes y estadísticas
+    path('informes/', views.informes_caja, name='informes'),
+    path('informes/balance-general/', views.balance_general_ajax, name='balance_general_ajax'),
+    path('informes/historial-arqueos/', views.historial_arqueos_ajax, name='historial_arqueos_ajax'),
+    path('informes/flujo-efectivo/', views.flujo_efectivo_ajax, name='flujo_efectivo_ajax'),
+    
     # AJAX
     path('contar-efectivo/', views.contar_efectivo, name='contar_efectivo'),
     path('denominaciones/', views.obtener_denominaciones, name='denominaciones'),

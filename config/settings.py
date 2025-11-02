@@ -280,6 +280,23 @@ if not _exists:
         'url_name': 'caja:dashboard',
         # access_fn must be callable (not a string) because Oscar will call it
         'access_fn': _caja_access_fn,
+        'children': [
+            {
+                'label': _('Dashboard de Caja'),
+                'url_name': 'caja:dashboard',
+                'access_fn': _caja_access_fn,
+            },
+            {
+                'label': _('Historial'),
+                'url_name': 'caja:historial',
+                'access_fn': _caja_access_fn,
+            },
+            {
+                'label': _('Informes'),
+                'url_name': 'caja:informes',
+                'access_fn': _caja_access_fn,
+            },
+        ]
     }
 
     # Insertar justo después del primer elemento (Dashboard)
