@@ -191,7 +191,7 @@
                     <td style="font-weight: 600;">${formatearMoneda(caja.saldo_real)}</td>
                     <td class="${claseDiferencia}">${formatearMoneda(caja.diferencia)}</td>
                     <td>
-                        <button class="btn-ver-detalle" onclick="window.location.href='/caja/detalle/${caja.id}/'">
+                        <button class="btn-ver-detalle" onclick="abrirModalDetalle(${caja.id})">
                             <i class="bi bi-eye"></i>
                             Ver
                         </button>
@@ -419,5 +419,296 @@
         
         console.log('✅ Informes de Caja - Listo');
     });
+
+    // ============================================================
+    // MODAL DETALLE DE CAJA
+    // ============================================================
+    window.abrirModalDetalle = async function(cajaId) {
+        const modal = document.getElementById('modalDetalleCaja');
+        const modalBody = document.getElementById('modalDetalleBody');
+        const modalCajaId = document.getElementById('modalCajaId');
+        
+        // Mostrar modal
+        modal.style.display = 'flex';
+        modalCajaId.textContent = `#${cajaId}`;
+        
+        // Mostrar loading
+        modalBody.innerHTML = `
+            <div class="loading-modal">
+                <i class="bi bi-arrow-repeat spin"></i>
+                <p>Cargando información...</p>
+            </div>
+        `;
+        
+        try {
+            const response = await fetch(`/caja/informes/detalle-caja/${cajaId}/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': obtenerCSRFToken()
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Error al cargar detalle');
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                renderizarDetalleModal(data.caja);
+            } else {
+                throw new Error(data.error || 'Error desconocido');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            modalBody.innerHTML = `
+                <div class="loading-modal">
+                    <i class="bi bi-exclamation-triangle" style="color: #e63946;"></i>
+                    <p style="color: #e63946;">Error al cargar el detalle de la caja</p>
+                </div>
+            `;
+        }
+    };
+
+    window.cerrarModalDetalle = function() {
+        const modal = document.getElementById('modalDetalleCaja');
+        modal.style.display = 'none';
+    };
+
+    // Cerrar modal al hacer clic en el overlay
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal-detalle-overlay')) {
+            cerrarModalDetalle();
+        }
+    });
+
+    // Cerrar modal con tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('modalDetalleCaja');
+            if (modal.style.display === 'flex') {
+                cerrarModalDetalle();
+            }
+        }
+    });
+
+    function renderizarDetalleModal(caja) {
+        const modalBody = document.getElementById('modalDetalleBody');
+        
+        let html = `
+            <!-- Información General -->
+            <div class="modal-section">
+                <div class="modal-section-title">
+                    <i class="bi bi-info-circle"></i>
+                    <span>Información General</span>
+                </div>
+                <div class="modal-info-grid">
+                    <div class="modal-info-item">
+                        <div class="modal-info-label">Cajero</div>
+                        <div class="modal-info-value">${caja.cajero}</div>
+                    </div>
+                    <div class="modal-info-item">
+                        <div class="modal-info-label">Estado</div>
+                        <div class="modal-info-value">${caja.estado === 'CERRADA' ? '🔒 Cerrada' : '🟢 Abierta'}</div>
+                    </div>
+                    <div class="modal-info-item">
+                        <div class="modal-info-label">Fecha de Apertura</div>
+                        <div class="modal-info-value">${caja.fecha_apertura}</div>
+                    </div>
+                    ${caja.fecha_cierre ? `
+                    <div class="modal-info-item">
+                        <div class="modal-info-label">Fecha de Cierre</div>
+                        <div class="modal-info-value">${caja.fecha_cierre}</div>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+
+            <!-- Apertura -->
+            <div class="modal-section">
+                <div class="modal-section-title">
+                    <i class="bi bi-unlock"></i>
+                    <span>Apertura de Caja</span>
+                </div>
+                <div class="modal-info-grid">
+                    <div class="modal-info-item">
+                        <div class="modal-info-label">Monto Inicial</div>
+                        <div class="modal-info-value positivo">${formatearMoneda(caja.monto_inicial)}</div>
+                    </div>
+                    ${caja.observaciones_apertura !== '-' ? `
+                    <div class="modal-info-item" style="grid-column: span 2;">
+                        <div class="modal-info-label">Observaciones</div>
+                        <div class="modal-info-value" style="font-size: 14px;">${caja.observaciones_apertura}</div>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                ${caja.conteo_apertura ? `
+                <h4 style="color: var(--text-light); margin: 20px 0 10px 0; font-size: 16px;">
+                    <i class="bi bi-cash-stack"></i> Denominaciones de Apertura
+                </h4>
+                <table class="modal-denominaciones-table">
+                    <thead>
+                        <tr>
+                            <th>Denominación</th>
+                            <th>Tipo</th>
+                            <th>Cantidad</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${caja.conteo_apertura.detalles.map(d => `
+                            <tr>
+                                <td>
+                                    <i class="denom-icon bi ${d.tipo === 'BILLETE' ? 'bi-cash' : 'bi-coin'}"></i>
+                                    ${formatearMoneda(d.valor)}
+                                </td>
+                                <td>${d.tipo === 'BILLETE' ? '💵 Billete' : '🪙 Moneda'}</td>
+                                <td style="font-weight: 600;">${d.cantidad}</td>
+                                <td style="font-weight: 600; color: var(--verde-claro);">${formatearMoneda(d.subtotal)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                ` : '<p class="no-denominaciones">No se registraron denominaciones en la apertura</p>'}
+            </div>
+
+            <!-- Movimientos -->
+            <div class="modal-section">
+                <div class="modal-section-title">
+                    <i class="bi bi-arrow-left-right"></i>
+                    <span>Movimientos de Caja (${caja.num_movimientos})</span>
+                </div>
+                
+                ${caja.movimientos.length > 0 ? `
+                <div style="overflow-x: auto;">
+                    <table class="modal-movimientos-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha/Hora</th>
+                                <th>Tipo</th>
+                                <th>Categoría</th>
+                                <th>Monto</th>
+                                <th>Descripción</th>
+                                <th>Referencia</th>
+                                <th>Usuario</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${caja.movimientos.map(m => `
+                                <tr>
+                                    <td style="white-space: nowrap;">${m.fecha}</td>
+                                    <td>
+                                        <span class="${m.tipo === 'INGRESO' ? 'badge-ingreso' : 'badge-egreso'}">
+                                            ${m.tipo === 'INGRESO' ? '⬇️ Ingreso' : '⬆️ Egreso'}
+                                        </span>
+                                    </td>
+                                    <td>${m.tipo_movimiento}</td>
+                                    <td style="font-weight: 600; color: ${m.tipo === 'INGRESO' ? 'var(--verde-claro)' : '#e63946'};">
+                                        ${formatearMoneda(m.monto)}
+                                    </td>
+                                    <td>${m.descripcion}</td>
+                                    <td>${m.referencia}</td>
+                                    <td>${m.usuario}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Totales de Movimientos -->
+                <div class="modal-totales">
+                    <div class="modal-total-card">
+                        <div class="modal-total-label">Total Ingresos</div>
+                        <div class="modal-total-value" style="color: var(--verde-claro);">
+                            ${formatearMoneda(caja.total_ingresos)}
+                        </div>
+                    </div>
+                    <div class="modal-total-card">
+                        <div class="modal-total-label">Total Egresos</div>
+                        <div class="modal-total-value" style="color: #e63946;">
+                            ${formatearMoneda(caja.total_egresos)}
+                        </div>
+                    </div>
+                    <div class="modal-total-card">
+                        <div class="modal-total-label">Saldo Teórico</div>
+                        <div class="modal-total-value">
+                            ${formatearMoneda(caja.saldo_teorico)}
+                        </div>
+                    </div>
+                </div>
+                ` : '<p class="no-movimientos">No se registraron movimientos en esta caja</p>'}
+            </div>
+
+            <!-- Cierre -->
+            ${caja.estado === 'CERRADA' ? `
+            <div class="modal-section">
+                <div class="modal-section-title">
+                    <i class="bi bi-lock"></i>
+                    <span>Cierre de Caja</span>
+                </div>
+                <div class="modal-info-grid">
+                    <div class="modal-info-item">
+                        <div class="modal-info-label">Saldo Real Contado</div>
+                        <div class="modal-info-value">${formatearMoneda(caja.monto_final_declarado)}</div>
+                    </div>
+                    <div class="modal-info-item">
+                        <div class="modal-info-label">Diferencia</div>
+                        <div class="modal-info-value ${caja.diferencia > 0 ? 'positivo' : caja.diferencia < 0 ? 'negativo' : ''}">
+                            ${formatearMoneda(caja.diferencia)}
+                            ${caja.diferencia > 0 ? ' (Sobrante)' : caja.diferencia < 0 ? ' (Faltante)' : ' (Cuadre Perfecto)'}
+                        </div>
+                    </div>
+                    <div class="modal-info-item">
+                        <div class="modal-info-label">Dinero en Caja</div>
+                        <div class="modal-info-value">${formatearMoneda(caja.dinero_en_caja)}</div>
+                    </div>
+                    <div class="modal-info-item">
+                        <div class="modal-info-label">Dinero Guardado</div>
+                        <div class="modal-info-value">${formatearMoneda(caja.dinero_guardado)}</div>
+                    </div>
+                    ${caja.observaciones_cierre !== '-' ? `
+                    <div class="modal-info-item" style="grid-column: span 2;">
+                        <div class="modal-info-label">Observaciones de Cierre</div>
+                        <div class="modal-info-value" style="font-size: 14px;">${caja.observaciones_cierre}</div>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                ${caja.conteo_cierre ? `
+                <h4 style="color: var(--text-light); margin: 20px 0 10px 0; font-size: 16px;">
+                    <i class="bi bi-cash-stack"></i> Denominaciones de Cierre
+                </h4>
+                <table class="modal-denominaciones-table">
+                    <thead>
+                        <tr>
+                            <th>Denominación</th>
+                            <th>Tipo</th>
+                            <th>Cantidad</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${caja.conteo_cierre.detalles.map(d => `
+                            <tr>
+                                <td>
+                                    <i class="denom-icon bi ${d.tipo === 'BILLETE' ? 'bi-cash' : 'bi-coin'}"></i>
+                                    ${formatearMoneda(d.valor)}
+                                </td>
+                                <td>${d.tipo === 'BILLETE' ? '💵 Billete' : '🪙 Moneda'}</td>
+                                <td style="font-weight: 600;">${d.cantidad}</td>
+                                <td style="font-weight: 600; color: var(--verde-claro);">${formatearMoneda(d.subtotal)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                ` : '<p class="no-denominaciones">No se registraron denominaciones en el cierre</p>'}
+            </div>
+            ` : ''}
+        `;
+        
+        modalBody.innerHTML = html;
+    }
 
 })();

@@ -925,3 +925,145 @@ def flujo_efectivo_ajax(request):
     except Exception as e:
         return JsonResponse({'error': f'Error al calcular flujo: {str(e)}'}, status=500)
 
+
+@staff_or_permission_required('users.can_view_caja')
+def detalle_caja_modal_ajax(request, caja_id):
+    """
+    Devuelve el detalle completo de una caja para mostrar en modal.
+    Incluye: fechas, monto inicial con denominaciones, movimientos, cierre con denominaciones.
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        # Obtener la caja
+        caja = get_object_or_404(CajaRegistradora, id=caja_id)
+        
+        # Información básica
+        cajero_nombre = str(caja.cajero.username)
+        try:
+            full_name = caja.cajero.get_full_name()
+            if full_name and full_name.strip():
+                cajero_nombre = full_name
+        except:
+            pass
+        
+        # Conteo de apertura (denominaciones con las que se abrió)
+        conteo_apertura = None
+        conteo_apertura_obj = ConteoEfectivo.objects.filter(
+            caja=caja, 
+            tipo_conteo='APERTURA'
+        ).first()
+        
+        if conteo_apertura_obj:
+            detalles_apertura = DetalleConteo.objects.filter(
+                conteo=conteo_apertura_obj
+            ).select_related('denominacion').order_by('-denominacion__valor')
+            
+            conteo_apertura = {
+                'total': float(conteo_apertura_obj.total),
+                'detalles': [
+                    {
+                        'denominacion': str(detalle.denominacion),
+                        'valor': float(detalle.denominacion.valor),
+                        'tipo': detalle.denominacion.tipo,
+                        'cantidad': detalle.cantidad,
+                        'subtotal': float(detalle.subtotal)
+                    }
+                    for detalle in detalles_apertura
+                ]
+            }
+        
+        # Conteo de cierre (denominaciones con las que se cerró)
+        conteo_cierre = None
+        conteo_cierre_obj = ConteoEfectivo.objects.filter(
+            caja=caja, 
+            tipo_conteo='CIERRE'
+        ).first()
+        
+        if conteo_cierre_obj:
+            detalles_cierre = DetalleConteo.objects.filter(
+                conteo=conteo_cierre_obj
+            ).select_related('denominacion').order_by('-denominacion__valor')
+            
+            conteo_cierre = {
+                'total': float(conteo_cierre_obj.total),
+                'detalles': [
+                    {
+                        'denominacion': str(detalle.denominacion),
+                        'valor': float(detalle.denominacion.valor),
+                        'tipo': detalle.denominacion.tipo,
+                        'cantidad': detalle.cantidad,
+                        'subtotal': float(detalle.subtotal)
+                    }
+                    for detalle in detalles_cierre
+                ]
+            }
+        
+        # Movimientos de la caja
+        movimientos = MovimientoCaja.objects.filter(
+            caja=caja
+        ).select_related('tipo_movimiento', 'usuario').order_by('fecha_movimiento')
+        
+        movimientos_lista = []
+        total_ingresos = Decimal('0.00')
+        total_egresos = Decimal('0.00')
+        
+        for mov in movimientos:
+            usuario_mov = str(mov.usuario.username)
+            try:
+                full_name_mov = mov.usuario.get_full_name()
+                if full_name_mov and full_name_mov.strip():
+                    usuario_mov = full_name_mov
+            except:
+                pass
+            
+            if mov.tipo == 'INGRESO':
+                total_ingresos += mov.monto
+            else:
+                total_egresos += mov.monto
+            
+            movimientos_lista.append({
+                'id': mov.id,
+                'fecha': mov.fecha_movimiento.strftime('%d/%m/%Y %H:%M:%S'),
+                'tipo': mov.tipo,
+                'tipo_movimiento': mov.tipo_movimiento.nombre,
+                'monto': float(mov.monto),
+                'descripcion': mov.descripcion or '-',
+                'referencia': mov.referencia or '-',
+                'usuario': usuario_mov,
+            })
+        
+        # Saldo teórico
+        saldo_teorico = caja.monto_inicial + total_ingresos - total_egresos
+        
+        return JsonResponse({
+            'success': True,
+            'caja': {
+                'id': caja.id,
+                'cajero': cajero_nombre,
+                'estado': caja.estado,
+                'fecha_apertura': caja.fecha_apertura.strftime('%d/%m/%Y %H:%M:%S'),
+                'fecha_cierre': caja.fecha_cierre.strftime('%d/%m/%Y %H:%M:%S') if caja.fecha_cierre else None,
+                'monto_inicial': float(caja.monto_inicial),
+                'monto_final_declarado': float(caja.monto_final_declarado or 0),
+                'monto_final_sistema': float(caja.monto_final_sistema or 0),
+                'diferencia': float(caja.diferencia or 0),
+                'dinero_en_caja': float(caja.dinero_en_caja or 0),
+                'dinero_guardado': float(caja.dinero_guardado or 0),
+                'observaciones_apertura': caja.observaciones_apertura or '-',
+                'observaciones_cierre': caja.observaciones_cierre or '-',
+                'saldo_teorico': float(saldo_teorico),
+                'total_ingresos': float(total_ingresos),
+                'total_egresos': float(total_egresos),
+                'conteo_apertura': conteo_apertura,
+                'conteo_cierre': conteo_cierre,
+                'movimientos': movimientos_lista,
+                'num_movimientos': len(movimientos_lista),
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': f'Error al cargar detalle: {str(e)}'}, status=500)
+
+

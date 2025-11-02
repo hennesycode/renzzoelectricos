@@ -27,6 +27,7 @@ urlpatterns = [
     path('informes/balance-general/', views.balance_general_ajax, name='balance_general_ajax'),
     path('informes/historial-arqueos/', views.historial_arqueos_ajax, name='historial_arqueos_ajax'),
     path('informes/flujo-efectivo/', views.flujo_efectivo_ajax, name='flujo_efectivo_ajax'),
+    path('informes/detalle-caja/<int:caja_id>/', views.detalle_caja_modal_ajax, name='detalle_caja_modal_ajax'),
     
     # AJAX
     path('contar-efectivo/', views.contar_efectivo, name='contar_efectivo'),

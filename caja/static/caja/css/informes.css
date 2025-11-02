@@ -791,6 +791,304 @@
     background: linear-gradient(135deg, #e63946, #f77f00);
 }
 
+/* Modal Detalle de Caja */
+.modal-detalle {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.modal-detalle-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(8, 28, 21, 0.9);
+    backdrop-filter: blur(5px);
+}
+
+.modal-detalle-content {
+    position: relative;
+    z-index: 10000;
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 1200px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--verde-medio);
+}
+
+.modal-detalle-header {
+    background: linear-gradient(135deg, var(--verde-oscuro-primary), var(--verde-oscuro-secondary));
+    padding: 20px 30px;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-detalle-header h2 {
+    color: var(--text-white);
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-detalle-header i {
+    font-size: 28px;
+}
+
+.modal-detalle-close {
+    background: var(--verde-medio);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-white);
+    font-size: 20px;
+}
+
+.modal-detalle-close:hover {
+    background: var(--verde-claro);
+    transform: rotate(90deg);
+}
+
+.modal-detalle-body {
+    padding: 30px;
+    overflow-y: auto;
+    max-height: calc(90vh - 80px);
+}
+
+.loading-modal {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.loading-modal i {
+    font-size: 64px;
+    color: var(--verde-claro);
+    margin-bottom: 20px;
+}
+
+.loading-modal p {
+    color: var(--text-light);
+    font-size: 18px;
+}
+
+/* Secciones del modal */
+.modal-section {
+    margin-bottom: 30px;
+}
+
+.modal-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--verde-accent);
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--verde-medio);
+}
+
+.modal-section-title i {
+    font-size: 22px;
+}
+
+.modal-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.modal-info-item {
+    background: var(--bg-dark);
+    padding: 15px;
+    border-radius: 10px;
+    border-left: 3px solid var(--verde-claro);
+}
+
+.modal-info-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--text-light);
+    opacity: 0.7;
+    margin-bottom: 5px;
+    letter-spacing: 0.5px;
+}
+
+.modal-info-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-white);
+}
+
+.modal-info-value.positivo {
+    color: var(--verde-claro);
+}
+
+.modal-info-value.negativo {
+    color: #e63946;
+}
+
+/* Tabla de denominaciones */
+.modal-denominaciones-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+
+.modal-denominaciones-table thead th {
+    background: var(--verde-oscuro-primary);
+    color: var(--text-white);
+    padding: 12px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.modal-denominaciones-table tbody td {
+    background: var(--bg-dark);
+    padding: 12px;
+    color: var(--text-light);
+    border-top: 1px solid rgba(64, 145, 108, 0.2);
+    border-bottom: 1px solid rgba(64, 145, 108, 0.2);
+}
+
+.modal-denominaciones-table tbody td:first-child {
+    border-left: 1px solid rgba(64, 145, 108, 0.2);
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+
+.modal-denominaciones-table tbody td:last-child {
+    border-right: 1px solid rgba(64, 145, 108, 0.2);
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.denom-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--verde-medio), var(--verde-claro));
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--text-white);
+    margin-right: 10px;
+}
+
+/* Tabla de movimientos */
+.modal-movimientos-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 5px;
+}
+
+.modal-movimientos-table thead th {
+    background: var(--verde-oscuro-primary);
+    color: var(--text-white);
+    padding: 10px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.modal-movimientos-table tbody td {
+    background: var(--bg-dark);
+    padding: 10px;
+    color: var(--text-light);
+    font-size: 13px;
+    border-top: 1px solid rgba(64, 145, 108, 0.1);
+    border-bottom: 1px solid rgba(64, 145, 108, 0.1);
+}
+
+.modal-movimientos-table tbody tr:hover {
+    background: var(--verde-oscuro-primary);
+}
+
+.badge-ingreso {
+    background: linear-gradient(135deg, var(--verde-medio), var(--verde-claro));
+    color: var(--text-white);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.badge-egreso {
+    background: linear-gradient(135deg, #e63946, #f77f00);
+    color: var(--text-white);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.no-denominaciones,
+.no-movimientos {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-light);
+    opacity: 0.6;
+}
+
+/* Totales del modal */
+.modal-totales {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.modal-total-card {
+    background: linear-gradient(135deg, var(--verde-oscuro-primary), var(--verde-oscuro-secondary));
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.modal-total-label {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.modal-total-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-white);
+}
+
 /* Responsive */
 @media (max-width: 1200px) {
     .balance-cards {

@@ -287,11 +287,6 @@ if not _exists:
                 'access_fn': _caja_access_fn,
             },
             {
-                'label': _('Historial'),
-                'url_name': 'caja:historial',
-                'access_fn': _caja_access_fn,
-            },
-            {
                 'label': _('Informes'),
                 'url_name': 'caja:informes',
                 'access_fn': _caja_access_fn,

@@ -196,17 +196,17 @@
                 <table class="tabla-arqueos">
                     <thead>
                         <tr>
-                            <th><i class="bi bi-hash"></i> ID</th>
-                            <th><i class="bi bi-person"></i> Cajero</th>
-                            <th><i class="bi bi-calendar-check"></i> Apertura</th>
-                            <th><i class="bi bi-calendar-x"></i> Cierre</th>
-                            <th><i class="bi bi-coin"></i> Saldo Inicial</th>
-                            <th><i class="bi bi-arrow-down"></i> Entradas</th>
-                            <th><i class="bi bi-arrow-up"></i> Salidas</th>
-                            <th><i class="bi bi-calculator"></i> Saldo Teórico</th>
-                            <th><i class="bi bi-cash"></i> Saldo Real</th>
-                            <th><i class="bi bi-exclamation-triangle"></i> Diferencia</th>
-                            <th><i class="bi bi-eye"></i> Acciones</th>
+                            <th title="Número único de identificación de la caja"><i class="bi bi-hash"></i> ID</th>
+                            <th title="Nombre del usuario que manejó la caja"><i class="bi bi-person"></i> Cajero</th>
+                            <th title="Fecha y hora en que se abrió la caja"><i class="bi bi-calendar-check"></i> Apertura</th>
+                            <th title="Fecha y hora en que se cerró la caja"><i class="bi bi-calendar-x"></i> Cierre</th>
+                            <th title="Dinero con el que se inició la caja"><i class="bi bi-coin"></i> Saldo Inicial</th>
+                            <th title="Total de ingresos de efectivo durante el turno"><i class="bi bi-arrow-down"></i> Entradas</th>
+                            <th title="Total de salidas de efectivo durante el turno"><i class="bi bi-arrow-up"></i> Salidas</th>
+                            <th title="Saldo que debería haber según el sistema (Inicial + Entradas - Salidas)"><i class="bi bi-calculator"></i> Saldo Teórico</th>
+                            <th title="Dinero contado físicamente al cerrar la caja"><i class="bi bi-cash"></i> Saldo Real</th>
+                            <th title="Diferencia entre lo contado y lo que debería haber (positivo=sobrante, negativo=faltante)"><i class="bi bi-exclamation-triangle"></i> Diferencia</th>
+                            <th title="Ver detalles completos de esta caja"><i class="bi bi-eye"></i> Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tablaArqueosBody">
@@ -292,6 +292,27 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Detalle de Caja -->
+<div id="modalDetalleCaja" class="modal-detalle" style="display: none;">
+    <div class="modal-detalle-overlay"></div>
+    <div class="modal-detalle-content">
+        <div class="modal-detalle-header">
+            <h2><i class="bi bi-box-seam"></i> Detalle de Caja <span id="modalCajaId">#0</span></h2>
+            <button class="modal-detalle-close" onclick="cerrarModalDetalle()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        
+        <div class="modal-detalle-body" id="modalDetalleBody">
+            <div class="loading-modal">
+                <i class="bi bi-arrow-repeat spin"></i>
+                <p>Cargando información...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extrascripts %}
