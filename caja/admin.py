@@ -634,13 +634,13 @@ class DetalleConteoAdmin(admin.ModelAdmin):
             elif obj.conteo.tipo_conteo == 'CIERRE':
                 tipo_display = 'Cierre'
             else:
-                tipo_display = obj.conteo.tipo_conteo
+                tipo_display = str(obj.conteo.tipo_conteo)
                 
             return format_html(
                 'Conteo #{} - {}<br><small>Caja #{}</small>',
-                obj.conteo.id,
-                tipo_display,
-                obj.conteo.caja.id
+                int(obj.conteo.id),
+                str(tipo_display),
+                int(obj.conteo.caja.id)
             )
         except (AttributeError, ValueError, TypeError) as e:
             return format_html('<span style="color: red;">Error: {}</span>', str(e))
