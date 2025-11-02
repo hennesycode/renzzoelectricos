@@ -73,24 +73,10 @@ class LoginManager {
             const isChecked = e.target.checked;
             this.saveUserPreference('rememberMe', isChecked);
             
-            // Eliminar o crear dropdown según el estado de "recordarme"
-            const existingDropdown = this.usernameInput.parentElement.querySelector('.autocomplete-dropdown');
-            
             if (isChecked) {
-                // Si marca "recordarme", eliminar dropdown de recientes
-                if (existingDropdown) {
-                    existingDropdown.remove();
-                    console.log('🗑️ Dropdown eliminado (recordarme activado)');
-                }
+                console.log('✅ Recordarme activado - guardará último usuario');
             } else {
-                // Si desmarca "recordarme", crear dropdown si hay recientes
-                if (!existingDropdown) {
-                    const recentUsers = this.getRecentUsers();
-                    if (recentUsers.length > 0) {
-                        this.createAutoCompleteDropdown(recentUsers);
-                        console.log('✅ Dropdown creado (recordarme desactivado)');
-                    }
-                }
+                console.log('ℹ️ Recordarme desactivado - no guardará usuario');
             }
         });
     }
@@ -162,48 +148,11 @@ class LoginManager {
     }
 
     /**
-     * Configura autocompletado inteligente.
-     * SOLO se activa cuando "recordarme" NO está marcado.
+     * Configura detección de tipo de input (email vs username).
+     * NO crea dropdown ni autocompletado - solo guarda el último usuario.
      */
     setupAutoComplete() {
-        // Verificar preferencias del usuario
-        const userPrefs = this.getUserPreferences();
-        const recentUsers = this.getRecentUsers();
-
-        // Si "recordarme" está activo, NO crear dropdown ni listeners
-        // El usuario quiere ver SOLO su username guardado, sin opciones
-        if (userPrefs.rememberMe) {
-            console.log('ℹ️ Autocompletado desactivado (recordarme activo)');
-            
-            // Limpiar cualquier dropdown existente
-            const existingDropdown = this.usernameInput.parentElement.querySelector('.autocomplete-dropdown');
-            if (existingDropdown) {
-                existingDropdown.remove();
-                console.log('🗑️ Dropdown existente eliminado');
-            }
-            
-            // Solo mantener el listener de detección de email vs username
-            this.usernameInput.addEventListener('input', (e) => {
-                const value = e.target.value;
-                if (value.includes('@')) {
-                    this.usernameInput.setAttribute('type', 'email');
-                    this.usernameInput.setAttribute('placeholder', 'Ingrese su email');
-                } else {
-                    this.usernameInput.setAttribute('type', 'text');
-                    this.usernameInput.setAttribute('placeholder', 'Ingrese su usuario o email');
-                }
-            });
-            
-            return; // Salir sin crear dropdown
-        }
-
-        // Si "recordarme" NO está activo y hay recientes, crear dropdown
-        if (recentUsers.length > 0) {
-            console.log(`✅ Autocompletado activado con ${recentUsers.length} usuarios recientes`);
-            this.createAutoCompleteDropdown(recentUsers);
-        }
-
-        // Detectar email vs username (siempre útil)
+        // Solo detectar email vs username para cambiar placeholder
         this.usernameInput.addEventListener('input', (e) => {
             const value = e.target.value;
             if (value.includes('@')) {
@@ -214,91 +163,8 @@ class LoginManager {
                 this.usernameInput.setAttribute('placeholder', 'Ingrese su usuario o email');
             }
         });
-    }
-
-    /**
-     * Crea dropdown de autocompletado
-     */
-    createAutoCompleteDropdown(users) {
-        const dropdown = document.createElement('div');
-        dropdown.className = 'autocomplete-dropdown';
-        dropdown.style.cssText = `
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 1000;
-            display: none;
-        `;
         
-        this.usernameInput.parentElement.style.position = 'relative';
-        this.usernameInput.parentElement.appendChild(dropdown);
-        
-        // Mostrar/ocultar dropdown
-        this.usernameInput.addEventListener('focus', () => {
-            this.updateAutoCompleteDropdown(dropdown, users);
-        });
-        
-        this.usernameInput.addEventListener('input', (e) => {
-            this.updateAutoCompleteDropdown(dropdown, users, e.target.value);
-        });
-        
-        document.addEventListener('click', (e) => {
-            if (!this.usernameInput.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.style.display = 'none';
-            }
-        });
-    }
-
-    /**
-     * Actualiza dropdown de autocompletado
-     */
-    updateAutoCompleteDropdown(dropdown, users, filter = '') {
-        const filteredUsers = users.filter(user => 
-            user.toLowerCase().includes(filter.toLowerCase())
-        );
-        
-        if (filteredUsers.length === 0 || (filteredUsers.length === 1 && filteredUsers[0] === filter)) {
-            dropdown.style.display = 'none';
-            return;
-        }
-        
-        dropdown.innerHTML = '';
-        filteredUsers.forEach(user => {
-            const item = document.createElement('div');
-            item.textContent = user;
-            item.style.cssText = `
-                padding: 12px 16px;
-                cursor: pointer;
-                border-bottom: 1px solid #f0f0f0;
-                transition: background 0.2s;
-            `;
-            
-            item.addEventListener('mouseenter', () => {
-                item.style.background = '#f8f9fa';
-            });
-            
-            item.addEventListener('mouseleave', () => {
-                item.style.background = 'white';
-            });
-            
-            item.addEventListener('click', () => {
-                this.usernameInput.value = user;
-                this.usernameInput.classList.add('success');
-                dropdown.style.display = 'none';
-                this.passwordInput.focus();
-            });
-            
-            dropdown.appendChild(item);
-        });
-        
-        dropdown.style.display = 'block';
+        console.log('✅ Detección de tipo de input configurada (sin dropdown)');
     }
 
     /**
@@ -345,51 +211,6 @@ class LoginManager {
     }
 
     /**
-     * Obtiene usuarios recientes
-     */
-    getRecentUsers() {
-        try {
-            const recent = localStorage.getItem('renzzoelectricos_recent_users');
-            return recent ? JSON.parse(recent) : [];
-        } catch (error) {
-            console.warn('Error al obtener usuarios recientes:', error);
-            return [];
-        }
-    }
-
-    /**
-     * Guarda usuario en la lista de recientes
-     */
-    saveRecentUser(username) {
-        try {
-            // Si el usuario tiene activa la preferencia 'rememberMe', no
-            // mantenemos una lista de recientes: guardamos el único
-            // username y eliminamos la lista previa.
-            const prefs = this.getUserPreferences();
-            if (prefs.rememberMe) {
-                localStorage.setItem(this.cacheKeys.username, username);
-                localStorage.removeItem('renzzoelectricos_recent_users');
-                return;
-            }
-
-            let recent = this.getRecentUsers();
-
-            // Remover si ya existe
-            recent = recent.filter(u => u !== username);
-
-            // Agregar al principio
-            recent.unshift(username);
-
-            // Mantener solo los últimos 5
-            recent = recent.slice(0, 5);
-
-            localStorage.setItem('renzzoelectricos_recent_users', JSON.stringify(recent));
-        } catch (error) {
-            console.warn('Error al guardar usuario reciente:', error);
-        }
-    }
-
-    /**
      * Obtiene valor de cookie
      */
     getCookieValue(name) {
@@ -406,9 +227,6 @@ class LoginManager {
         try {
             // Limpiar username guardado permanentemente
             localStorage.removeItem(this.cacheKeys.username);
-            
-            // Limpiar lista de usuarios recientes (dropdown)
-            localStorage.removeItem('renzzoelectricos_recent_users');
             
             // Limpiar preferencias de usuario (rememberMe)
             const prefs = this.getUserPreferences();
@@ -577,8 +395,8 @@ class LoginManager {
 
     /**
      * Maneja respuesta exitosa del login.
-     * Limpia el cache anterior y guarda SOLO el último username cuando
-     * "recordarme" está activo, asegurando que siempre esté actualizado.
+     * Sistema simple: guarda/actualiza/borra SOLO el último username según "recordarme".
+     * SIN dropdown, SIN lista de recientes - solo el último usuario guardado.
      */
     async handleLoginResponse(result) {
         if (result.success) {
@@ -590,32 +408,24 @@ class LoginManager {
             localStorage.setItem(this.cacheKeys.lastLogin, Date.now().toString());
 
             // Si "recordarme" está marcado: guardar SOLO el último username
-            // y limpiar datos anteriores para mantener siempre actualizado.
             if (result.remember_me) {
                 // Log de cambio de usuario si es diferente
                 if (previousUsername && previousUsername !== newUsername) {
-                    console.log(`🔄 Actualizando recordarme: '${previousUsername}' → '${newUsername}'`);
+                    console.log(`🔄 Actualizando: '${previousUsername}' → '${newUsername}'`);
                 }
-                
-                // LIMPIAR: eliminar lista de recientes y datos antiguos
-                localStorage.removeItem('renzzoelectricos_recent_users');
                 
                 // GUARDAR: establecer el nuevo username como único valor
                 localStorage.setItem(this.cacheKeys.username, newUsername);
                 this.saveUserPreference('rememberMe', true);
                 
-                console.log(`✅ Recordarme activado para: ${newUsername}`);
+                console.log(`✅ Usuario guardado: ${newUsername}`);
             } else {
-                // "Recordarme" NO está activo: limpiar datos permanentes
-                // y guardar en lista de recientes (para autocompletado)
-                console.log(`🗑️ Recordarme desactivado, limpiando cache permanente`);
+                // "Recordarme" NO está activo: limpiar TODO
+                console.log(`🗑️ Recordarme desactivado, limpiando cache`);
                 
                 // LIMPIAR: eliminar username permanente guardado
                 localStorage.removeItem(this.cacheKeys.username);
                 this.saveUserPreference('rememberMe', false);
-                
-                // GUARDAR: agregar a lista de recientes (dropdown)
-                this.saveRecentUser(newUsername);
             }
             
             // Marcar campos como exitosos
