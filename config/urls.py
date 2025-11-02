@@ -21,9 +21,10 @@ from django.conf.urls.static import static
 from django.conf.urls.i18n import i18n_patterns
 from django.views.generic import RedirectView
 from django.apps import apps
+from app.Http.views import home_view
 
 urlpatterns = [
-    path('', RedirectView.as_view(url='/dashboard/', permanent=False), name='home'),
+    path('', home_view, name='home'),
     path('admin/', admin.site.urls),
     path('', include('users.urls')),
     path('i18n/', include('django.conf.urls.i18n')),

@@ -1,0 +1,292 @@
+/**
+ * Estilos para la Landing Page de Renzzo Eléctricos
+ * Colores principales: Verde oscuro (#0a4d3c, #0d5c47, #0f7057)
+ */
+
+/* ============================================
+   RESET Y CONFIGURACIÓN GENERAL
+   ============================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0a4d3c 0%, #0d5c47 50%, #0f7057 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow-x: hidden;
+}
+
+/* ============================================
+   BACKGROUND ANIMADO
+   ============================================ */
+body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(15, 112, 87, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(10, 77, 60, 0.2) 0%, transparent 50%);
+    animation: bgAnimation 15s ease infinite;
+}
+
+@keyframes bgAnimation {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* ============================================
+   CONTENEDOR PRINCIPAL
+   ============================================ */
+.container {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    max-width: 600px;
+    width: 100%;
+    animation: fadeInUp 0.8s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   LOGO Y BRANDING
+   ============================================ */
+.logo-container {
+    margin-bottom: 40px;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.logo {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 30px;
+    background: linear-gradient(135deg, #10d98b 0%, #0ea672 100%);
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+        0 20px 60px rgba(16, 217, 139, 0.3),
+        0 0 0 10px rgba(255, 255, 255, 0.05);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { 
+        box-shadow: 0 20px 60px rgba(16, 217, 139, 0.3), 
+                    0 0 0 10px rgba(255, 255, 255, 0.05); 
+    }
+    50% { 
+        box-shadow: 0 25px 70px rgba(16, 217, 139, 0.5), 
+                    0 0 0 15px rgba(255, 255, 255, 0.1); 
+    }
+}
+
+.logo svg {
+    width: 60px;
+    height: 60px;
+    fill: white;
+}
+
+/* ============================================
+   TIPOGRAFÍA
+   ============================================ */
+h1 {
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    font-weight: 900;
+    color: white;
+    margin-bottom: 15px;
+    text-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    letter-spacing: -2px;
+    line-height: 1.1;
+}
+
+.subtitle {
+    font-size: clamp(1rem, 3vw, 1.3rem);
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 50px;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+}
+
+/* ============================================
+   BOTONES
+   ============================================ */
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.btn {
+    padding: 18px 40px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    font-family: 'Poppins', sans-serif;
+}
+
+/* Efecto shine en botones */
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn:hover::before {
+    left: 100%;
+}
+
+/* Botón primario */
+.btn-primary {
+    background: linear-gradient(135deg, #10d98b 0%, #0ea672 100%);
+    color: white;
+    box-shadow: 0 10px 30px rgba(16, 217, 139, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(16, 217, 139, 0.6);
+}
+
+.btn-primary:active {
+    transform: translateY(-1px);
+}
+
+/* Botón secundario */
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:active {
+    transform: translateY(-1px);
+}
+
+.icon {
+    width: 24px;
+    height: 24px;
+}
+
+/* ============================================
+   ELEMENTOS DECORATIVOS
+   ============================================ */
+.decoration {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.1;
+    animation: float 6s ease-in-out infinite;
+}
+
+.decoration:nth-child(1) {
+    width: 300px;
+    height: 300px;
+    background: linear-gradient(135deg, #10d98b 0%, #0ea672 100%);
+    top: -150px;
+    left: -150px;
+    animation-delay: 0s;
+}
+
+.decoration:nth-child(2) {
+    width: 200px;
+    height: 200px;
+    background: linear-gradient(135deg, #10d98b 0%, #0ea672 100%);
+    bottom: -100px;
+    right: -100px;
+    animation-delay: 2s;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+.footer {
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+    font-weight: 300;
+    z-index: 1;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* Tablets y superiores */
+@media (min-width: 768px) {
+    .buttons {
+        flex-direction: row;
+        justify-content: center;
+    }
+    
+    .btn {
+        flex: 1;
+        max-width: 200px;
+    }
+}
+
+/* Móviles pequeños */
+@media (max-width: 480px) {
+    .logo {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .logo svg {
+        width: 50px;
+        height: 50px;
+    }
+}

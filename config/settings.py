@@ -213,8 +213,13 @@ LOCALE_PATHS = [
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Cada app tiene su propio directorio static
-# Django lo encontrará automáticamente con APP_DIRS=True
+# Directorios adicionales donde Django buscará archivos estáticos
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',  # Archivos estáticos globales (landing page, etc.)
+]
+
+# Django buscará automáticamente en app/static/app/ para cada app instalada
+# Por ejemplo: users/static/users/ para la app users
 
 # Configuración de Whitenoise para servir archivos estáticos
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

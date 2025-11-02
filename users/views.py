@@ -15,10 +15,13 @@ from .forms import CustomLoginForm, CustomUserCreationForm
 
 def login_view(request):
     """
-    Vista personalizada de login.
+    Vista personalizada de login con soporte AJAX.
     """
     if request.user.is_authenticated:
         return redirect('dashboard')
+    
+    # Verificar si es una petición AJAX
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     
     if request.method == 'POST':
         form = CustomLoginForm(request, data=request.POST)
@@ -26,13 +29,45 @@ def login_view(request):
             username = form.cleaned_data.get('username')
             password = form.cleaned_data.get('password')
             user = authenticate(username=username, password=password)
+            
             if user is not None:
                 login(request, user)
+                
+                # Respuesta AJAX
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({
+                        'success': True,
+                        'message': f'Bienvenido, {user.get_full_name() or user.username}!',
+                        'user': {
+                            'username': user.username,
+                            'full_name': user.get_full_name(),
+                            'email': user.email,
+                            'rol': user.get_rol_display()
+                        },
+                        'redirect_url': '/shop/'  # Redirigir al dashboard de Oscar
+                    })
+                
+                # Respuesta normal
                 messages.success(request, _(f'Bienvenido, {user.get_full_name()}!'))
-                return redirect('dashboard')
+                return redirect('/shop/')  # Redirigir al dashboard de Oscar
             else:
+                # Error de autenticación
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Usuario o contraseña incorrectos'
+                    })
                 messages.error(request, _('Usuario o contraseña incorrectos.'))
         else:
+            # Formulario inválido
+            if is_ajax:
+                from django.http import JsonResponse
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Por favor corrija los errores en el formulario'
+                })
             messages.error(request, _('Por favor corrija los errores en el formulario.'))
     else:
         form = CustomLoginForm()

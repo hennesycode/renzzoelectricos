@@ -1,70 +1,602 @@
-{% extends 'base.html' %}
-{% load static %}
+{% load static %}{% load static %}<!DOCTYPE html>
 
-{% block title %}Login - Renzzo Eléctricos{% endblock %}
+<!DOCTYPE html>
 
-{% block content %}
-<div class="container">
-    <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
-        <div class="col-md-5">
-            <div class="card shadow">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <h2 class="text-primary">
-                            <i class="bi bi-lightning-charge-fill"></i>
-                        </h2>
-                        <h3>Renzzo Eléctricos</h3>
-                        <p class="text-muted">Iniciar Sesión</p>
-                    </div>
+<html lang="es"><!DOCTYPE html><html lang="es">
 
-                    <form method="post" action="{% url 'login' %}">
-                        {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.username.id_for_label }}" class="form-label">
-                                Usuario
-                            </label>
-                            {{ form.username }}
-                            {% if form.username.errors %}
-                                <div class="text-danger mt-1">
-                                    {{ form.username.errors }}
-                                </div>
-                            {% endif %}
-                        </div>
+<head>
 
-                        <div class="mb-3">
-                            <label for="{{ form.password.id_for_label }}" class="form-label">
-                                Contraseña
-                            </label>
-                            {{ form.password }}
-                            {% if form.password.errors %}
-                                <div class="text-danger mt-1">
-                                    {{ form.password.errors }}
-                                </div>
-                            {% endif %}
-                        </div>
+    <meta charset="UTF-8"><html lang="es"><head>
 
-                        {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {{ form.non_field_errors }}
-                        </div>
-                        {% endif %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="bi bi-box-arrow-in-right"></i> Ingresar
-                            </button>
-                        </div>
-                    </form>
+    <title>Login - Renzzo Eléctricos</title><head>    <meta charset="UTF-8">
 
-                    <hr class="my-4">
-                    
-                    <div class="text-center text-muted">
-                        <small>Bogotá, Colombia</small>
-                    </div>
-                </div>
+    
+
+    <!-- Google Fonts -->    <meta charset="UTF-8">    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Login - Renzzo Eléctricos</title>
+
+    <!-- SweetAlert2 -->
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>    <title>Login - Renzzo Eléctricos</title>    
+
+    
+
+    <!-- CSS Externo -->        <!-- Google Fonts -->
+
+    <link rel="stylesheet" href="{% static 'users/css/login.css' %}">
+
+</head>    <!-- Google Fonts -->    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<body>
+
+    <div class="login-container">    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">    
+
+        <div class="login-card">
+
+            <div class="logo">        <!-- SweetAlert2 -->
+
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+
+                    <path d="M13 2.05v3.03c3.39.49 6 3.39 6 6.92 0 .9-.18 1.75-.48 2.54l2.6 1.53c.56-1.24.88-2.62.88-4.07 0-5.18-3.95-9.45-9-9.95zM12 19c-3.87 0-7-3.13-7-7 0-3.53 2.61-6.43 6-6.92V2.05c-5.06.5-9 4.76-9 9.95 0 5.52 4.47 10 9.99 10 3.31 0 6.24-1.61 8.06-4.09l-2.6-1.53C16.17 17.98 14.21 19 12 19z"/>    <!-- SweetAlert2 -->    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+                </svg>
+
+            </div>    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>    
+
+            
+
+            <div class="login-header">        <style>
+
+                <h1>Renzzo Eléctricos</h1>
+
+                <p>Ingresa a tu cuenta</p>    <!-- CSS Externo -->        * {
+
             </div>
+
+                <link rel="stylesheet" href="{% static 'users/css/login.css' %}">            margin: 0;
+
+            <form id="loginForm" action="{% url 'login' %}" method="POST">
+
+                {% csrf_token %}</head>            padding: 0;
+
+                
+
+                <div class="form-group"><body>            box-sizing: border-box;
+
+                    <label for="username" class="form-label">Usuario</label>
+
+                    <input     <div class="login-container">        }
+
+                        type="text" 
+
+                        id="username"         <div class="login-card">        
+
+                        name="username" 
+
+                        class="form-control"             <div class="logo">        body {
+
+                        placeholder="Ingresa tu usuario"
+
+                        required                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">            font-family: 'Poppins', sans-serif;
+
+                        autocomplete="username"
+
+                    >                    <path d="M13 2.05v3.03c3.39.49 6 3.39 6 6.92 0 .9-.18 1.75-.48 2.54l2.6 1.53c.56-1.24.88-2.62.88-4.07 0-5.18-3.95-9.45-9-9.95zM12 19c-3.87 0-7-3.13-7-7 0-3.53 2.61-6.43 6-6.92V2.05c-5.06.5-9 4.76-9 9.95 0 5.52 4.47 10 9.99 10 3.31 0 6.24-1.61 8.06-4.09l-2.6-1.53C16.17 17.98 14.21 19 12 19z"/>            min-height: 100vh;
+
+                </div>
+
+                                </svg>            background: linear-gradient(135deg, #0a4d3c 0%, #0d5c47 50%, #0f7057 100%);
+
+                <div class="form-group">
+
+                    <label for="password" class="form-label">Contraseña</label>            </div>            display: flex;
+
+                    <input 
+
+                        type="password"                         align-items: center;
+
+                        id="password" 
+
+                        name="password"             <div class="login-header">            justify-content: center;
+
+                        class="form-control" 
+
+                        placeholder="Ingresa tu contraseña"                <h1>Renzzo Eléctricos</h1>            padding: 20px;
+
+                        required
+
+                        autocomplete="current-password"                <p>Ingresa a tu cuenta</p>            position: relative;
+
+                    >
+
+                </div>            </div>            overflow: hidden;
+
+                
+
+                <div class="checkbox-group">                    }
+
+                    <input type="checkbox" id="remember" name="remember">
+
+                    <label for="remember">Recordarme</label>            <form id="loginForm" action="{% url 'login' %}" method="POST">        
+
+                </div>
+
+                                {% csrf_token %}        /* Animated background */
+
+                <button type="submit" class="btn-login" id="loginButton">
+
+                    <svg viewBox="0 0 24 24">                        body::before {
+
+                        <path d="M10 17l5-5-5-5v10z"/>
+
+                        <path d="M3 3h8v2H5v14h6v2H3V3zm16 0v18h-2V3h2z"/>                <div class="form-group">            content: '';
+
+                    </svg>
+
+                    Iniciar Sesión                    <label for="username" class="form-label">Usuario</label>            position: absolute;
+
+                </button>
+
+            </form>                    <input             top: 0;
+
+            
+
+            <a href="{% url 'home' %}" class="back-link">← Volver al inicio</a>                        type="text"             left: 0;
+
+        </div>
+
+    </div>                        id="username"             width: 100%;
+
+    
+
+    <div class="footer">                        name="username"             height: 100%;
+
+        © 2025 Renzzo Eléctricos • Bogotá, Colombia
+
+    </div>                        class="form-control"             background: 
+
+    
+
+    <!-- JavaScript Externo -->                        placeholder="Ingresa tu usuario"                radial-gradient(circle at 20% 50%, rgba(15, 112, 87, 0.2) 0%, transparent 50%),
+
+    <script src="{% static 'users/js/login.js' %}"></script>
+
+</body>                        required                radial-gradient(circle at 80% 80%, rgba(10, 77, 60, 0.2) 0%, transparent 50%);
+
+</html>
+
+                        autocomplete="username"            animation: bgAnimation 15s ease infinite;
+
+                    >        }
+
+                </div>        
+
+                        @keyframes bgAnimation {
+
+                <div class="form-group">            0%, 100% { opacity: 0.5; }
+
+                    <label for="password" class="form-label">Contraseña</label>            50% { opacity: 1; }
+
+                    <input         }
+
+                        type="password"         
+
+                        id="password"         .login-container {
+
+                        name="password"             position: relative;
+
+                        class="form-control"             z-index: 1;
+
+                        placeholder="Ingresa tu contraseña"            width: 100%;
+
+                        required            max-width: 450px;
+
+                        autocomplete="current-password"            animation: fadeInUp 0.8s ease;
+
+                    >        }
+
+                </div>        
+
+                        @keyframes fadeInUp {
+
+                <div class="checkbox-group">            from {
+
+                    <input type="checkbox" id="remember" name="remember">                opacity: 0;
+
+                    <label for="remember">Recordarme</label>                transform: translateY(30px);
+
+                </div>            }
+
+                            to {
+
+                <button type="submit" class="btn-login" id="loginButton">                opacity: 1;
+
+                    <svg viewBox="0 0 24 24">                transform: translateY(0);
+
+                        <path d="M10 17l5-5-5-5v10z"/>            }
+
+                        <path d="M3 3h8v2H5v14h6v2H3V3zm16 0v18h-2V3h2z"/>        }
+
+                    </svg>        
+
+                    Iniciar Sesión        .login-card {
+
+                </button>            background: rgba(255, 255, 255, 0.95);
+
+            </form>            border-radius: 25px;
+
+                        padding: 40px;
+
+            <a href="{% url 'home' %}" class="back-link">← Volver al inicio</a>            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+        </div>            backdrop-filter: blur(10px);
+
+    </div>        }
+
+            
+
+    <div class="footer">        .logo {
+
+        © 2025 Renzzo Eléctricos • Bogotá, Colombia            width: 80px;
+
+    </div>            height: 80px;
+
+                margin: 0 auto 20px;
+
+    <!-- JavaScript Externo -->            background: linear-gradient(135deg, #10d98b 0%, #0ea672 100%);
+
+    <script src="{% static 'users/js/login.js' %}"></script>            border-radius: 20px;
+
+</body>            display: flex;
+
+</html>            align-items: center;
+
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(16, 217, 139, 0.3);
+        }
+        
+        .logo svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+        
+        .login-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0a4d3c;
+            margin-bottom: 8px;
+        }
+        
+        .login-header p {
+            color: #666;
+            font-size: 0.95rem;
+            font-weight: 300;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #0a4d3c;
+            margin-bottom: 8px;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            background: white;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #10d98b;
+            box-shadow: 0 0 0 4px rgba(16, 217, 139, 0.1);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #10d98b;
+        }
+        
+        .checkbox-group label {
+            font-size: 0.9rem;
+            color: #666;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #10d98b 0%, #0ea672 100%);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 10px 30px rgba(16, 217, 139, 0.3);
+        }
+        
+        .btn-login:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(16, 217, 139, 0.5);
+        }
+        
+        .btn-login:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        
+        .btn-login svg {
+            width: 22px;
+            height: 22px;
+            fill: currentColor;
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 25px;
+            color: #0a4d3c;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .back-link:hover {
+            color: #10d98b;
+        }
+        
+        .footer {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+            z-index: 0;
+        }
+        
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 30px 25px;
+            }
+            
+            .login-header h1 {
+                font-size: 1.6rem;
+            }
+        }
+        
+        /* SweetAlert2 custom styling */
+        .swal2-popup {
+            border-radius: 20px;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .swal2-confirm {
+            background: linear-gradient(135deg, #10d98b 0%, #0ea672 100%) !important;
+            border-radius: 10px !important;
+            padding: 10px 30px !important;
+            font-weight: 600 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 2.05v3.03c3.39.49 6 3.39 6 6.92 0 .9-.18 1.75-.48 2.54l2.6 1.53c.56-1.24.88-2.62.88-4.07 0-5.18-3.95-9.45-9-9.95zM12 19c-3.87 0-7-3.13-7-7 0-3.53 2.61-6.43 6-6.92V2.05c-5.06.5-9 4.76-9 9.95 0 5.52 4.47 10 9.99 10 3.31 0 6.24-1.61 8.06-4.09l-2.6-1.53C16.17 17.98 14.21 19 12 19z"/>
+                </svg>
+            </div>
+            
+            <div class="login-header">
+                <h1>Renzzo Eléctricos</h1>
+                <p>Ingresa a tu cuenta</p>
+            </div>
+            
+            <form id="loginForm">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="username" class="form-label">Usuario</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        class="form-control" 
+                        placeholder="Ingresa tu usuario"
+                        required
+                        autocomplete="username"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        class="form-control" 
+                        placeholder="Ingresa tu contraseña"
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="remember" name="remember">
+                    <label for="remember">Recordarme</label>
+                </div>
+                
+                <button type="submit" class="btn-login" id="loginButton">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M10 17l5-5-5-5v10z"/>
+                        <path d="M3 3h8v2H5v14h6v2H3V3zm16 0v18h-2V3h2z"/>
+                    </svg>
+                    Iniciar Sesión
+                </button>
+            </form>
+            
+            <a href="/" class="back-link">← Volver al inicio</a>
         </div>
     </div>
-</div>
-{% endblock %}
+    
+    <div class="footer">
+        © 2025 Renzzo Eléctricos • Bogotá, Colombia
+    </div>
+    
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const form = e.target;
+            const username = form.username.value.trim();
+            const password = form.password.value;
+            const remember = form.remember.checked;
+            const loginButton = document.getElementById('loginButton');
+            
+            // Validación básica
+            if (!username || !password) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Campos incompletos',
+                    text: 'Por favor ingresa tu usuario y contraseña',
+                    confirmButtonText: 'Entendido'
+                });
+                return;
+            }
+            
+            // Deshabilitar botón y mostrar loading
+            loginButton.disabled = true;
+            loginButton.innerHTML = '<div class="spinner"></div> Verificando...';
+            
+            try {
+                // Obtener CSRF token
+                const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                // Realizar petición AJAX
+                const response = await fetch('{% url "login" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': csrftoken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: new URLSearchParams({
+                        'username': username,
+                        'password': password,
+                        'remember': remember ? 'on' : ''
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Login exitoso
+                    await Swal.fire({
+                        icon: 'success',
+                        title: '¡Bienvenido!',
+                        text: `Hola ${data.user.username}, accediendo al sistema...`,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    
+                    // Redirigir al dashboard de Oscar
+                    window.location.href = data.redirect_url;
+                } else {
+                    // Login fallido
+                    loginButton.disabled = false;
+                    loginButton.innerHTML = `
+                        <svg viewBox="0 0 24 24">
+                            <path d="M10 17l5-5-5-5v10z"/>
+                            <path d="M3 3h8v2H5v14h6v2H3V3zm16 0v18h-2V3h2z"/>
+                        </svg>
+                        Iniciar Sesión
+                    `;
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de autenticación',
+                        text: data.message || 'Usuario o contraseña incorrectos',
+                        confirmButtonText: 'Intentar de nuevo'
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                loginButton.disabled = false;
+                loginButton.innerHTML = `
+                    <svg viewBox="0 0 24 24">
+                        <path d="M10 17l5-5-5-5v10z"/>
+                        <path d="M3 3h8v2H5v14h6v2H3V3zm16 0v18h-2V3h2z"/>
+                    </svg>
+                    Iniciar Sesión
+                `;
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de conexión',
+                    text: 'No se pudo conectar con el servidor. Por favor intenta de nuevo.',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+        });
+    </script>
+</body>
+</html>

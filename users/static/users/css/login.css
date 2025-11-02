@@ -1,0 +1,294 @@
+/**
+ * Estilos para la página de Login de Renzzo Eléctricos
+ * Diseño moderno con colores verde oscuro
+ */
+
+/* ============================================
+   RESET Y CONFIGURACIÓN GENERAL
+   ============================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0a4d3c 0%, #0d5c47 50%, #0f7057 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* ============================================
+   BACKGROUND ANIMADO
+   ============================================ */
+body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(15, 112, 87, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(10, 77, 60, 0.2) 0%, transparent 50%);
+    animation: bgAnimation 15s ease infinite;
+}
+
+@keyframes bgAnimation {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* ============================================
+   CONTENEDOR DE LOGIN
+   ============================================ */
+.login-container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 450px;
+    animation: fadeInUp 0.8s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 25px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+/* ============================================
+   LOGO
+   ============================================ */
+.logo {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    background: linear-gradient(135deg, #10d98b 0%, #0ea672 100%);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 30px rgba(16, 217, 139, 0.3);
+}
+
+.logo svg {
+    width: 40px;
+    height: 40px;
+    fill: white;
+}
+
+/* ============================================
+   HEADER DEL LOGIN
+   ============================================ */
+.login-header {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+.login-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0a4d3c;
+    margin-bottom: 8px;
+}
+
+.login-header p {
+    color: #666;
+    font-size: 0.95rem;
+    font-weight: 300;
+}
+
+/* ============================================
+   FORMULARIO
+   ============================================ */
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #0a4d3c;
+    margin-bottom: 8px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 15px 20px;
+    font-size: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    font-family: 'Poppins', sans-serif;
+    background: white;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #10d98b;
+    box-shadow: 0 0 0 4px rgba(16, 217, 139, 0.1);
+}
+
+/* ============================================
+   CHECKBOX
+   ============================================ */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 25px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #10d98b;
+}
+
+.checkbox-group label {
+    font-size: 0.9rem;
+    color: #666;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* ============================================
+   BOTÓN DE LOGIN
+   ============================================ */
+.btn-login {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(135deg, #10d98b 0%, #0ea672 100%);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 10px 30px rgba(16, 217, 139, 0.3);
+}
+
+.btn-login:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 40px rgba(16, 217, 139, 0.5);
+}
+
+.btn-login:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-login:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.btn-login svg {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+}
+
+/* ============================================
+   SPINNER DE CARGA
+   ============================================ */
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   ENLACES
+   ============================================ */
+.back-link {
+    display: block;
+    text-align: center;
+    margin-top: 25px;
+    color: #0a4d3c;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.back-link:hover {
+    color: #10d98b;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+.footer {
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+    z-index: 0;
+}
+
+/* ============================================
+   SWEETALERT2 PERSONALIZADO
+   ============================================ */
+.swal2-popup {
+    border-radius: 20px;
+    font-family: 'Poppins', sans-serif;
+}
+
+.swal2-confirm {
+    background: linear-gradient(135deg, #10d98b 0%, #0ea672 100%) !important;
+    border-radius: 10px !important;
+    padding: 10px 30px !important;
+    font-weight: 600 !important;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* Móviles pequeños */
+@media (max-width: 480px) {
+    .login-card {
+        padding: 30px 25px;
+    }
+    
+    .login-header h1 {
+        font-size: 1.6rem;
+    }
+}
