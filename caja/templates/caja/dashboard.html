@@ -339,6 +339,11 @@
         {% if caja_actual %}
             Resumen Caja Abierta
             <small class="text-muted" style="font-size: 0.8rem;">(Abierta por {{ caja_actual.cajero.get_full_name|default:caja_actual.cajero.username }})</small>
+            <br>
+            <small class="text-success" style="font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;">
+                <i class="bi bi-cash-stack"></i>
+                Abierta con: ${{ caja_actual.monto_inicial|formato_pesos_colombia }}
+            </small>
         {% else %}
             Resumen de Caja
         {% endif %}
