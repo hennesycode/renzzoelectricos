@@ -319,9 +319,9 @@ class DenominacionMonedaAdmin(admin.ModelAdmin):
     """
     Administrador completo para DenominacionMoneda.
     """
-    list_display = ('valor_fmt', 'tipo_badge', 'activo_badge', 'orden')
+    list_display = ('id', 'valor_fmt', 'tipo_badge', 'activo_badge', 'orden')
     list_filter = ('tipo', 'activo')
-    ordering = ('-valor',)
+    ordering = ('-valor', 'tipo')
     
     fieldsets = (
         (_('Información de la Denominación'), {
@@ -331,25 +331,39 @@ class DenominacionMonedaAdmin(admin.ModelAdmin):
     
     def valor_fmt(self, obj):
         """Formatea el valor."""
-        return format_html('${:,.0f}', obj.valor)
+        try:
+            return format_html('${:,.0f}', float(obj.valor))
+        except (ValueError, TypeError):
+            return format_html('<span style="color: red;">Error: {}</span>', obj.valor)
     valor_fmt.short_description = 'Valor'
     valor_fmt.admin_order_field = 'valor'
     
     def tipo_badge(self, obj):
         """Muestra el tipo con icono."""
-        if obj.tipo == 'BILLETE':
-            icon = '💵'
-        else:
-            icon = '🪙'
-        return format_html('{} {}', icon, obj.get_tipo_display())
+        try:
+            if obj.tipo == 'BILLETE':
+                icon = '💵'
+                tipo_display = 'Billete'
+            elif obj.tipo == 'MONEDA':
+                icon = '🪙'
+                tipo_display = 'Moneda'
+            else:
+                icon = '❓'
+                tipo_display = obj.tipo
+            return format_html('{} {}', icon, tipo_display)
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     tipo_badge.short_description = 'Tipo'
     tipo_badge.admin_order_field = 'tipo'
     
     def activo_badge(self, obj):
         """Muestra el estado activo con color."""
-        if obj.activo:
-            return format_html('<span style="color: green;">✓ Activo</span>')
-        return format_html('<span style="color: red;">✗ Inactivo</span>')
+        try:
+            if obj.activo:
+                return format_html('<span style="color: green;">✓ Activo</span>')
+            return format_html('<span style="color: red;">✗ Inactivo</span>')
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     activo_badge.short_description = 'Estado'
     activo_badge.admin_order_field = 'activo'
 
