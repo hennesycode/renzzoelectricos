@@ -262,7 +262,6 @@ class DenominacionMoneda(models.Model):
     valor = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        unique=True,
         verbose_name=_('Valor')
     )
     
@@ -287,6 +286,7 @@ class DenominacionMoneda(models.Model):
         verbose_name = _('Denominación de Moneda')
         verbose_name_plural = _('Denominaciones de Monedas')
         ordering = ['-valor']
+        unique_together = ['valor', 'tipo']  # Permite mismo valor si son tipos diferentes
     
     def __str__(self):
         return f"${self.valor:,.0f} ({self.get_tipo_display()})"
