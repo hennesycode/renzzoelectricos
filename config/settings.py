@@ -254,9 +254,20 @@ if not _exists:
     from django.utils.translation import gettext_lazy as _
 
     # Definir un access_fn callable que delega en la función dentro de la app `caja`.
-    # Usamos una función wrapper para evitar importar la app `caja` en tiempo de carga
-    # del módulo settings (mínimo acoplamiento y evitar problemas con el AppRegistry).
+    # Permitir acceso a staff/superuser por defecto, o delegar al permiso específico.
     def _caja_access_fn(user, url_name, url_args=None, url_kwargs=None):
+        """
+        Control de acceso para el menú Caja en Oscar Dashboard.
+        Permite: staff, superuser, o usuarios con permiso 'users.can_view_caja'
+        """
+        if not user or not user.is_authenticated:
+            return False
+        
+        # Permitir acceso a staff/superuser sin verificar permisos
+        if user.is_staff or user.is_superuser:
+            return True
+        
+        # Para usuarios no-staff, verificar permiso específico
         try:
             from caja.dashboard import caja_access_fn
             return caja_access_fn(user, url_name, url_args, url_kwargs)

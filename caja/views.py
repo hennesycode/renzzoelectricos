@@ -20,10 +20,10 @@ from .models import (
     CajaRegistradora, MovimientoCaja, TipoMovimiento,
     DenominacionMoneda, ConteoEfectivo, DetalleConteo
 )
+from .decorators import staff_or_permission_required
 
 
-@login_required
-@permission_required('users.can_view_caja', raise_exception=True)
+@staff_or_permission_required('users.can_view_caja')
 def caja_dashboard(request):
     """
     Dashboard principal del sistema de caja.
@@ -82,8 +82,7 @@ def caja_dashboard(request):
     return render(request, 'caja/dashboard.html', context)
 
 
-@login_required
-@permission_required('users.can_manage_caja', raise_exception=True)
+@staff_or_permission_required('users.can_manage_caja')
 def abrir_caja(request):
     """
     Vista para abrir una nueva caja (ÚNICA Y GLOBAL para todo el sistema).
@@ -213,8 +212,7 @@ def abrir_caja(request):
         return JsonResponse({'success': False, 'error': f'Error al abrir caja: {str(e)}'}, status=500)
 
 
-@login_required
-@permission_required('users.can_manage_caja', raise_exception=True)
+@staff_or_permission_required('users.can_manage_caja')
 def cerrar_caja(request):
     """
     Vista para cerrar la caja actual del sistema (ÚNICA Y GLOBAL).
@@ -291,8 +289,7 @@ def cerrar_caja(request):
         return JsonResponse({'success': False, 'error': 'Monto declarado inválido'}, status=400)
 
 
-@login_required
-@permission_required('users.can_view_caja', raise_exception=True)
+@staff_or_permission_required('users.can_view_caja')
 def nuevo_movimiento(request):
     """
     Vista para registrar un nuevo movimiento de caja.
@@ -395,8 +392,7 @@ class CajaDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
         return CajaRegistradora.objects.prefetch_related('movimientos__tipo_movimiento', 'movimientos__usuario')
 
 
-@login_required
-@permission_required('users.can_manage_caja', raise_exception=True)
+@staff_or_permission_required('users.can_manage_caja')
 def contar_efectivo(request):
     """
     Vista AJAX para el conteo de efectivo con denominaciones.
@@ -436,8 +432,7 @@ def contar_efectivo(request):
         }, status=400)
 
 
-@login_required
-@permission_required('users.can_view_caja', raise_exception=True)
+@staff_or_permission_required('users.can_view_caja')
 def obtener_denominaciones(request):
     """Devuelve las denominaciones activas en JSON para construir el modal de conteo."""
     if request.method != 'GET':
@@ -456,8 +451,7 @@ def obtener_denominaciones(request):
     return JsonResponse({'success': True, 'denominaciones': data})
 
 
-@login_required
-@permission_required('users.can_view_caja', raise_exception=True)
+@staff_or_permission_required('users.can_view_caja')
 def obtener_estado_caja(request):
     """
     Devuelve el estado actual de la caja abierta con:
@@ -528,8 +522,7 @@ def calcular_denominaciones_esperadas(total):
     return resultado
 
 
-@login_required
-@permission_required('users.can_view_caja', raise_exception=True)
+@staff_or_permission_required('users.can_view_caja')
 def obtener_tipos_movimiento(request):
     """
     Devuelve los tipos de movimiento activos filtrados por tipo (INGRESO/EGRESO).
