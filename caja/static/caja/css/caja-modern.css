@@ -1,0 +1,257 @@
+/* Modern, llamativo y responsive styles for Caja dashboard */
+:root{
+    --caja-primary: #198754;
+    --caja-secondary: #0d6efd;
+    --caja-accent: #ffdd57;
+    --caja-bg: #0f1720; /* dark background for cards */
+    --caja-card: #1f2933;
+    --caja-text: #e6eef6;
+    --caja-muted: #9aa6b2;
+}
+
+.caja-dashboard .card{
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03));
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.04);
+    box-shadow: 0 6px 18px rgba(2,6,23,0.45);
+}
+
+.caja-dashboard .card-header{
+    background: transparent;
+    border-bottom: 0;
+    font-weight: 600;
+}
+
+.caja-dashboard h5.mb-0{font-weight:700;color:var(--caja-text)}
+
+/* Highlight stat cards */
+.caja-dashboard .card .display-4{font-size:2.5rem}
+.caja-dashboard .card-body{color:var(--caja-text)}
+
+/* Buttons */
+.btn-lg{
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-weight:600;
+}
+
+.btn-primary{background:var(--caja-secondary);border:none}
+.btn-primary:hover{filter:brightness(0.95)}
+
+.btn-success{background:var(--caja-primary);border:none}
+.btn-success:hover{filter:brightness(0.95)}
+
+.btn-danger{background:#dc3545;border:none}
+
+.btn-outline-secondary{border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--caja-text)}
+
+/* Breadcrumb */
+.breadcrumb{background:transparent;padding:0;margin-bottom:0}
+.breadcrumb .breadcrumb-item a{color:var(--caja-muted)}
+.breadcrumb .breadcrumb-item.active{color:var(--caja-text);font-weight:600}
+
+/* Responsive tweaks */
+@media (max-width: 767px){
+    .btn-group{width:100%;display:flex;gap:8px}
+    .btn-lg{flex:1}
+}
+
+/* Table contrast */
+.table-hover tbody tr:hover{background:rgba(255,255,255,0.02)}
+
+/* Small badges */
+.badge{border-radius:8px}
+
+/* Caja header single centered */
+.page-header{display:flex;justify-content:center;align-items:center;padding-bottom:1rem}
+
+/* Empty state */
+.caja-dashboard .empty-state{padding:40px;text-align:center;color:var(--caja-muted)}
+
+/* Estilos para el modal de Abrir Caja con denominaciones */
+.denominaciones-container {
+    max-height: 450px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px 5px;
+    margin-bottom: 15px;
+}
+
+.denom-group {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 20px 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 3px solid #3498db;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.denom-group:first-child {
+    margin-top: 0;
+}
+
+.denom-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.denom-item {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 15px 12px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.denom-item::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    transition: transform 0.5s ease;
+}
+
+.denom-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+}
+
+.denom-item:hover::before {
+    transform: translate(20%, 20%);
+}
+
+.denom-label {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 8px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 1;
+}
+
+.denom-input {
+    width: 100%;
+    padding: 10px 8px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    text-align: center;
+    font-weight: 600;
+    background-color: #ffffff;
+    color: #2c3e50;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    position: relative;
+    z-index: 1;
+}
+
+.denom-input:focus {
+    outline: none;
+    border-color: #3498db;
+    background-color: #f0f8ff;
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.15);
+    transform: scale(1.05);
+}
+
+.denom-input:not(:placeholder-shown) {
+    background: linear-gradient(135deg, #d4f4dd 0%, #c8f7dc 100%);
+    border-color: #27ae60;
+    font-weight: 700;
+    color: #155724;
+}
+
+.swal-total {
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    color: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 20px 0 15px 0;
+    box-shadow: 0 6px 12px rgba(39, 174, 96, 0.3);
+    border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.swal-total strong {
+    display: block;
+    font-size: 2rem;
+    font-weight: 800;
+    margin-top: 8px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    letter-spacing: 1px;
+}
+
+/* Scrollbar personalizado para el contenedor de denominaciones */
+.denominaciones-container::-webkit-scrollbar {
+    width: 10px;
+}
+
+.denominaciones-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.denominaciones-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.denominaciones-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #764ba2 0%, #667eea 100%);
+}
+
+/* Ajustes responsive para el modal */
+@media (max-width: 600px) {
+    .denom-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 8px;
+    }
+    
+    .denom-item {
+        padding: 12px 8px;
+    }
+    
+    .denom-label {
+        font-size: 0.95rem;
+    }
+    
+    .denom-input {
+        padding: 8px 6px;
+        font-size: 0.9rem;
+    }
+    
+    .swal-total {
+        padding: 15px;
+        font-size: 1rem;
+    }
+    
+    .swal-total strong {
+        font-size: 1.5rem;
+    }
+}
+
+/* Clases adicionales para el contenedor del modal */
+.caja-modal-container {
+    z-index: 9999;
+}
+
+.caja-modal-popup {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+

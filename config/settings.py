@@ -93,6 +93,7 @@ INSTALLED_APPS = [
     
     # Apps locales
     'users.apps.UsersConfig',
+    'caja.apps.CajaConfig',
 ]
 
 # Site ID requerido por django.contrib.sites
@@ -238,6 +239,43 @@ AUTH_USER_MODEL = 'users.User'
 
 # Configuración de Oscar
 from oscar.defaults import *  # noqa
+
+# --- Añadir entrada 'Caja' al menú del dashboard de Oscar ---
+# Inserta el item junto a 'Dashboard' para integrarlo con la navegación de Oscar.
+try:
+    # Evitar duplicados: solo insertar si no existe ya una entrada apuntando a 'caja:dashboard'
+    _exists = any(item.get('url_name') == 'caja:dashboard' for item in OSCAR_DASHBOARD_NAVIGATION)
+except Exception:
+    _exists = False
+
+if not _exists:
+    from django.utils.translation import gettext_lazy as _
+
+    # Definir un access_fn callable que delega en la función dentro de la app `caja`.
+    # Usamos una función wrapper para evitar importar la app `caja` en tiempo de carga
+    # del módulo settings (mínimo acoplamiento y evitar problemas con el AppRegistry).
+    def _caja_access_fn(user, url_name, url_args=None, url_kwargs=None):
+        try:
+            from caja.dashboard import caja_access_fn
+            return caja_access_fn(user, url_name, url_args, url_kwargs)
+        except Exception:
+            return False
+
+    OSCAR_CAJAS_NAV_ITEM = {
+        'label': _('Caja'),
+        'icon': 'fas fa-cash-register',
+        'url_name': 'caja:dashboard',
+        # access_fn must be callable (not a string) because Oscar will call it
+        'access_fn': _caja_access_fn,
+    }
+
+    # Insertar justo después del primer elemento (Dashboard)
+    try:
+        OSCAR_DASHBOARD_NAVIGATION.insert(1, OSCAR_CAJAS_NAV_ITEM)
+    except Exception:
+        # Si por alguna razón OSCAR_DASHBOARD_NAVIGATION no es una lista, ignorar
+        pass
+
 
 # Configuración de moneda para Colombia
 OSCAR_DEFAULT_CURRENCY = 'COP'

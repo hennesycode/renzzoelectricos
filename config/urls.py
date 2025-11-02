@@ -32,6 +32,9 @@ urlpatterns = [
     # URLs de usuarios (login, registro, etc.) - ANTES que Oscar
     path('accounts/', include('users.urls')),
     
+    # URLs del sistema de caja registradora
+    path('caja/', include('caja.urls')),
+    
     # Página de inicio personalizada - ANTES que Oscar
     path('', home_view, name='home_custom'),
     path('home/', home_view, name='home_alt'),

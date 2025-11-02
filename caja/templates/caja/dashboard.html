@@ -1,0 +1,247 @@
+{% extends "oscar/dashboard/layout.html" %}
+{% load static %}
+{% load caja_filters %}
+
+{% block title %}Sistema de Caja - Renzzo Eléctricos{% endblock %}
+
+{% block extrastyles %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'caja/css/caja-modern.css' %}">
+{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' %}">Panel</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Caja</li>
+        </ol>
+    </nav>
+{% endblock %}
+
+{% block headertext %}Gestión de Caja{% endblock %}
+
+{% block dashboard_content %}
+<style>
+    .caja-btn {
+        border-radius: 12px;
+        padding: 15px 30px;
+        font-size: 16px;
+        font-weight: 600;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        min-width: 200px;
+        margin: 0 7.5px; /* Espacio entre botones */
+    }
+    .caja-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .btn-abrir { background-color: #2e7d32; color: white; }
+    .btn-abrir:hover { background-color: #1b5e20; color: white; }
+    .btn-cerrar { background-color: #e57373; color: white; }
+    .btn-cerrar:hover { background-color: #d32f2f; color: white; }
+    .btn-entrada { background-color: #5c9de2; color: white; }
+    .btn-entrada:hover { background-color: #1976d2; color: white; }
+    .btn-salida { background-color: #f0d05a; color: #333; }
+    .btn-salida:hover { background-color: #f9a825; color: #333; }
+    
+    /* Contenedor de botones */
+    .botones-caja-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0;
+        margin: 0 -7.5px; /* Compensar el margen de los botones */
+    }
+    
+    .resumen-card {
+        border-radius: 15px;
+        padding: 30px;
+        text-align: center;
+        color: white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        min-height: 150px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .resumen-disponible { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); }
+    .resumen-entradas { background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); }
+    .resumen-salidas { background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); }
+    
+    .resumen-card h2 { 
+        font-size: 2.5rem; 
+        margin: 10px 0; 
+        font-weight: 700;
+    }
+    .resumen-card p { 
+        font-size: 1rem; 
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .movimientos-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .movimientos-table thead {
+        background-color: #2c2c2c;
+        color: white;
+    }
+    .movimientos-table thead th {
+        padding: 15px;
+        font-weight: 600;
+        border: none;
+    }
+    .movimientos-table tbody td {
+        padding: 12px 15px;
+        vertical-align: middle;
+    }
+</style>
+
+<div class="container-fluid mt-3 caja-dashboard">
+    <!-- Botones de Acción - CENTRADOS CON ESPACIO -->
+    <div class="row mb-4 justify-content-center">
+        <div class="col-auto">
+            {% if caja_actual %}
+                <div class="botones-caja-container">
+                    <button id="btn-close-caja" class="caja-btn btn-cerrar">
+                        <i class="bi bi-lock-fill" style="font-size: 1.2rem;"></i>
+                        Cerrar Caja
+                    </button>
+                    <button id="btn-new-movement-ingreso" class="caja-btn btn-entrada">
+                        <i class="bi bi-plus-circle-fill" style="font-size: 1.2rem;"></i>
+                        Registrar Entrada
+                    </button>
+                    <button id="btn-new-movement-egreso" class="caja-btn btn-salida">
+                        <i class="bi bi-dash-circle-fill" style="font-size: 1.2rem;"></i>
+                        Registrar Salida
+                    </button>
+                </div>
+            {% else %}
+                <button id="btn-open-caja" class="caja-btn btn-abrir">
+                    <i class="bi bi-wallet2" style="font-size: 1.2rem;"></i>
+                    Abrir Caja
+                </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Resumen - SIEMPRE MOSTRAR (abierta o cerrada) -->
+    <h3 class="mb-3 text-center fw-bold">
+        {% if caja_actual %}
+            Resumen Caja Abierta
+            <small class="text-muted" style="font-size: 0.8rem;">(Abierta por {{ caja_actual.cajero.get_full_name|default:caja_actual.cajero.username }})</small>
+        {% else %}
+            Resumen de Caja
+        {% endif %}
+    </h3>
+    <div class="row mb-5 g-3">
+        <div class="col-md-4">
+            <div class="resumen-card resumen-disponible">
+                <p><i class="bi bi-wallet2"></i> Total Disponible</p>
+                <h2 id="total-disponible">${{ estadisticas.total_disponible|formato_pesos_colombia }}</h2>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="resumen-card resumen-entradas">
+                <p><i class="bi bi-arrow-up-circle"></i> Total en Entradas</p>
+                <h2 id="total-entradas">${{ estadisticas.total_ingresos|formato_pesos_colombia }}</h2>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="resumen-card resumen-salidas">
+                <p><i class="bi bi-arrow-down-circle"></i> Total en Salidas</p>
+                <h2 id="total-salidas">${{ estadisticas.total_egresos|formato_pesos_colombia }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movimientos de la Caja -->
+    <h3 class="mb-3 text-center fw-bold">Movimientos de la Caja</h3>
+    <p class="text-center mb-3">Total movimientos: {{ estadisticas.numero_movimientos }}</p>
+    
+    <div class="movimientos-table">
+        {% if ultimos_movimientos %}
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Fecha y Hora</th>
+                    <th>Usuario</th>
+                    <th>Motivo</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for movimiento in ultimos_movimientos %}
+                <tr>
+                    <td><strong>{{ movimiento.fecha_movimiento|date:"d/m/Y H:i:s" }}</strong></td>
+                    <td>
+                        <strong>{{ movimiento.usuario.get_full_name|default:movimiento.usuario.username }}</strong>
+                    </td>
+                    <td>
+                        {% if movimiento.tipo == 'INGRESO' %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-arrow-up"></i> {{ movimiento.tipo_movimiento.nombre }}
+                            </span>
+                        {% else %}
+                            <span class="badge bg-danger">
+                                <i class="bi bi-arrow-down"></i> {{ movimiento.tipo_movimiento.nombre }}
+                            </span>
+                        {% endif %}
+                        <br>
+                        <small class="text-muted">{{ movimiento.descripcion|default:"Sin descripción" }}</small>
+                    </td>
+                    <td class="text-end">
+                        {% if movimiento.tipo == 'INGRESO' %}
+                            <span class="text-success fw-bold" style="font-size: 1.1rem;">+${{ movimiento.monto|formato_pesos_colombia }}</span>
+                        {% else %}
+                            <span class="text-danger fw-bold" style="font-size: 1.1rem;">-${{ movimiento.monto|formato_pesos_colombia }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-inbox" style="font-size: 4rem;"></i>
+            <p class="mt-3">No hay movimientos registrados</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extrascripts %}
+    {{ block.super }}
+    <script>
+        // URLs para uso por los JS estáticos
+        window.CAJA_URLS = {
+            abrir: "{% url 'caja:abrir' %}",
+            cerrar: "{% url 'caja:cerrar' %}",
+            nuevo_movimiento: "{% url 'caja:nuevo_movimiento' %}",
+            historial: "{% url 'caja:historial' %}",
+            contar_efectivo: "{% url 'caja:contar_efectivo' %}",
+            denominaciones: "{% url 'caja:denominaciones' %}",
+            tipos_movimiento: "{% url 'caja:tipos_movimiento' %}",
+            estado_caja: "{% url 'caja:estado_caja' %}",
+            dashboard: "{% url 'caja:dashboard' %}"
+        };
+    </script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{% static 'caja/js/ui.js' %}"></script>
+    <script src="{% static 'caja/js/abrir_ajax.js' %}"></script>
+    <script src="{% static 'caja/js/cerrar_ajax.js' %}"></script>
+    <script src="{% static 'caja/js/movimiento_ajax.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,215 @@
+{% extends "oscar/dashboard/layout.html" %}
+{% load static %}
+
+{% block title %}Historial de Cajas - Renzzo Eléctricos{% endblock %}
+
+{% block extrastyles %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'caja/css/caja.css' %}">
+{% endblock %}
+
+{% block headertext %}Historial de Cajas{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="bi bi-clock-history"></i> Historial de Cajas</h1>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'caja:dashboard' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Volver al Dashboard
+                    </a>
+                    {% if user.has_perm('users.can_manage_caja') %}
+                    <a href="{% url 'caja:abrir' %}" class="btn btn-success">
+                        <i class="bi bi-unlock"></i> Abrir Nueva Caja
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" action="">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label for="fecha_desde" class="form-label">Desde</label>
+                                <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" value="{{ request.GET.fecha_desde }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="fecha_hasta" class="form-label">Hasta</label>
+                                <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" value="{{ request.GET.fecha_hasta }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="estado" class="form-label">Estado</label>
+                                <select class="form-select" id="estado" name="estado">
+                                    <option value="">Todos</option>
+                                    <option value="ABIERTA" {% if request.GET.estado == 'ABIERTA' %}selected{% endif %}>Abierta</option>
+                                    <option value="CERRADA" {% if request.GET.estado == 'CERRADA' %}selected{% endif %}>Cerrada</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary me-2">
+                                    <i class="bi bi-search"></i> Filtrar
+                                </button>
+                                <a href="{% url 'caja:historial' %}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-x-circle"></i> Limpiar
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Cajas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> Cajas Registradas</h5>
+                </div>
+                <div class="card-body">
+                    {% if cajas %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Cajero</th>
+                                    <th>Apertura</th>
+                                    <th>Cierre</th>
+                                    <th>Estado</th>
+                                    <th class="text-end">Monto Inicial</th>
+                                    <th class="text-end">Monto Final</th>
+                                    <th class="text-end">Diferencia</th>
+                                    <th>Movimientos</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for caja in cajas %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ caja.cajero.get_full_name|default:caja.cajero.username }}</strong><br>
+                                        <small class="text-muted">{{ caja.cajero.username }}</small>
+                                    </td>
+                                    <td>
+                                        {{ caja.fecha_apertura|date:"d/m/Y" }}<br>
+                                        <small class="text-muted">{{ caja.fecha_apertura|time:"H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if caja.fecha_cierre %}
+                                            {{ caja.fecha_cierre|date:"d/m/Y" }}<br>
+                                            <small class="text-muted">{{ caja.fecha_cierre|time:"H:i" }}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if caja.estado == 'ABIERTA' %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-unlock"></i> {{ caja.get_estado_display }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-lock"></i> {{ caja.get_estado_display }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="text-money">${{ caja.monto_inicial|floatformat:2 }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        {% if caja.monto_final_declarado %}
+                                            <span class="text-money">${{ caja.monto_final_declarado|floatformat:2 }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if caja.diferencia is not None %}
+                                            {% if caja.diferencia == 0 %}
+                                                <span class="badge bg-success">$0.00</span>
+                                            {% elif caja.diferencia > 0 %}
+                                                <span class="badge bg-warning">+${{ caja.diferencia|floatformat:2 }}</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">${{ caja.diferencia|floatformat:2 }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ caja.movimientos.count }}</span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'caja:detalle' caja.pk %}" class="btn btn-sm btn-outline-primary" title="Ver detalles">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Paginación -->
+                    {% if is_paginated %}
+                    <nav aria-label="Paginación de cajas" class="mt-3">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1">Primera</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                            </li>
+                            {% endif %}
+
+                            <li class="page-item active">
+                                <span class="page-link">
+                                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                                </span>
+                            </li>
+
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Última</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-inbox display-1"></i>
+                        <h4 class="mt-3">No hay cajas registradas</h4>
+                        <p>No se encontraron cajas con los filtros aplicados.</p>
+                        {% if user.has_perm('users.can_manage_caja') %}
+                        <a href="{% url 'caja:abrir' %}" class="btn btn-success">
+                            <i class="bi bi-unlock"></i> Abrir Primera Caja
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extrascripts %}
+    {{ block.super }}
+    <script src="{% static 'caja/js/caja.js' %}"></script>
+{% endblock %}

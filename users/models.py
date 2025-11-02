@@ -71,6 +71,8 @@ class User(AbstractUser):
             ('can_manage_inventory', 'Puede gestionar inventario'),
             ('can_manage_accounting', 'Puede gestionar contabilidad'),
             ('can_provide_support', 'Puede brindar soporte'),
+            ('can_manage_caja', 'Puede abrir/cerrar caja'),
+            ('can_view_caja', 'Puede ver movimientos de caja'),
         ]
     
     def __str__(self):
@@ -109,6 +111,8 @@ class User(AbstractUser):
                 'can_manage_inventory',
                 'can_manage_accounting',
                 'can_provide_support',
+                'can_manage_caja',
+                'can_view_caja',
             ],
             
             self.RoleChoices.CONTADOR: [
@@ -122,6 +126,8 @@ class User(AbstractUser):
                 'can_manage_sales',
                 'can_manage_inventory',
                 'can_view_reports',
+                'can_manage_caja',
+                'can_view_caja',
             ],
             
             self.RoleChoices.SOPORTE: [
