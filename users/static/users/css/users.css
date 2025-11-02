@@ -1,0 +1,21 @@
+/* Estilos personalizados para la app users */
+
+.user-card {
+    transition: transform 0.2s;
+}
+
+.user-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.login-container {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+}
+
+.role-badge {
+    font-size: 0.85rem;
+    padding: 0.35em 0.65em;
+}
