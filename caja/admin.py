@@ -89,107 +89,137 @@ class CajaRegistradoraAdmin(admin.ModelAdmin):
     
     def cajero_info(self, obj):
         """Muestra información completa del cajero."""
-        full_name = obj.cajero.get_full_name() or obj.cajero.username
-        email = obj.cajero.email or 'Sin email'
-        return format_html(
-            '<strong>{}</strong><br><small>{}</small>',
-            full_name,
-            email
-        )
+        try:
+            full_name = obj.cajero.get_full_name() or obj.cajero.username
+            email = obj.cajero.email or 'Sin email'
+            return format_html(
+                '<strong>{}</strong><br><small>{}</small>',
+                full_name,
+                email
+            )
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     cajero_info.short_description = 'Cajero'
     
     def estado_badge(self, obj):
         """Muestra el estado con color."""
-        if obj.estado == 'ABIERTA':
-            color = 'green'
-            icon = '🟢'
-        else:
-            color = 'gray'
-            icon = '⚫'
-        return format_html(
-            '<span style="color: {};">{} {}</span>',
-            color,
-            icon,
-            obj.get_estado_display()
-        )
+        try:
+            if obj.estado == 'ABIERTA':
+                color = 'green'
+                icon = '🟢'
+            else:
+                color = 'gray'
+                icon = '⚫'
+            return format_html(
+                '<span style="color: {};">{} {}</span>',
+                color,
+                icon,
+                obj.get_estado_display()
+            )
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     estado_badge.short_description = 'Estado'
     
     def monto_inicial_fmt(self, obj):
         """Formatea el monto inicial."""
-        return format_html('${:,.0f}', obj.monto_inicial)
+        try:
+            return format_html('${:,.0f}', float(obj.monto_inicial))
+        except (ValueError, TypeError, AttributeError) as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     monto_inicial_fmt.short_description = 'Monto Inicial'
     monto_inicial_fmt.admin_order_field = 'monto_inicial'
     
     def monto_final_declarado_fmt(self, obj):
         """Formatea el monto final declarado."""
-        if obj.monto_final_declarado:
-            return format_html('${:,.0f}', obj.monto_final_declarado)
-        return '-'
+        try:
+            if obj.monto_final_declarado:
+                return format_html('${:,.0f}', float(obj.monto_final_declarado))
+            return '-'
+        except (ValueError, TypeError, AttributeError) as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     monto_final_declarado_fmt.short_description = 'Final Declarado'
     monto_final_declarado_fmt.admin_order_field = 'monto_final_declarado'
     
     def monto_final_sistema_fmt(self, obj):
         """Formatea el monto final del sistema."""
-        if obj.monto_final_sistema:
-            return format_html('${:,.0f}', obj.monto_final_sistema)
-        return '-'
+        try:
+            if obj.monto_final_sistema:
+                return format_html('${:,.0f}', float(obj.monto_final_sistema))
+            return '-'
+        except (ValueError, TypeError, AttributeError) as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     monto_final_sistema_fmt.short_description = 'Final Sistema'
     monto_final_sistema_fmt.admin_order_field = 'monto_final_sistema'
     
     def diferencia_fmt(self, obj):
         """Formatea la diferencia con color."""
-        if obj.diferencia is not None:
-            color = 'red' if obj.diferencia < 0 else ('green' if obj.diferencia > 0 else 'gray')
-            return format_html(
-                '<span style="color: {}; font-weight: bold;">${:,.0f}</span>',
-                color,
-                obj.diferencia
-            )
-        return '-'
+        try:
+            if obj.diferencia is not None:
+                color = 'red' if obj.diferencia < 0 else ('green' if obj.diferencia > 0 else 'gray')
+                return format_html(
+                    '<span style="color: {}; font-weight: bold;">${:,.0f}</span>',
+                    color,
+                    float(obj.diferencia)
+                )
+            return '-'
+        except (ValueError, TypeError, AttributeError) as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     diferencia_fmt.short_description = 'Diferencia'
     diferencia_fmt.admin_order_field = 'diferencia'
     
     def duracion(self, obj):
         """Muestra la duración de la caja."""
-        duracion = obj.duracion_abierta
-        horas = duracion.total_seconds() / 3600
-        return format_html('{:.1f}h', horas)
+        try:
+            duracion = obj.duracion_abierta
+            horas = duracion.total_seconds() / 3600
+            return format_html('{:.1f}h', horas)
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     duracion.short_description = 'Duración'
     
     def duracion_formateada(self, obj):
         """Muestra la duración formateada para el detalle."""
-        duracion = obj.duracion_abierta
-        dias = duracion.days
-        segundos = duracion.seconds
-        horas = segundos // 3600
-        minutos = (segundos % 3600) // 60
-        
-        if dias > 0:
-            return f'{dias}d {horas}h {minutos}m'
-        elif horas > 0:
-            return f'{horas}h {minutos}m'
-        else:
-            return f'{minutos}m'
+        try:
+            duracion = obj.duracion_abierta
+            dias = duracion.days
+            segundos = duracion.seconds
+            horas = segundos // 3600
+            minutos = (segundos % 3600) // 60
+            
+            if dias > 0:
+                return f'{dias}d {horas}h {minutos}m'
+            elif horas > 0:
+                return f'{horas}h {minutos}m'
+            else:
+                return f'{minutos}m'
+        except Exception as e:
+            return f'Error: {str(e)}'
     duracion_formateada.short_description = 'Duración'
     
     def total_ingresos(self, obj):
         """Calcula y muestra el total de ingresos."""
-        from decimal import Decimal
-        from django.db.models import Sum
-        total = obj.movimientos.filter(tipo='INGRESO').aggregate(
-            total=Sum('monto')
-        )['total'] or Decimal('0.00')
-        return format_html('${:,.0f}', total)
+        try:
+            from decimal import Decimal
+            from django.db.models import Sum
+            total = obj.movimientos.filter(tipo='INGRESO').aggregate(
+                total=Sum('monto')
+            )['total'] or Decimal('0.00')
+            return format_html('${:,.0f}', float(total))
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     total_ingresos.short_description = 'Total Ingresos'
     
     def total_egresos(self, obj):
         """Calcula y muestra el total de egresos."""
-        from decimal import Decimal
-        from django.db.models import Sum
-        total = obj.movimientos.filter(tipo='EGRESO').aggregate(
-            total=Sum('monto')
-        )['total'] or Decimal('0.00')
-        return format_html('${:,.0f}', total)
+        try:
+            from decimal import Decimal
+            from django.db.models import Sum
+            total = obj.movimientos.filter(tipo='EGRESO').aggregate(
+                total=Sum('monto')
+            )['total'] or Decimal('0.00')
+            return format_html('${:,.0f}', float(total))
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     total_egresos.short_description = 'Total Egresos'
 
 
@@ -233,48 +263,66 @@ class MovimientoCajaAdmin(admin.ModelAdmin):
     
     def caja_info(self, obj):
         """Muestra información de la caja."""
-        return format_html(
-            'Caja #{} - {}<br><small>{}</small>',
-            obj.caja.id,
-            obj.caja.cajero.username,
-            obj.caja.fecha_apertura.strftime('%d/%m/%Y %H:%M')
-        )
+        try:
+            return format_html(
+                'Caja #{} - {}<br><small>{}</small>',
+                obj.caja.id,
+                obj.caja.cajero.username,
+                obj.caja.fecha_apertura.strftime('%d/%m/%Y %H:%M')
+            )
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     caja_info.short_description = 'Caja'
     
     def tipo_badge(self, obj):
         """Muestra el tipo con color."""
-        if obj.tipo == 'INGRESO':
-            color = 'green'
-            icon = '↑'
-        else:
-            color = 'red'
-            icon = '↓'
-        return format_html(
-            '<span style="color: {}; font-weight: bold;">{} {}</span>',
-            color,
-            icon,
-            obj.get_tipo_display()
-        )
+        try:
+            if obj.tipo == 'INGRESO':
+                color = 'green'
+                icon = '↑'
+                tipo_display = 'Ingreso'
+            elif obj.tipo == 'EGRESO':
+                color = 'red'
+                icon = '↓'
+                tipo_display = 'Egreso'
+            else:
+                color = 'gray'
+                icon = '?'
+                tipo_display = obj.tipo
+            return format_html(
+                '<span style="color: {}; font-weight: bold;">{} {}</span>',
+                color,
+                icon,
+                tipo_display
+            )
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     tipo_badge.short_description = 'Tipo'
     tipo_badge.admin_order_field = 'tipo'
     
     def monto_fmt(self, obj):
         """Formatea el monto con color."""
-        color = 'green' if obj.tipo == 'INGRESO' else 'red'
-        signo = '+' if obj.tipo == 'INGRESO' else '-'
-        return format_html(
-            '<span style="color: {}; font-weight: bold;">{} ${:,.0f}</span>',
-            color,
-            signo,
-            obj.monto
-        )
+        try:
+            color = 'green' if obj.tipo == 'INGRESO' else 'red'
+            signo = '+' if obj.tipo == 'INGRESO' else '-'
+            return format_html(
+                '<span style="color: {}; font-weight: bold;">{} ${:,.0f}</span>',
+                color,
+                signo,
+                float(obj.monto)
+            )
+        except (ValueError, TypeError, AttributeError) as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     monto_fmt.short_description = 'Monto'
     monto_fmt.admin_order_field = 'monto'
     
     def usuario_info(self, obj):
         """Muestra información del usuario."""
-        full_name = obj.usuario.get_full_name() or obj.usuario.username
-        return format_html('<strong>{}</strong>', full_name)
+        try:
+            full_name = obj.usuario.get_full_name() or obj.usuario.username
+            return format_html('<strong>{}</strong>', full_name)
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     usuario_info.short_description = 'Usuario'
     usuario_info.admin_order_field = 'usuario__username'
 
@@ -300,17 +348,23 @@ class TipoMovimientoAdmin(admin.ModelAdmin):
     
     def activo_badge(self, obj):
         """Muestra el estado activo con color."""
-        if obj.activo:
-            return format_html('<span style="color: green;">✓ Activo</span>')
-        return format_html('<span style="color: red;">✗ Inactivo</span>')
+        try:
+            if obj.activo:
+                return format_html('<span style="color: green;">✓ Activo</span>')
+            return format_html('<span style="color: red;">✗ Inactivo</span>')
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     activo_badge.short_description = 'Estado'
     activo_badge.admin_order_field = 'activo'
     
     def descripcion_short(self, obj):
         """Muestra descripción truncada."""
-        if obj.descripcion:
-            return obj.descripcion[:50] + '...' if len(obj.descripcion) > 50 else obj.descripcion
-        return '-'
+        try:
+            if obj.descripcion:
+                return obj.descripcion[:50] + '...' if len(obj.descripcion) > 50 else obj.descripcion
+            return '-'
+        except Exception as e:
+            return f'Error: {str(e)}'
     descripcion_short.short_description = 'Descripción'
 
 
@@ -379,7 +433,10 @@ class DetalleConteoInline(admin.TabularInline):
     
     def subtotal_fmt(self, obj):
         """Muestra el subtotal formateado."""
-        return format_html('${:,.0f}', obj.subtotal)
+        try:
+            return format_html('${:,.0f}', float(obj.subtotal))
+        except (ValueError, TypeError, AttributeError) as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     subtotal_fmt.short_description = 'Subtotal'
 
 
@@ -425,53 +482,74 @@ class ConteoEfectivoAdmin(admin.ModelAdmin):
     
     def caja_info(self, obj):
         """Muestra información de la caja."""
-        return format_html(
-            'Caja #{} - {}<br><small>{}</small>',
-            obj.caja.id,
-            obj.caja.cajero.username,
-            obj.caja.fecha_apertura.strftime('%d/%m/%Y %H:%M')
-        )
+        try:
+            return format_html(
+                'Caja #{} - {}<br><small>{}</small>',
+                obj.caja.id,
+                obj.caja.cajero.username,
+                obj.caja.fecha_apertura.strftime('%d/%m/%Y %H:%M')
+            )
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     caja_info.short_description = 'Caja'
     
     def tipo_conteo_badge(self, obj):
         """Muestra el tipo de conteo con icono."""
-        if obj.tipo_conteo == 'APERTURA':
-            icon = '🟢'
-            color = 'green'
-        else:
-            icon = '🔴'
-            color = 'red'
-        return format_html(
-            '<span style="color: {};">{} {}</span>',
-            color,
-            icon,
-            obj.get_tipo_conteo_display()
-        )
+        try:
+            if obj.tipo_conteo == 'APERTURA':
+                icon = '🟢'
+                color = 'green'
+                tipo_display = 'Apertura'
+            elif obj.tipo_conteo == 'CIERRE':
+                icon = '🔴'
+                color = 'red'
+                tipo_display = 'Cierre'
+            else:
+                icon = '❓'
+                color = 'gray'
+                tipo_display = obj.tipo_conteo
+            return format_html(
+                '<span style="color: {};">{} {}</span>',
+                color,
+                icon,
+                tipo_display
+            )
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     tipo_conteo_badge.short_description = 'Tipo'
     tipo_conteo_badge.admin_order_field = 'tipo_conteo'
     
     def usuario_info(self, obj):
         """Muestra información del usuario."""
-        if obj.usuario:
-            full_name = obj.usuario.get_full_name() or obj.usuario.username
-            return format_html('<strong>{}</strong>', full_name)
-        return '-'
+        try:
+            if obj.usuario:
+                full_name = obj.usuario.get_full_name() or obj.usuario.username
+                return format_html('<strong>{}</strong>', full_name)
+            return '-'
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     usuario_info.short_description = 'Usuario'
     
     def total_fmt(self, obj):
         """Formatea el total."""
-        return format_html('<strong>${:,.0f}</strong>', obj.total)
+        try:
+            return format_html('<strong>${:,.0f}</strong>', float(obj.total))
+        except (ValueError, TypeError, AttributeError) as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     total_fmt.short_description = 'Total Contado'
     total_fmt.admin_order_field = 'total'
     
     def total_calculado(self, obj):
         """Calcula el total desde los detalles."""
-        from decimal import Decimal
-        from django.db.models import Sum
-        total = obj.detalles.aggregate(
-            total=Sum('subtotal')
-        )['total'] or Decimal('0.00')
-        return format_html('${:,.0f}', total)
+        try:
+            from decimal import Decimal
+            from django.db.models import Sum
+            total = obj.detalles.aggregate(
+                total=Sum('subtotal')
+            )['total'] or Decimal('0.00')
+            return format_html('${:,.0f}', float(total))
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     total_calculado.short_description = 'Total Calculado (desde detalles)'
 
 
@@ -504,28 +582,37 @@ class DetalleConteoAdmin(admin.ModelAdmin):
     
     def conteo_info(self, obj):
         """Muestra información del conteo."""
-        return format_html(
-            'Conteo #{} - {}<br><small>Caja #{}</small>',
-            obj.conteo.id,
-            obj.conteo.get_tipo_conteo_display(),
-            obj.conteo.caja.id
-        )
+        try:
+            return format_html(
+                'Conteo #{} - {}<br><small>Caja #{}</small>',
+                obj.conteo.id,
+                obj.conteo.get_tipo_conteo_display(),
+                obj.conteo.caja.id
+            )
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     conteo_info.short_description = 'Conteo'
     
     def denominacion_fmt(self, obj):
         """Formatea la denominación."""
-        icon = '💵' if obj.denominacion.tipo == 'BILLETE' else '🪙'
-        return format_html(
-            '{} ${:,.0f}',
-            icon,
-            obj.denominacion.valor
-        )
+        try:
+            icon = '💵' if obj.denominacion.tipo == 'BILLETE' else '🪙'
+            return format_html(
+                '{} ${:,.0f}',
+                icon,
+                float(obj.denominacion.valor)
+            )
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     denominacion_fmt.short_description = 'Denominación'
     denominacion_fmt.admin_order_field = 'denominacion__valor'
     
     def subtotal_fmt(self, obj):
         """Formatea el subtotal."""
-        return format_html('<strong>${:,.0f}</strong>', obj.subtotal)
+        try:
+            return format_html('<strong>${:,.0f}</strong>', float(obj.subtotal))
+        except (ValueError, TypeError, AttributeError) as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     subtotal_fmt.short_description = 'Subtotal'
     subtotal_fmt.admin_order_field = 'subtotal'
 
