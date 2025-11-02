@@ -213,7 +213,9 @@ async function openCerrarModal(){
                     
                     // Auto-llenar "Dinero en Caja" con el total si no se ha modificado
                     if (!distribucionModificada && total > 0) {
-                        dineroCajaInput.value = formatearMoneda(total).replace('COP', '').trim();
+                        // Formatear el total de la misma forma que los inputs esperan
+                        const totalFormateado = parseInt(total).toLocaleString('es-CO');
+                        dineroCajaInput.value = `$ ${totalFormateado}`;
                         dineroGuardadoInput.value = '$ 0';
                     }
                     
@@ -353,12 +355,24 @@ async function openCerrarModal(){
                 return texto.replace(/[^\d]/g, '');
             };
             
-            const dineroCajaLimpio = limpiarNumero(dineroCajaInput.value || '0');
-            const dineroGuardadoLimpio = limpiarNumero(dineroGuardadoInput.value || '0');
+            const dineroCajaLimpio = limpiarNumero(dineroCajaInput.value || '$ 0');
+            const dineroGuardadoLimpio = limpiarNumero(dineroGuardadoInput.value || '$ 0');
             
             const dineroCaja = parseFloat(dineroCajaLimpio) || 0;
             const dineroGuardado = parseFloat(dineroGuardadoLimpio) || 0;
             const sumaDistribucion = dineroCaja + dineroGuardado;
+            
+            // Debug: ver qué valores se están leyendo
+            console.log('Debug valores:', {
+                dineroCajaInput: dineroCajaInput.value,
+                dineroGuardadoInput: dineroGuardadoInput.value,
+                dineroCajaLimpio,
+                dineroGuardadoLimpio,
+                dineroCaja,
+                dineroGuardado,
+                sumaDistribucion,
+                total
+            });
             
             // Validación 1: Al menos uno debe tener valor
             if (dineroCaja === 0 && dineroGuardado === 0) {
