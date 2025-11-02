@@ -90,6 +90,8 @@ class CajaRegistradoraAdmin(admin.ModelAdmin):
         'monto_final_declarado_fmt',
         'monto_final_sistema_fmt',
         'diferencia_fmt',
+        'dinero_en_caja_fmt',
+        'dinero_guardado_fmt',
         'duracion'
     )
     list_filter = ('estado', 'fecha_apertura', 'fecha_cierre', 'cajero')
@@ -114,6 +116,10 @@ class CajaRegistradoraAdmin(admin.ModelAdmin):
         }),
         (_('Montos de Cierre'), {
             'fields': ('monto_final_declarado', 'monto_final_sistema', 'diferencia')
+        }),
+        (_('Distribución del Dinero'), {
+            'fields': ('dinero_en_caja', 'dinero_guardado'),
+            'classes': ('collapse',)
         }),
         (_('Resumen de Movimientos'), {
             'fields': ('total_ingresos', 'total_egresos'),
@@ -207,6 +213,30 @@ class CajaRegistradoraAdmin(admin.ModelAdmin):
             return format_html('<span style="color: red;">Error</span>')
     diferencia_fmt.short_description = 'Diferencia'
     diferencia_fmt.admin_order_field = 'diferencia'
+    
+    def dinero_en_caja_fmt(self, obj):
+        """Formatea el dinero en caja."""
+        try:
+            if obj.dinero_en_caja is not None:
+                monto = safe_decimal_to_float(obj.dinero_en_caja)
+                return format_html('<span style="color: #2196F3; font-weight: 600;">${:,.0f}</span>', monto)
+            return '-'
+        except Exception as e:
+            return format_html('<span style="color: red;">Error</span>')
+    dinero_en_caja_fmt.short_description = '💵 En Caja'
+    dinero_en_caja_fmt.admin_order_field = 'dinero_en_caja'
+    
+    def dinero_guardado_fmt(self, obj):
+        """Formatea el dinero guardado."""
+        try:
+            if obj.dinero_guardado is not None:
+                monto = safe_decimal_to_float(obj.dinero_guardado)
+                return format_html('<span style="color: #4CAF50; font-weight: 600;">${:,.0f}</span>', monto)
+            return '-'
+        except Exception as e:
+            return format_html('<span style="color: red;">Error</span>')
+    dinero_guardado_fmt.short_description = '🔒 Guardado'
+    dinero_guardado_fmt.admin_order_field = 'dinero_guardado'
     
     def duracion(self, obj):
         """Muestra la duración de la caja."""

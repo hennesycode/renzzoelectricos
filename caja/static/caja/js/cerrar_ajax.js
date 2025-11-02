@@ -128,7 +128,36 @@ async function openCerrarModal(){
     html += '</div>';
     html += '<div class="swal-total">💰 Total Contado<br><strong id="swal-total">$0</strong></div>';
     html += '<div id="swal-diferencia" class="swal-diferencia" style="display: none; margin-top: 10px; padding: 10px; border-radius: 5px;"></div>';
-    html += '<textarea id="swal-observaciones" class="swal2-textarea" placeholder="Observaciones (opcional)" style="margin-top: 10px;"></textarea>';
+    
+    // Nuevos campos: Dinero en caja y dinero guardado
+    html += '<div style="margin-top: 25px; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 12px; border: 2px solid #e0e0e0;">';
+    html += '<h4 style="margin: 0 0 15px 0; color: #2c3e50; font-weight: 700; text-align: center;">📦 Distribución del Dinero</h4>';
+    
+    html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">';
+    // Dinero en caja
+    html += '<div>';
+    html += '<label style="display: block; font-weight: 600; margin-bottom: 8px; color: #2c3e50; font-size: 14px;">💵 Dinero en Caja</label>';
+    html += '<input id="swal-dinero-caja" type="text" class="form-control-modern" placeholder="$ 0" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #e0e0e0; font-size: 18px; font-weight: 600; text-align: center; background: white;">';
+    html += '</div>';
+    
+    // Dinero guardado
+    html += '<div>';
+    html += '<label style="display: block; font-weight: 600; margin-bottom: 8px; color: #2c3e50; font-size: 14px;">🔒 Dinero Guardado (Fuera de Caja)</label>';
+    html += '<input id="swal-dinero-guardado" type="text" class="form-control-modern" placeholder="$ 0" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #e0e0e0; font-size: 18px; font-weight: 600; text-align: center; background: white;">';
+    html += '</div>';
+    html += '</div>';
+    
+    // Suma total y validación
+    html += '<div style="background: white; padding: 12px; border-radius: 8px; text-align: center; border: 2px solid #3498db;">';
+    html += '<strong style="color: #2c3e50; font-size: 15px;">Suma: </strong>';
+    html += '<strong id="swal-suma-distribucion" style="color: #3498db; font-size: 20px; font-weight: 700;">$0</strong>';
+    html += '</div>';
+    
+    // Mensaje de error/validación
+    html += '<div id="swal-error-distribucion" style="display: none; margin-top: 10px; padding: 10px; border-radius: 8px; background: #f8d7da; color: #721c24; border: 2px solid #f5c6cb; text-align: center; font-weight: 600;"></div>';
+    html += '</div>';
+    
+    html += '<textarea id="swal-observaciones" class="swal2-textarea" placeholder="Observaciones (opcional)" style="margin-top: 15px;"></textarea>';
 
     const { value: result } = await Swal.fire({
         title: '🔒 Cerrar Caja',
@@ -150,6 +179,22 @@ async function openCerrarModal(){
             if (inputs && inputs.length) {
                 const totalEl = Swal.getPopup().querySelector('#swal-total');
                 const diferenciaEl = Swal.getPopup().querySelector('#swal-diferencia');
+                const dineroCajaInput = Swal.getPopup().querySelector('#swal-dinero-caja');
+                const dineroGuardadoInput = Swal.getPopup().querySelector('#swal-dinero-guardado');
+                const sumaDistribucionEl = Swal.getPopup().querySelector('#swal-suma-distribucion');
+                const errorDistribucionEl = Swal.getPopup().querySelector('#swal-error-distribucion');
+                
+                const formatearMoneda = (valor) => {
+                    return new Intl.NumberFormat('es-CO', { 
+                        style: 'currency', 
+                        currency: 'COP',
+                        minimumFractionDigits: 0
+                    }).format(valor);
+                };
+                
+                const limpiarNumero = (texto) => {
+                    return texto.replace(/[^\d]/g, '');
+                };
                 
                 const calcular = () => {
                     let total = 0;
@@ -161,21 +206,13 @@ async function openCerrarModal(){
                         }
                     });
                     
-                    totalEl.textContent = new Intl.NumberFormat('es-CO', { 
-                        style: 'currency', 
-                        currency: 'COP',
-                        minimumFractionDigits: 0
-                    }).format(total);
+                    totalEl.textContent = formatearMoneda(total);
                     
                     // Calcular y mostrar diferencia
                     const diferencia = total - totalDisponible;
                     
                     if (Math.abs(diferencia) > 0.01) {
-                        const diferenciaFormateada = new Intl.NumberFormat('es-CO', { 
-                            style: 'currency', 
-                            currency: 'COP',
-                            minimumFractionDigits: 0
-                        }).format(Math.abs(diferencia));
+                        const diferenciaFormateada = formatearMoneda(Math.abs(diferencia));
                         
                         if (diferencia > 0) {
                             diferenciaEl.style.display = 'block';
@@ -197,7 +234,67 @@ async function openCerrarModal(){
                         diferenciaEl.style.border = '1px solid #c3e6cb';
                         diferenciaEl.innerHTML = `✅ <strong>Sin diferencias</strong> - Cuadre perfecto`;
                     }
+                    
+                    // Validar distribución
+                    validarDistribucion(total);
                 };
+                
+                const validarDistribucion = (totalContado) => {
+                    const dineroCajaLimpio = limpiarNumero(dineroCajaInput.value || '0');
+                    const dineroGuardadoLimpio = limpiarNumero(dineroGuardadoInput.value || '0');
+                    
+                    const dineroCaja = parseFloat(dineroCajaLimpio) || 0;
+                    const dineroGuardado = parseFloat(dineroGuardadoLimpio) || 0;
+                    const suma = dineroCaja + dineroGuardado;
+                    
+                    sumaDistribucionEl.textContent = formatearMoneda(suma);
+                    
+                    // Validaciones
+                    if (dineroCaja === 0 && dineroGuardado === 0) {
+                        errorDistribucionEl.style.display = 'block';
+                        errorDistribucionEl.innerHTML = '⚠️ Al menos uno de los campos debe tener un valor mayor a cero';
+                        errorDistribucionEl.style.background = '#f8d7da';
+                        return false;
+                    } else if (Math.abs(suma - totalContado) > 0.01) {
+                        errorDistribucionEl.style.display = 'block';
+                        errorDistribucionEl.innerHTML = `❌ La suma (${formatearMoneda(suma)}) no coincide con el Total Contado (${formatearMoneda(totalContado)})`;
+                        errorDistribucionEl.style.background = '#f8d7da';
+                        return false;
+                    } else {
+                        errorDistribucionEl.style.display = 'none';
+                        return true;
+                    }
+                };
+                
+                // Formatear inputs de dinero mientras se escribe
+                const formatearInput = (input) => {
+                    input.addEventListener('input', function() {
+                        let value = limpiarNumero(this.value);
+                        if (value) {
+                            value = parseInt(value).toLocaleString('es-CO');
+                            this.value = `$ ${value}`;
+                        } else {
+                            this.value = '';
+                        }
+                        calcular(); // Recalcular al cambiar distribución
+                    });
+                    
+                    input.addEventListener('focus', function() {
+                        if (this.value === '$ 0' || this.value === '$ ') {
+                            this.value = '';
+                        }
+                        this.select();
+                    });
+                    
+                    input.addEventListener('blur', function() {
+                        if (this.value === '' || this.value === '$ ') {
+                            this.value = '$ 0';
+                        }
+                    });
+                };
+                
+                formatearInput(dineroCajaInput);
+                formatearInput(dineroGuardadoInput);
                 
                 inputs.forEach(i => {
                     i.addEventListener('input', calcular);
@@ -218,6 +315,9 @@ async function openCerrarModal(){
         preConfirm: () => {
             const obs = Swal.getPopup().querySelector('#swal-observaciones') ? Swal.getPopup().querySelector('#swal-observaciones').value : '';
             const inputs = Swal.getPopup().querySelectorAll('.denom-input');
+            const dineroCajaInput = Swal.getPopup().querySelector('#swal-dinero-caja');
+            const dineroGuardadoInput = Swal.getPopup().querySelector('#swal-dinero-guardado');
+            
             const conteos = {};
             let total = 0;
             let any = false;
@@ -237,7 +337,48 @@ async function openCerrarModal(){
                 return false;
             }
             
-            return { conteos: conteos, observaciones: obs, total: total };
+            // Validar distribución del dinero
+            const limpiarNumero = (texto) => {
+                return texto.replace(/[^\d]/g, '');
+            };
+            
+            const dineroCajaLimpio = limpiarNumero(dineroCajaInput.value || '0');
+            const dineroGuardadoLimpio = limpiarNumero(dineroGuardadoInput.value || '0');
+            
+            const dineroCaja = parseFloat(dineroCajaLimpio) || 0;
+            const dineroGuardado = parseFloat(dineroGuardadoLimpio) || 0;
+            const sumaDistribucion = dineroCaja + dineroGuardado;
+            
+            // Validación 1: Al menos uno debe tener valor
+            if (dineroCaja === 0 && dineroGuardado === 0) {
+                Swal.showValidationMessage('⚠️ Debes especificar cuánto dinero quedó en caja o cuánto se guardó fuera de la caja (al menos uno debe ser mayor a cero)');
+                return false;
+            }
+            
+            // Validación 2: La suma debe coincidir con el total contado
+            if (Math.abs(sumaDistribucion - total) > 0.01) {
+                const totalFormateado = new Intl.NumberFormat('es-CO', { 
+                    style: 'currency', 
+                    currency: 'COP',
+                    minimumFractionDigits: 0
+                }).format(total);
+                const sumaFormateada = new Intl.NumberFormat('es-CO', { 
+                    style: 'currency', 
+                    currency: 'COP',
+                    minimumFractionDigits: 0
+                }).format(sumaDistribucion);
+                
+                Swal.showValidationMessage(`❌ La distribución (${sumaFormateada}) no coincide con el Total Contado (${totalFormateado})`);
+                return false;
+            }
+            
+            return { 
+                conteos: conteos, 
+                observaciones: obs, 
+                total: total,
+                dinero_en_caja: dineroCaja,
+                dinero_guardado: dineroGuardado
+            };
         }
     });
 

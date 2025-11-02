@@ -244,11 +244,32 @@ def cerrar_caja(request):
     monto_declarado = payload.get('monto_declarado', '0')
     observaciones = payload.get('observaciones', '')
     conteos = payload.get('conteos', {})
+    dinero_en_caja = payload.get('dinero_en_caja', '0')
+    dinero_guardado = payload.get('dinero_guardado', '0')
 
     try:
         monto_declarado = Decimal(monto_declarado)
         if monto_declarado < 0:
             raise ValueError('El monto no puede ser negativo')
+        
+        # Convertir y validar distribución del dinero
+        dinero_en_caja = Decimal(dinero_en_caja)
+        dinero_guardado = Decimal(dinero_guardado)
+        
+        # Validar que al menos uno tenga valor
+        if dinero_en_caja == 0 and dinero_guardado == 0:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Debes especificar cuánto dinero quedó en caja o cuánto se guardó'
+            }, status=400)
+        
+        # Validar que la suma coincida con el monto declarado
+        suma_distribucion = dinero_en_caja + dinero_guardado
+        if abs(suma_distribucion - monto_declarado) > Decimal('0.01'):
+            return JsonResponse({
+                'success': False, 
+                'error': f'La distribución (${suma_distribucion:,.0f}) no coincide con el total contado (${monto_declarado:,.0f})'
+            }, status=400)
 
         # Crear registro de ConteoEfectivo DE CIERRE
         conteo = ConteoEfectivo.objects.create(
@@ -277,6 +298,11 @@ def cerrar_caja(request):
 
         # Cerrar caja (actualiza monto_final_declarado, diferencia, estado)
         diferencia = caja.cerrar_caja(monto_declarado, observaciones)
+        
+        # Guardar la distribución del dinero
+        caja.dinero_en_caja = dinero_en_caja
+        caja.dinero_guardado = dinero_guardado
+        caja.save()
 
         return JsonResponse({
             'success': True,
@@ -284,9 +310,11 @@ def cerrar_caja(request):
             'diferencia': float(diferencia),
             'monto_final_declarado': float(caja.monto_final_declarado),
             'monto_final_sistema': float(caja.monto_final_sistema),
+            'dinero_en_caja': float(caja.dinero_en_caja),
+            'dinero_guardado': float(caja.dinero_guardado),
         })
-    except (ValueError, TypeError):
-        return JsonResponse({'success': False, 'error': 'Monto declarado inválido'}, status=400)
+    except (ValueError, TypeError) as e:
+        return JsonResponse({'success': False, 'error': f'Datos inválidos: {str(e)}'}, status=400)
 
 
 @staff_or_permission_required('users.can_view_caja')

@@ -86,6 +86,27 @@ class CajaRegistradora(models.Model):
         help_text=_('Diferencia entre declarado y sistema')
     )
     
+    # Distribución del dinero al cierre
+    dinero_en_caja = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name=_('Dinero en caja'),
+        help_text=_('Dinero que quedó en la caja al cerrar')
+    )
+    
+    dinero_guardado = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name=_('Dinero guardado'),
+        help_text=_('Dinero guardado fuera de la caja al cerrar')
+    )
+    
     # Observaciones
     observaciones_apertura = models.TextField(
         blank=True,
