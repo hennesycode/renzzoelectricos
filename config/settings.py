@@ -29,7 +29,9 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-ic&c20(%chgwss8-knw1%g04gq-+22tss)ztmx8)y8&&nm@+lf')
+# IMPORTANTE: Cambiar SECRET_KEY en archivo .env para producción
+# Generar nuevo: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+SECRET_KEY = env('SECRET_KEY', default='django-insecure-CAMBIAR-ESTE-SECRET-KEY-EN-PRODUCCION')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', default=True)
@@ -318,11 +320,19 @@ OSCAR_ORDER_STATUS_PIPELINE = {
 SESSION_COOKIE_AGE = 1209600  # 2 semanas
 SESSION_SAVE_EVERY_REQUEST = False
 SESSION_COOKIE_HTTPONLY = True
+# Seguridad de cookies en producción (solo si se usa HTTPS)
+SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=False)
 
 # Configuración de seguridad
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
+# CSRF cookie segura en producción
+CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=False)
+# HSTS - HTTP Strict Transport Security (solo si se usa HTTPS directo, no con Cloudflare)
+SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=0)  # 0 = desactivado
+# Redirección SSL (False porque Cloudflare maneja HTTPS)
+SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=False)
 
 # Configuración de Oscar específica
 OSCAR_SHOP_NAME = 'Renzzo Eléctricos'
