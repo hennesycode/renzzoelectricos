@@ -137,13 +137,13 @@ async function openCerrarModal(){
     // Dinero en caja
     html += '<div>';
     html += '<label style="display: block; font-weight: 600; margin-bottom: 8px; color: #2c3e50; font-size: 14px;">💵 Dinero en Caja</label>';
-    html += '<input id="swal-dinero-caja" type="text" class="form-control-modern" placeholder="$ 0" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #e0e0e0; font-size: 18px; font-weight: 600; text-align: center; background: white;">';
+    html += '<input id="swal-dinero-caja" type="text" class="form-control-modern" placeholder="$ 0" value="$ 0" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #e0e0e0; font-size: 18px; font-weight: 600; text-align: center; background: white;">';
     html += '</div>';
     
     // Dinero guardado
     html += '<div>';
     html += '<label style="display: block; font-weight: 600; margin-bottom: 8px; color: #2c3e50; font-size: 14px;">🔒 Dinero Guardado (Fuera de Caja)</label>';
-    html += '<input id="swal-dinero-guardado" type="text" class="form-control-modern" placeholder="$ 0" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #e0e0e0; font-size: 18px; font-weight: 600; text-align: center; background: white;">';
+    html += '<input id="swal-dinero-guardado" type="text" class="form-control-modern" placeholder="$ 0" value="$ 0" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #e0e0e0; font-size: 18px; font-weight: 600; text-align: center; background: white;">';
     html += '</div>';
     html += '</div>';
     
@@ -196,6 +196,9 @@ async function openCerrarModal(){
                     return texto.replace(/[^\d]/g, '');
                 };
                 
+                // Variable para rastrear si el usuario ha modificado los campos de distribución
+                let distribucionModificada = false;
+                
                 const calcular = () => {
                     let total = 0;
                     inputs.forEach(inp => {
@@ -207,6 +210,12 @@ async function openCerrarModal(){
                     });
                     
                     totalEl.textContent = formatearMoneda(total);
+                    
+                    // Auto-llenar "Dinero en Caja" con el total si no se ha modificado
+                    if (!distribucionModificada && total > 0) {
+                        dineroCajaInput.value = formatearMoneda(total).replace('COP', '').trim();
+                        dineroGuardadoInput.value = '$ 0';
+                    }
                     
                     // Calcular y mostrar diferencia
                     const diferencia = total - totalDisponible;
@@ -269,6 +278,7 @@ async function openCerrarModal(){
                 // Formatear inputs de dinero mientras se escribe
                 const formatearInput = (input) => {
                     input.addEventListener('input', function() {
+                        distribucionModificada = true; // Marcar como modificado
                         let value = limpiarNumero(this.value);
                         if (value) {
                             value = parseInt(value).toLocaleString('es-CO');
@@ -280,6 +290,7 @@ async function openCerrarModal(){
                     });
                     
                     input.addEventListener('focus', function() {
+                        distribucionModificada = true; // Marcar como modificado al hacer focus
                         if (this.value === '$ 0' || this.value === '$ ') {
                             this.value = '';
                         }
@@ -390,7 +401,9 @@ async function openCerrarModal(){
         const payload = { 
             monto_declarado: result.total, 
             observaciones: result.observaciones, 
-            conteos: result.conteos 
+            conteos: result.conteos,
+            dinero_en_caja: result.dinero_en_caja,
+            dinero_guardado: result.dinero_guardado
         };
         
         const resp = await fetch(window.CAJA_URLS.cerrar, {
