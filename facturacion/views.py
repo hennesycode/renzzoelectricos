@@ -15,11 +15,8 @@ from django.utils import timezone
 from decimal import Decimal
 import json
 
-# Importar modelos de Oscar
-try:
-    from oscar.apps.catalogue.models import Product
-except ImportError:
-    Product = None
+# Importar modelos de Oscar - Usar el modelo correcto después del fork
+from catalogue.models import Product
 
 # Importar modelos propios
 from .models import Factura, DetalleFactura
@@ -192,9 +189,9 @@ def buscar_productos_ajax(request):
     page_size = 20
     
     print(f"[DEBUG PRODUCTOS] Query recibida: '{query}'")
-    print(f"[DEBUG PRODUCTOS] Product disponible: {Product is not None}")
+    print(f"[DEBUG PRODUCTOS] Modelo Product: {Product}")
     
-    if not query or len(query) < 1:  # Cambiado de 2 a 1
+    if not query or len(query) < 1:
         print(f"[DEBUG PRODUCTOS] Query muy corta o vacía")
         return JsonResponse({
             'results': [],
@@ -202,49 +199,43 @@ def buscar_productos_ajax(request):
         })
     
     try:
-        if Product:
-            # Buscar en productos de Oscar
-            productos = Product.objects.filter(
-                Q(title__icontains=query) | Q(upc__icontains=query)
-            ).distinct()[:page_size]
+        # Buscar en productos de Oscar
+        productos = Product.objects.filter(
+            Q(title__icontains=query) | Q(upc__icontains=query)
+        ).distinct()[:page_size]
+        
+        print(f"[DEBUG PRODUCTOS] Productos encontrados: {productos.count()}")
+        
+        results = []
+        for producto in productos:
+            print(f"[DEBUG PRODUCTOS] Procesando: {producto.title}")
             
-            print(f"[DEBUG PRODUCTOS] Productos encontrados: {productos.count()}")
+            # Obtener precio del producto
+            precio = Decimal('0.00')
+            if hasattr(producto, 'stockrecords') and producto.stockrecords.exists():
+                stockrecord = producto.stockrecords.first()
+                if stockrecord.price:
+                    precio = stockrecord.price
             
-            results = []
-            for producto in productos:
-                print(f"[DEBUG PRODUCTOS] Procesando: {producto.title}")
-                
-                # Obtener precio del producto
-                precio = Decimal('0.00')
-                if hasattr(producto, 'stockrecords') and producto.stockrecords.exists():
-                    stockrecord = producto.stockrecords.first()
-                    if stockrecord.price:
-                        precio = stockrecord.price
-                
-                result_item = {
-                    'id': producto.id,
-                    'text': producto.title,
-                    'upc': producto.upc or '',
-                    'precio': str(precio),
-                    'descripcion': producto.description or producto.title,
-                }
-                results.append(result_item)
-                print(f"[DEBUG PRODUCTOS] Agregado: {result_item}")
-            
-            print(f"[DEBUG PRODUCTOS] Total resultados: {len(results)}")
-            
-            return JsonResponse({
-                'results': results,
-                'pagination': {'more': False}
-            })
-        else:
-            # Oscar no está instalado o configurado
-            print(f"[DEBUG PRODUCTOS] Product is None - Oscar no disponible")
-            return JsonResponse({
-                'results': [],
-                'pagination': {'more': False},
-                'message': 'Catálogo de productos no disponible'
-            })
+            result_item = {
+                'id': producto.id,
+                'text': producto.title,
+                'upc': producto.upc or '',
+                'precio': str(precio),
+                'descripcion': producto.description or producto.title,
+            }
+            results.append(result_item)
+            print(f"[DEBUG PRODUCTOS] Agregado: {result_item}")
+        
+        print(f"[DEBUG PRODUCTOS] Total resultados: {len(results)}")
+        
+        response_data = {
+            'results': results,
+            'pagination': {'more': False}
+        }
+        print(f"[DEBUG PRODUCTOS] Response: {response_data}")
+        
+        return JsonResponse(response_data)
             
     except Exception as e:
         print(f"[DEBUG PRODUCTOS] ERROR: {str(e)}")

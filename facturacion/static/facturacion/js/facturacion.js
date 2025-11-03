@@ -565,6 +565,9 @@
     function inicializarBusquedaProductos() {
         const inputBuscar = $('#buscar_producto');
         
+        console.log('Inicializando búsqueda productos...');
+        console.log('URL de búsqueda:', buscarProductosUrl);
+        
         // Inicializar Select2 con búsqueda AJAX
         inputBuscar.select2({
             theme: 'bootstrap-5',
@@ -590,15 +593,23 @@
                 dataType: 'json',
                 delay: 300,
                 data: function(params) {
+                    console.log('Búsqueda AJAX - Término:', params.term);
                     return {
                         q: params.term,
                         page: params.page || 1
                     };
                 },
                 processResults: function(data) {
-                    console.log('Productos encontrados:', data.results);
+                    console.log('Respuesta AJAX recibida:', data);
+                    console.log('Total productos:', data.results ? data.results.length : 0);
+                    
+                    if (data.error) {
+                        console.error('Error en búsqueda:', data.error);
+                    }
+                    
                     return {
                         results: data.results.map(function(producto) {
+                            console.log('Procesando producto:', producto);
                             return {
                                 id: producto.id,
                                 text: producto.text,
@@ -607,6 +618,10 @@
                         }),
                         pagination: data.pagination
                     };
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error AJAX:', status, error);
+                    console.error('Response:', xhr.responseText);
                 },
                 cache: true
             },
@@ -633,13 +648,14 @@
                 `);
             },
             templateSelection: function(data) {
-                return data.text;
+                return data.text || 'Buscar producto...';
             }
         });
         
         // Evento cuando se selecciona un producto
         inputBuscar.on('select2:select', function(e) {
             const data = e.params.data;
+            console.log('Producto seleccionado:', data);
             
             if (data.producto) {
                 // Agregar producto de Oscar a la tabla
@@ -652,17 +668,17 @@
                     producto_oscar_id: data.producto.id
                 };
                 
+                console.log('Agregando producto a tabla:', producto);
                 agregarProductoATabla(producto);
                 
                 // Limpiar select
-                inputBuscar.val(null).trigger('change');
+                setTimeout(() => {
+                    inputBuscar.val(null).trigger('change');
+                }, 100);
             }
         });
         
-        // También mantener el evento ENTER para productos manuales
-        inputBuscar.on('select2:close', function() {
-            // Permitir que se pueda escribir texto libre y presionar ENTER
-        });
+        console.log('Select2 inicializado correctamente');
     }
 
     /**
