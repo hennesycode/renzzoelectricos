@@ -47,8 +47,12 @@ def listar_clientes_ajax(request):
         # Obtener parámetro de búsqueda de Select2
         search = request.GET.get('q', '').strip()
         
-        # Filtrar solo usuarios con rol CLIENTE
-        clientes = User.objects.filter(rol=User.RoleChoices.CLIENTE, activo=True)
+        # Filtrar solo usuarios con rol CLIENTE (usar string directamente)
+        clientes = User.objects.filter(rol='CLIENTE', activo=True, is_active=True)
+        
+        # Log para debugging
+        print(f"[DEBUG] Búsqueda: '{search}'")
+        print(f"[DEBUG] Total clientes activos: {clientes.count()}")
         
         # Aplicar búsqueda si existe
         if search:
@@ -58,11 +62,12 @@ def listar_clientes_ajax(request):
                 Q(email__icontains=search) |
                 Q(username__icontains=search)  # username será el NIT
             )
+            print(f"[DEBUG] Clientes después de filtro búsqueda: {clientes.count()}")
         
         # Preparar resultados para Select2
         results = []
         for cliente in clientes[:20]:  # Limitar a 20 resultados
-            results.append({
+            result_item = {
                 'id': cliente.id,
                 'text': f"{cliente.get_full_name() or cliente.username} - {cliente.email}",
                 'nombre': cliente.get_full_name(),
@@ -70,12 +75,20 @@ def listar_clientes_ajax(request):
                 'email': cliente.email,
                 'telefono': cliente.telefono or '',
                 'direccion': cliente.direccion or '',
-            })
+            }
+            results.append(result_item)
+            print(f"[DEBUG] Cliente agregado: {result_item}")
         
-        return JsonResponse({
+        print(f"[DEBUG] Total resultados a enviar: {len(results)}")
+        
+        response_data = {
             'results': results,
             'pagination': {'more': False}
-        })
+        }
+        
+        print(f"[DEBUG] Response JSON: {response_data}")
+        
+        return JsonResponse(response_data)
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

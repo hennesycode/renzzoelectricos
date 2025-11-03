@@ -25,56 +25,61 @@
     function inicializarSelect2Cliente() {
         const selectCliente = $('#cliente_id');
         
-        selectCliente.select2({
-            theme: 'bootstrap-5',
-            placeholder: '-- Seleccionar Cliente --',
-            allowClear: true,
-            language: {
-                inputTooShort: function() {
-                    return 'Escriba al menos 2 caracteres para buscar';
-                },
-                searching: function() {
-                    return 'Buscando clientes...';
-                },
-                noResults: function() {
-                    return 'No se encontraron clientes';
-                },
-                errorLoading: function() {
-                    return 'Error al cargar los resultados';
+        // Primero cargar todos los clientes disponibles
+        fetch('/facturacion/ajax/listar-clientes/?q=')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Clientes cargados:', data);
+                
+                // Limpiar opciones actuales (excepto placeholder y nuevo)
+                selectCliente.find('option').not('[value=""], [value="nuevo"]').remove();
+                
+                // Agregar clientes al select
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach(cliente => {
+                        const option = new Option(
+                            cliente.text,
+                            cliente.id,
+                            false,
+                            false
+                        );
+                        // Guardar datos adicionales del cliente
+                        $(option).data('cliente', cliente);
+                        selectCliente.append(option);
+                    });
                 }
-            },
-            ajax: {
-                url: '/facturacion/ajax/listar-clientes/',
-                dataType: 'json',
-                delay: 300,
-                data: function(params) {
-                    return {
-                        q: params.term || '',
-                        page: params.page || 1
-                    };
-                },
-                processResults: function(data) {
-                    // Agregar opción "Crear Nuevo Cliente" al inicio
-                    const results = [
-                        {
-                            id: 'nuevo',
-                            text: '+ Crear Nuevo Cliente',
-                            isNew: true
-                        },
-                        ...data.results
-                    ];
-                    
-                    return {
-                        results: results,
-                        pagination: data.pagination
-                    };
-                },
-                cache: true
-            },
-            minimumInputLength: 0,
-            templateResult: formatearOpcionCliente,
-            templateSelection: formatearSeleccionCliente
-        });
+                
+                // Ahora inicializar Select2
+                selectCliente.select2({
+                    theme: 'bootstrap-5',
+                    placeholder: '-- Seleccionar Cliente --',
+                    allowClear: true,
+                    language: {
+                        noResults: function() {
+                            return 'No se encontraron clientes';
+                        }
+                    },
+                    templateResult: formatearOpcionCliente,
+                    templateSelection: formatearSeleccionCliente
+                });
+                
+                console.log('Select2 inicializado con', selectCliente.find('option').length - 1, 'clientes');
+            })
+            .catch(error => {
+                console.error('Error al cargar clientes:', error);
+                
+                // Inicializar Select2 sin clientes
+                selectCliente.select2({
+                    theme: 'bootstrap-5',
+                    placeholder: '-- Seleccionar Cliente --',
+                    allowClear: true,
+                    language: {
+                        noResults: function() {
+                            return 'Error al cargar clientes. Recargue la página.';
+                        }
+                    }
+                });
+            });
 
         // Evento cuando se selecciona un cliente
         selectCliente.on('select2:select', function(e) {
@@ -94,22 +99,6 @@
         // Evento cuando se limpia la selección
         selectCliente.on('select2:clear', function() {
             ocultarInfoCliente();
-        });
-
-        // Evento cuando se abre el dropdown - forzar búsqueda inicial
-        selectCliente.on('select2:open', function() {
-            // Si el dropdown está vacío, forzar una búsqueda inicial
-            const select2Data = selectCliente.data('select2');
-            if (select2Data && select2Data.$results) {
-                // Trigger búsqueda con término vacío para cargar todos
-                setTimeout(function() {
-                    const searchField = document.querySelector('.select2-search__field');
-                    if (searchField) {
-                        const event = new Event('input', { bubbles: true });
-                        searchField.dispatchEvent(event);
-                    }
-                }, 50);
-            }
         });
     }
 
