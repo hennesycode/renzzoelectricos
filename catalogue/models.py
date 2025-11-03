@@ -44,5 +44,37 @@ class Category(AbstractCategory):
         super().save(*args, **kwargs)
 
 
-# Importar el resto de modelos de Oscar DESPUÉS de definir Category
-from oscar.apps.catalogue.models import *  # noqa
+# Importar todos los modelos de Oscar EXCEPTO Category
+from oscar.apps.catalogue.models import (
+    AbstractProduct,
+    AbstractProductClass,
+    AbstractProductAttribute,
+    AbstractProductAttributeValue,
+    AbstractAttributeOption,
+    AbstractAttributeOptionGroup,
+    AbstractOption,
+    AbstractProductRecommendation,
+    AbstractProductImage,
+    Product,
+    ProductClass,
+    ProductAttribute,
+    ProductAttributeValue,
+    AttributeOption,
+    AttributeOptionGroup,
+    Option,
+    ProductRecommendation,
+    ProductImage,
+)
+
+__all__ = [
+    'Category',
+    'Product',
+    'ProductClass',
+    'ProductAttribute',
+    'ProductAttributeValue',
+    'AttributeOption',
+    'AttributeOptionGroup',
+    'Option',
+    'ProductRecommendation',
+    'ProductImage',
+]
