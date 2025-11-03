@@ -91,8 +91,17 @@
                 // Resetear select
                 selectCliente.val(null).trigger('change');
             } else {
+                // Obtener los datos completos del cliente desde el option
+                const selectedOption = selectCliente.find('option:selected');
+                const clienteCompleto = selectedOption.data('cliente');
+                
+                console.log('Cliente seleccionado:', clienteCompleto);
+                
+                // Si los datos completos existen, usarlos; si no, usar los básicos
+                const clienteData = clienteCompleto || data;
+                
                 // Mostrar información del cliente seleccionado
-                mostrarInfoCliente(data);
+                mostrarInfoCliente(clienteData);
             }
         });
 
@@ -110,15 +119,26 @@
             return cliente.text;
         }
 
-        if (cliente.isNew) {
+        // Si es la opción "nuevo", mostrar sin formato especial (solo el texto)
+        if (cliente.id === 'nuevo') {
             return $('<span class="cliente-opcion-nuevo"><i class="fas fa-plus-circle"></i> ' + cliente.text + '</span>');
         }
 
+        // Obtener datos del elemento (pueden estar en data-cliente o directamente en el objeto)
+        let datosCliente = cliente;
+        if (cliente.element) {
+            const elementData = $(cliente.element).data('cliente');
+            if (elementData) {
+                datosCliente = elementData;
+            }
+        }
+
+        // Para clientes reales, mostrar el formato completo con NIT y Email
         const $opcion = $(
             '<div class="cliente-opcion">' +
-                '<div class="cliente-nombre">' + (cliente.nombre || cliente.text) + '</div>' +
+                '<div class="cliente-nombre">' + (datosCliente.nombre || cliente.text) + '</div>' +
                 '<div class="cliente-detalles">' +
-                    '<small>NIT: ' + (cliente.nit || '-') + ' | Email: ' + (cliente.email || '-') + '</small>' +
+                    '<small>NIT: ' + (datosCliente.nit || '-') + ' | Email: ' + (datosCliente.email || '-') + '</small>' +
                 '</div>' +
             '</div>'
         );
