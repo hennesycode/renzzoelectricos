@@ -65,12 +65,13 @@ class Category(AbstractCategory):
         ancestors_are_public = all(ancestor.is_public for ancestor in ancestors)
         
         # Actualizar este nodo y todos sus descendientes
-        # En lugar de usar .update() con subconsulta, iteramos
-        descendants = self.get_descendants(include_self=True)
+        # get_descendants() no acepta include_self, así que agregamos self manualmente
+        descendants = list(self.get_descendants())
+        descendants_and_self = [self] + descendants
         
         # Usar raw SQL para evitar subconsultas
-        if descendants:
-            category_ids = [cat.id for cat in descendants]
+        if descendants_and_self:
+            category_ids = [cat.id for cat in descendants_and_self]
             with connection.cursor() as cursor:
                 # Update directo sin subconsultas
                 cursor.execute(
