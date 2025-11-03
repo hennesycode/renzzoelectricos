@@ -305,14 +305,15 @@ if not _exists:
                 'label': _('Facturación'),
                 'url_name': 'facturacion:index',
             },
-            {
-                'label': _('Nómina'),
-                'url_name': '#',  # Sin implementar
-            },
-            {
-                'label': _('Gastos'),
-                'url_name': '#',  # Sin implementar
-            },
+            # TODO: Implementar módulos de Nómina y Gastos
+            # {
+            #     'label': _('Nómina'),
+            #     'url_name': 'nomina:index',
+            # },
+            # {
+            #     'label': _('Gastos'),
+            #     'url_name': 'gastos:index',
+            # },
         ]
     }
 
