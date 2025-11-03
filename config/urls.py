@@ -35,6 +35,9 @@ urlpatterns = [
     # URLs del sistema de caja registradora
     path('caja/', include('caja.urls')),
     
+    # URLs del sistema de facturación
+    path('facturacion/', include('facturacion.urls')),
+    
     # Página de inicio personalizada - ANTES que Oscar
     path('', home_view, name='home_custom'),
     path('home/', home_view, name='home_alt'),

@@ -1065,5 +1065,3 @@ def detalle_caja_modal_ajax(request, caja_id):
         
     except Exception as e:
         return JsonResponse({'error': f'Error al cargar detalle: {str(e)}'}, status=500)
-
-

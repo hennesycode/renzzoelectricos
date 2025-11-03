@@ -96,6 +96,7 @@ INSTALLED_APPS = [
     # Apps locales
     'users.apps.UsersConfig',
     'caja.apps.CajaConfig',
+    'facturacion.apps.FacturacionConfig',
 ]
 
 # Site ID requerido por django.contrib.sites
@@ -294,10 +295,32 @@ if not _exists:
             },
         ]
     }
+    
+    # Menú Contabilidad - Con submenús Facturación, Nómina, Gastos
+    OSCAR_CONTABILIDAD_NAV_ITEM = {
+        'label': _('Contabilidad'),
+        'icon': 'fas fa-calculator',
+        'children': [
+            {
+                'label': _('Facturación'),
+                'url_name': 'facturacion:index',
+            },
+            {
+                'label': _('Nómina'),
+                'url_name': '#',  # Sin implementar
+            },
+            {
+                'label': _('Gastos'),
+                'url_name': '#',  # Sin implementar
+            },
+        ]
+    }
 
     # Insertar justo después del primer elemento (Dashboard)
     try:
         OSCAR_DASHBOARD_NAVIGATION.insert(1, OSCAR_CAJAS_NAV_ITEM)
+        # Agregar Contabilidad después de Caja
+        OSCAR_DASHBOARD_NAVIGATION.insert(2, OSCAR_CONTABILIDAD_NAV_ITEM)
         # Agregar Informes al final del menú
         OSCAR_DASHBOARD_NAVIGATION.append(OSCAR_INFORMES_NAV_ITEM)
     except Exception:

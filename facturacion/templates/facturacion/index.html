@@ -1,0 +1,81 @@
+{% extends 'oscar/dashboard/layout.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}
+    {% trans "Facturación" %} | {{ block.super }}
+{% endblock %}
+
+{% block extrastyles %}
+{{ block.super }}
+<style>
+    .facturacion-container {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .facturacion-header {
+        background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .header-icon {
+        font-size: 3rem;
+        opacity: 0.95;
+    }
+
+    .header-text h1 {
+        margin: 0;
+        font-size: 2.2rem;
+        font-weight: 600;
+    }
+
+    .header-text p {
+        margin: 0.5rem 0 0 0;
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+
+    @media (max-width: 768px) {
+        .facturacion-header {
+            padding: 1.5rem;
+        }
+
+        .header-content {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .header-text h1 {
+            font-size: 1.8rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="facturacion-container">
+    <div class="facturacion-header">
+        <div class="header-content">
+            <div class="header-icon">
+                <i class="fas fa-file-invoice-dollar"></i>
+            </div>
+            <div class="header-text">
+                <h1>Generar Factura</h1>
+                <p>Sistema de facturación electrónica - Renzzo Eléctricos</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
