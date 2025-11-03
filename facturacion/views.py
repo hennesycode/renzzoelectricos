@@ -120,7 +120,7 @@ def crear_cliente_ajax(request):
                 rol=User.RoleChoices.CLIENTE,
                 telefono=data.get('telefono', ''),
                 direccion=data.get('direccion', ''),
-                password=User.objects.make_random_password(length=12),  # Contraseña aleatoria
+                password=data['nit'],  # Contraseña = NIT/Cédula (se cifra automáticamente)
                 activo=True,
                 is_active=True,
             )
