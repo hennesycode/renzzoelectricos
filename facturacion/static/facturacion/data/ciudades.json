@@ -1,0 +1,160 @@
+{
+  "ciudades": [
+    {"departamento_id": "05", "nombre": "Medellín"},
+    {"departamento_id": "05", "nombre": "Bello"},
+    {"departamento_id": "05", "nombre": "Itagüí"},
+    {"departamento_id": "05", "nombre": "Envigado"},
+    {"departamento_id": "05", "nombre": "Apartadó"},
+    {"departamento_id": "05", "nombre": "Turbo"},
+    {"departamento_id": "05", "nombre": "Rionegro"},
+    {"departamento_id": "05", "nombre": "Sabaneta"},
+    
+    {"departamento_id": "08", "nombre": "Barranquilla"},
+    {"departamento_id": "08", "nombre": "Soledad"},
+    {"departamento_id": "08", "nombre": "Malambo"},
+    {"departamento_id": "08", "nombre": "Sabanalarga"},
+    {"departamento_id": "08", "nombre": "Puerto Colombia"},
+    
+    {"departamento_id": "11", "nombre": "Bogotá"},
+    
+    {"departamento_id": "13", "nombre": "Cartagena"},
+    {"departamento_id": "13", "nombre": "Magangué"},
+    {"departamento_id": "13", "nombre": "Turbaco"},
+    {"departamento_id": "13", "nombre": "Arjona"},
+    
+    {"departamento_id": "15", "nombre": "Tunja"},
+    {"departamento_id": "15", "nombre": "Duitama"},
+    {"departamento_id": "15", "nombre": "Sogamoso"},
+    {"departamento_id": "15", "nombre": "Chiquinquirá"},
+    {"departamento_id": "15", "nombre": "Paipa"},
+    
+    {"departamento_id": "17", "nombre": "Manizales"},
+    {"departamento_id": "17", "nombre": "Villamaría"},
+    {"departamento_id": "17", "nombre": "Chinchiná"},
+    {"departamento_id": "17", "nombre": "La Dorada"},
+    
+    {"departamento_id": "18", "nombre": "Florencia"},
+    {"departamento_id": "18", "nombre": "San Vicente del Caguán"},
+    {"departamento_id": "18", "nombre": "Puerto Rico"},
+    
+    {"departamento_id": "19", "nombre": "Popayán"},
+    {"departamento_id": "19", "nombre": "Santander de Quilichao"},
+    {"departamento_id": "19", "nombre": "Puerto Tejada"},
+    {"departamento_id": "19", "nombre": "Patía"},
+    
+    {"departamento_id": "20", "nombre": "Valledupar"},
+    {"departamento_id": "20", "nombre": "Aguachica"},
+    {"departamento_id": "20", "nombre": "Bosconia"},
+    {"departamento_id": "20", "nombre": "Codazzi"},
+    
+    {"departamento_id": "23", "nombre": "Montería"},
+    {"departamento_id": "23", "nombre": "Lorica"},
+    {"departamento_id": "23", "nombre": "Cereté"},
+    {"departamento_id": "23", "nombre": "Sahagún"},
+    
+    {"departamento_id": "25", "nombre": "Soacha"},
+    {"departamento_id": "25", "nombre": "Facatativá"},
+    {"departamento_id": "25", "nombre": "Zipaquirá"},
+    {"departamento_id": "25", "nombre": "Chía"},
+    {"departamento_id": "25", "nombre": "Fusagasugá"},
+    {"departamento_id": "25", "nombre": "Girardot"},
+    {"departamento_id": "25", "nombre": "Madrid"},
+    {"departamento_id": "25", "nombre": "Mosquera"},
+    
+    {"departamento_id": "27", "nombre": "Quibdó"},
+    {"departamento_id": "27", "nombre": "Istmina"},
+    {"departamento_id": "27", "nombre": "Condoto"},
+    
+    {"departamento_id": "41", "nombre": "Neiva"},
+    {"departamento_id": "41", "nombre": "Pitalito"},
+    {"departamento_id": "41", "nombre": "Garzón"},
+    {"departamento_id": "41", "nombre": "La Plata"},
+    
+    {"departamento_id": "44", "nombre": "Riohacha"},
+    {"departamento_id": "44", "nombre": "Maicao"},
+    {"departamento_id": "44", "nombre": "Uribia"},
+    
+    {"departamento_id": "47", "nombre": "Santa Marta"},
+    {"departamento_id": "47", "nombre": "Ciénaga"},
+    {"departamento_id": "47", "nombre": "Fundación"},
+    {"departamento_id": "47", "nombre": "Plato"},
+    
+    {"departamento_id": "50", "nombre": "Villavicencio"},
+    {"departamento_id": "50", "nombre": "Acacías"},
+    {"departamento_id": "50", "nombre": "Granada"},
+    {"departamento_id": "50", "nombre": "San Martín"},
+    {"departamento_id": "50", "nombre": "Puerto López"},
+    
+    {"departamento_id": "52", "nombre": "Pasto"},
+    {"departamento_id": "52", "nombre": "Tumaco"},
+    {"departamento_id": "52", "nombre": "Ipiales"},
+    {"departamento_id": "52", "nombre": "Túquerres"},
+    
+    {"departamento_id": "54", "nombre": "Cúcuta"},
+    {"departamento_id": "54", "nombre": "Ocaña"},
+    {"departamento_id": "54", "nombre": "Villa del Rosario"},
+    {"departamento_id": "54", "nombre": "Los Patios"},
+    {"departamento_id": "54", "nombre": "Pamplona"},
+    
+    {"departamento_id": "63", "nombre": "Armenia"},
+    {"departamento_id": "63", "nombre": "Calarcá"},
+    {"departamento_id": "63", "nombre": "La Tebaida"},
+    {"departamento_id": "63", "nombre": "Montenegro"},
+    
+    {"departamento_id": "66", "nombre": "Pereira"},
+    {"departamento_id": "66", "nombre": "Dosquebradas"},
+    {"departamento_id": "66", "nombre": "Santa Rosa de Cabal"},
+    {"departamento_id": "66", "nombre": "La Virginia"},
+    
+    {"departamento_id": "68", "nombre": "Bucaramanga"},
+    {"departamento_id": "68", "nombre": "Floridablanca"},
+    {"departamento_id": "68", "nombre": "Girón"},
+    {"departamento_id": "68", "nombre": "Piedecuesta"},
+    {"departamento_id": "68", "nombre": "Barrancabermeja"},
+    {"departamento_id": "68", "nombre": "San Gil"},
+    
+    {"departamento_id": "70", "nombre": "Sincelejo"},
+    {"departamento_id": "70", "nombre": "Corozal"},
+    {"departamento_id": "70", "nombre": "Sampués"},
+    
+    {"departamento_id": "73", "nombre": "Ibagué"},
+    {"departamento_id": "73", "nombre": "Espinal"},
+    {"departamento_id": "73", "nombre": "Melgar"},
+    {"departamento_id": "73", "nombre": "Honda"},
+    
+    {"departamento_id": "76", "nombre": "Cali"},
+    {"departamento_id": "76", "nombre": "Palmira"},
+    {"departamento_id": "76", "nombre": "Buenaventura"},
+    {"departamento_id": "76", "nombre": "Tuluá"},
+    {"departamento_id": "76", "nombre": "Cartago"},
+    {"departamento_id": "76", "nombre": "Buga"},
+    {"departamento_id": "76", "nombre": "Jamundí"},
+    {"departamento_id": "76", "nombre": "Yumbo"},
+    
+    {"departamento_id": "81", "nombre": "Arauca"},
+    {"departamento_id": "81", "nombre": "Tame"},
+    {"departamento_id": "81", "nombre": "Saravena"},
+    
+    {"departamento_id": "85", "nombre": "Yopal"},
+    {"departamento_id": "85", "nombre": "Aguazul"},
+    {"departamento_id": "85", "nombre": "Villanueva"},
+    
+    {"departamento_id": "86", "nombre": "Mocoa"},
+    {"departamento_id": "86", "nombre": "Puerto Asís"},
+    {"departamento_id": "86", "nombre": "Orito"},
+    
+    {"departamento_id": "88", "nombre": "San Andrés"},
+    {"departamento_id": "88", "nombre": "Providencia"},
+    
+    {"departamento_id": "91", "nombre": "Leticia"},
+    {"departamento_id": "91", "nombre": "Puerto Nariño"},
+    
+    {"departamento_id": "94", "nombre": "Inírida"},
+    
+    {"departamento_id": "95", "nombre": "San José del Guaviare"},
+    
+    {"departamento_id": "97", "nombre": "Mitú"},
+    
+    {"departamento_id": "99", "nombre": "Puerto Carreño"}
+  ]
+}

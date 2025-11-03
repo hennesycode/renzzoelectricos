@@ -194,15 +194,28 @@
 /* SweetAlert2 personalizado */
 .swal2-popup {
     border-radius: 12px;
+    max-width: 800px !important;
+    width: 90% !important;
+}
+
+.swal2-html-container {
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
 .swal2-title {
     color: var(--verde-oscuro-primary);
+    font-size: 1.5rem !important;
+    padding: 1rem 1.5rem !important;
 }
 
 .swal2-confirm {
     background-color: var(--verde-medio) !important;
     border-radius: var(--border-radius);
+    padding: 0.75rem 2rem !important;
+    font-size: 1rem !important;
 }
 
 .swal2-confirm:hover {
@@ -211,62 +224,123 @@
 
 .swal2-cancel {
     border-radius: var(--border-radius);
+    padding: 0.75rem 2rem !important;
+    font-size: 1rem !important;
+}
+
+.swal2-actions {
+    gap: 1rem !important;
+    padding: 1.5rem !important;
 }
 
 /* Modal de SweetAlert2 para crear cliente */
 .swal2-html-container .modal-section {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
     text-align: left;
+    padding: 1.5rem;
 }
 
 .swal2-html-container .modal-section h4 {
     color: var(--verde-oscuro-primary);
     font-size: 1.1rem;
     font-weight: 600;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
     border-bottom: 2px solid var(--verde-claro);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .swal2-html-container .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
 }
 
 .swal2-html-container .form-row-full {
     display: block;
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.swal2-html-container .form-field {
+    display: flex;
+    flex-direction: column;
 }
 
 .swal2-html-container .form-field label {
     display: block;
     font-weight: 600;
     color: #333;
-    margin-bottom: 0.3rem;
-    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
 }
 
 .swal2-html-container .form-field input,
+.swal2-html-container .form-field select,
 .swal2-html-container .form-field textarea {
-    width: 100%;
-    padding: 0.6rem 0.8rem;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    font-size: 0.95rem;
-    transition: border-color 0.3s ease;
+    width: 100% !important;
+    padding: 0.75rem !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 6px !important;
+    font-size: 0.95rem !important;
+    transition: border-color 0.3s ease !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
 }
 
 .swal2-html-container .form-field input:focus,
+.swal2-html-container .form-field select:focus,
 .swal2-html-container .form-field textarea:focus {
-    outline: none;
-    border-color: var(--verde-medio);
-    box-shadow: 0 0 0 0.2rem rgba(64, 145, 108, 0.25);
+    outline: none !important;
+    border-color: var(--verde-medio) !important;
+    box-shadow: 0 0 0 0.2rem rgba(64, 145, 108, 0.25) !important;
 }
 
 .swal2-html-container .required-mark {
     color: #dc3545;
+}
+
+.swal2-html-container .info-text {
+    margin-top: 1.5rem;
+    padding: 0.75rem 1rem;
+    background-color: #f8f9fa;
+    border-left: 3px solid var(--verde-medio);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.swal2-html-container .info-text i {
+    color: var(--verde-medio);
+    margin-right: 0.5rem;
+}
+
+/* Select2 dentro del modal */
+.swal2-popup .select2-container {
+    width: 100% !important;
+}
+
+.swal2-popup .select2-container .select2-selection--single {
+    height: 45px !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 6px !important;
+}
+
+.swal2-popup .select2-container .select2-selection--single .select2-selection__rendered {
+    line-height: 43px !important;
+    padding-left: 0.75rem !important;
+    color: #495057 !important;
+}
+
+.swal2-popup .select2-container .select2-selection--single .select2-selection__arrow {
+    height: 43px !important;
+}
+
+.swal2-popup .select2-container--open .select2-selection--single {
+    border-color: var(--verde-medio) !important;
+    box-shadow: 0 0 0 0.2rem rgba(64, 145, 108, 0.25) !important;
 }
 
 /* Responsive */
@@ -294,6 +368,15 @@
 
     .swal2-html-container .form-row {
         grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .swal2-popup {
+        width: 95% !important;
+    }
+    
+    .swal2-title {
+        font-size: 1.3rem !important;
     }
 }
 
@@ -312,5 +395,19 @@
 
     .section-header h3 {
         font-size: 1.1rem;
+    }
+    
+    .swal2-html-container .modal-section {
+        padding: 1rem;
+    }
+    
+    .swal2-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .swal2-confirm,
+    .swal2-cancel {
+        width: 100% !important;
     }
 }

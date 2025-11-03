@@ -158,7 +158,7 @@
         Swal.fire({
             title: '<i class="fas fa-user-plus"></i> Crear Nuevo Cliente',
             html: generarHTMLFormularioCliente(),
-            width: '700px',
+            width: '800px',
             showCancelButton: true,
             confirmButtonText: '<i class="fas fa-save"></i> Guardar Cliente',
             cancelButtonText: '<i class="fas fa-times"></i> Cancelar',
@@ -168,6 +168,8 @@
             },
             buttonsStyling: false,
             didOpen: () => {
+                // Inicializar Select2 para departamentos y ciudades
+                inicializarSelect2Modal();
                 // Focus en el primer campo
                 document.getElementById('modal_nombre_completo').focus();
             },
@@ -179,6 +181,96 @@
                 crearClienteAjax(result.value);
             }
         });
+    }
+
+    /**
+     * Inicializa Select2 para departamentos y ciudades en el modal
+     */
+    function inicializarSelect2Modal() {
+        // Cargar departamentos
+        fetch('/static/facturacion/data/departamentos.json')
+            .then(response => response.json())
+            .then(data => {
+                const selectDepartamento = $('#modal_departamento');
+                selectDepartamento.select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Seleccione un departamento',
+                    allowClear: true,
+                    dropdownParent: $('.swal2-popup'),
+                    data: data.departamentos.map(dept => ({
+                        id: dept.id,
+                        text: dept.nombre
+                    })),
+                    language: {
+                        noResults: function() {
+                            return 'No se encontraron departamentos';
+                        }
+                    }
+                });
+
+                // Evento cuando se selecciona un departamento
+                selectDepartamento.on('select2:select', function(e) {
+                    cargarCiudadesPorDepartamento(e.params.data.id);
+                });
+
+                // Limpiar ciudades cuando se limpia el departamento
+                selectDepartamento.on('select2:clear', function() {
+                    $('#modal_ciudad').empty().trigger('change');
+                });
+            })
+            .catch(error => {
+                console.error('Error al cargar departamentos:', error);
+            });
+
+        // Inicializar Select2 para ciudades (vacío inicialmente)
+        const selectCiudad = $('#modal_ciudad');
+        selectCiudad.select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Primero seleccione un departamento',
+            allowClear: true,
+            dropdownParent: $('.swal2-popup'),
+            language: {
+                noResults: function() {
+                    return 'No se encontraron ciudades';
+                }
+            }
+        });
+    }
+
+    /**
+     * Carga las ciudades según el departamento seleccionado
+     */
+    function cargarCiudadesPorDepartamento(departamentoId) {
+        fetch('/static/facturacion/data/ciudades.json')
+            .then(response => response.json())
+            .then(data => {
+                // Filtrar ciudades por departamento
+                const ciudadesDelDepartamento = data.ciudades
+                    .filter(ciudad => ciudad.departamento_id === departamentoId)
+                    .map(ciudad => ({
+                        id: ciudad.nombre,
+                        text: ciudad.nombre
+                    }));
+
+                // Actualizar Select2 de ciudades
+                const selectCiudad = $('#modal_ciudad');
+                selectCiudad.empty();
+                selectCiudad.select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Seleccione una ciudad',
+                    allowClear: true,
+                    dropdownParent: $('.swal2-popup'),
+                    data: ciudadesDelDepartamento,
+                    language: {
+                        noResults: function() {
+                            return 'No se encontraron ciudades';
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error al cargar ciudades:', error);
+            });
     }
 
     /**
@@ -252,35 +344,30 @@
 
                 <div class="form-row">
                     <div class="form-field">
-                        <label for="modal_ciudad">
-                            Ciudad
-                        </label>
-                        <input type="text" 
-                               id="modal_ciudad" 
-                               class="swal2-input" 
-                               placeholder="Ciudad"
-                               maxlength="100">
-                    </div>
-
-                    <div class="form-field">
                         <label for="modal_departamento">
                             Departamento
                         </label>
-                        <input type="text" 
-                               id="modal_departamento" 
-                               class="swal2-input" 
-                               placeholder="Departamento"
-                               maxlength="100">
+                        <select id="modal_departamento" class="swal2-input">
+                            <option value="">Seleccione un departamento</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label for="modal_ciudad">
+                            Ciudad
+                        </label>
+                        <select id="modal_ciudad" class="swal2-input">
+                            <option value="">Primero seleccione un departamento</option>
+                        </select>
                     </div>
                 </div>
 
-                <p style="margin-top: 1rem; font-size: 0.85rem; color: #6c757d;">
+                <div class="info-text">
                     <i class="fas fa-info-circle"></i> Los campos marcados con <span class="required-mark">*</span> son obligatorios
-                </p>
+                </div>
             </div>
         `;
     }
-
     /**
      * Valida y obtiene los datos del formulario de cliente
      */
