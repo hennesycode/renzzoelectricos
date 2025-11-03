@@ -242,16 +242,22 @@ def cerrar_caja(request):
     except Exception:
         return JsonResponse({'success': False, 'error': 'Payload inválido'}, status=400)
 
-    monto_declarado = payload.get('monto_declarado', '0')
+    # Obtener datos del payload
+    cuanto_hay = payload.get('cuanto_hay', '0')  # Nuevo: el total real que hay
+    monto_declarado = payload.get('monto_declarado', '0')  # Mantener por compatibilidad
     observaciones = payload.get('observaciones', '')
-    conteos = payload.get('conteos', {})
+    conteos = payload.get('conteos', {})  # Ahora representa SOLO el dinero en caja
     dinero_en_caja = payload.get('dinero_en_caja', '0')
     dinero_guardado = payload.get('dinero_guardado', '0')
 
     try:
-        monto_declarado = Decimal(monto_declarado)
-        if monto_declarado < 0:
+        # El "cuanto_hay" es el monto total real (lo que realmente hay)
+        cuanto_hay = Decimal(cuanto_hay)
+        if cuanto_hay < 0:
             raise ValueError('El monto no puede ser negativo')
+        
+        # El monto_declarado ahora es igual a cuanto_hay
+        monto_declarado = cuanto_hay
         
         # Convertir y validar distribución del dinero
         dinero_en_caja = Decimal(dinero_en_caja)
@@ -264,23 +270,42 @@ def cerrar_caja(request):
                 'error': 'Debes especificar cuánto dinero quedó en caja o cuánto se guardó'
             }, status=400)
         
-        # Validar que la suma coincida con el monto declarado
+        # Validar que la suma coincida con el "cuanto_hay"
         suma_distribucion = dinero_en_caja + dinero_guardado
-        if abs(suma_distribucion - monto_declarado) > Decimal('0.01'):
+        if abs(suma_distribucion - cuanto_hay) > Decimal('0.01'):
             return JsonResponse({
                 'success': False, 
-                'error': f'La distribución (${suma_distribucion:,.0f}) no coincide con el total contado (${monto_declarado:,.0f})'
+                'error': f'La distribución (${suma_distribucion:,.0f}) no coincide con "Cuánto hay" (${cuanto_hay:,.0f})'
             }, status=400)
 
-        # Crear registro de ConteoEfectivo DE CIERRE
+        # Validar que el conteo de denominaciones coincida con el dinero_en_caja
+        total_contado = Decimal('0.00')
+        for denom_id, cantidad in conteos.items():
+            try:
+                denom = DenominacionMoneda.objects.get(id=int(denom_id))
+                cantidad = int(cantidad)
+                if cantidad > 0:
+                    subtotal = denom.valor * Decimal(cantidad)
+                    total_contado += subtotal
+            except DenominacionMoneda.DoesNotExist:
+                continue
+        
+        # Solo validar si hay dinero en caja
+        if dinero_en_caja > 0 and abs(total_contado - dinero_en_caja) > Decimal('0.01'):
+            return JsonResponse({
+                'success': False, 
+                'error': f'El conteo de denominaciones (${total_contado:,.0f}) no coincide con el Dinero en Caja (${dinero_en_caja:,.0f})'
+            }, status=400)
+
+        # Crear registro de ConteoEfectivo DE CIERRE (representa solo el dinero en caja)
         conteo = ConteoEfectivo.objects.create(
             caja=caja,
             tipo_conteo='CIERRE',
             usuario=request.user,
-            total=monto_declarado
+            total=dinero_en_caja  # Ahora el conteo es solo del dinero en caja
         )
 
-        # Crear detalles
+        # Crear detalles del conteo
         for denom_id, cantidad in conteos.items():
             try:
                 denom = DenominacionMoneda.objects.get(id=int(denom_id))
@@ -297,7 +322,7 @@ def cerrar_caja(request):
             except DenominacionMoneda.DoesNotExist:
                 continue
 
-        # Cerrar caja (actualiza monto_final_declarado, diferencia, estado)
+        # Cerrar caja (actualiza monto_final_declarado usando cuanto_hay, diferencia, estado)
         diferencia = caja.cerrar_caja(monto_declarado, observaciones)
         
         # Guardar la distribución del dinero
@@ -582,6 +607,63 @@ def obtener_tipos_movimiento(request):
         for t in tipos.order_by('nombre')
     ]
     return JsonResponse({'success': True, 'tipos': data})
+
+
+@staff_or_permission_required('users.can_view_caja')
+def obtener_ultimo_cierre(request):
+    """
+    Devuelve la información del último cierre de caja para usar como base
+    al abrir una nueva caja (dinero_en_caja y conteo de denominaciones).
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        # Obtener la última caja cerrada
+        ultima_caja = CajaRegistradora.objects.filter(
+            estado='CERRADA'
+        ).order_by('-fecha_cierre').first()
+        
+        if not ultima_caja:
+            # No hay cajas cerradas anteriormente
+            return JsonResponse({
+                'success': True,
+                'hay_cierre_anterior': False,
+                'dinero_en_caja': 0,
+                'conteos': {}
+            })
+        
+        # Obtener el conteo de cierre (que representa el dinero en caja)
+        conteo_cierre = ConteoEfectivo.objects.filter(
+            caja=ultima_caja,
+            tipo_conteo='CIERRE'
+        ).first()
+        
+        conteos = {}
+        if conteo_cierre:
+            # Obtener detalles del conteo
+            detalles = DetalleConteo.objects.filter(
+                conteo=conteo_cierre
+            ).select_related('denominacion')
+            
+            for detalle in detalles:
+                if detalle.cantidad > 0:
+                    conteos[str(detalle.denominacion.id)] = detalle.cantidad
+        
+        return JsonResponse({
+            'success': True,
+            'hay_cierre_anterior': True,
+            'dinero_en_caja': float(ultima_caja.dinero_en_caja or 0),
+            'conteos': conteos,
+            'fecha_cierre': ultima_caja.fecha_cierre.strftime('%d/%m/%Y %H:%M'),
+            'cajero': ultima_caja.cajero.get_full_name() or ultima_caja.cajero.username
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al obtener último cierre: {str(e)}'
+        }, status=500)
 
 
 # ============================================================

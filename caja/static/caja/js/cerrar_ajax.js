@@ -29,6 +29,19 @@ async function fetchEstadoCaja(){
     return null;
 }
 
+const formatearMoneda = (valor) => {
+    return new Intl.NumberFormat('es-CO', { 
+        style: 'currency', 
+        currency: 'COP',
+        minimumFractionDigits: 0
+    }).format(valor);
+};
+
+const limpiarNumero = (texto) => {
+    if (!texto || texto === '') return '0';
+    return texto.toString().replace(/[^\d]/g, '');
+};
+
 async function openCerrarModal(){
     // Cargar denominaciones y estado de la caja
     const denoms = await fetchDenominaciones();
@@ -40,7 +53,6 @@ async function openCerrarModal(){
     }
     
     const totalDisponible = estadoCaja.total_disponible;
-    const denominacionesEsperadas = estadoCaja.denominaciones_esperadas || {};
     
     // Separar y ordenar billetes y monedas
     const billetes = denoms.filter(d => d.tipo.toUpperCase() === 'BILLETE').sort((a, b) => b.valor - a.valor);
@@ -48,89 +60,35 @@ async function openCerrarModal(){
 
     let html = '<div class="denominaciones-container" style="text-align: left;">';
     
-    // Mostrar total disponible al inicio
-    const totalDisponibleFormateado = new Intl.NumberFormat('es-CO', { 
-        style: 'currency', 
-        currency: 'COP', 
-        minimumFractionDigits: 0 
-    }).format(totalDisponible);
+    // 1. Mostrar "Debe Haber" (total teórico del sistema)
+    const totalDisponibleFormateado = formatearMoneda(totalDisponible);
     
     html += `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                         color: white; 
                         padding: 15px; 
                         border-radius: 10px; 
-                        margin-bottom: 20px; 
+                        margin-bottom: 15px; 
                         text-align: center;">`;
     html += `<h3 style="margin: 0; font-size: 1.2rem;">💰 Debe Haber</h3>`;
     html += `<p style="margin: 10px 0 0 0; font-size: 1.8rem; font-weight: bold;">${totalDisponibleFormateado}</p>`;
     html += `</div>`;
     
-    // Billetes
-    if (billetes.length > 0) {
-        html += '<h4 class="denom-group">💵 Billetes</h4>';
-        html += '<div class="denom-grid">';
-        billetes.forEach(d => {
-            const valorFormateado = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(d.valor);
-            const esperado = denominacionesEsperadas[d.id] || 0;
-            const labelEsperado = esperado > 0 ? `<small style="color: #666; display: block; margin-top: 4px;">Esperado: ${esperado}</small>` : '';
-            
-            html += `
-                <div class="denom-item">
-                    <label class="denom-label">
-                        ${valorFormateado}
-                        ${labelEsperado}
-                    </label>
-                    <input data-denom-id="${d.id}" 
-                           data-denom-valor="${d.valor}" 
-                           data-esperado="${esperado}"
-                           type="number" 
-                           min="0" 
-                           step="1" 
-                           class="denom-input" 
-                           placeholder="${esperado}" 
-                           value="${esperado}">
-                </div>
-            `;
-        });
-        html += '</div>';
-    }
+    // 2. Nueva sección: "¿Cuánto hay?"
+    html += `<div style="background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%); 
+                        padding: 15px; 
+                        border-radius: 10px; 
+                        margin-bottom: 15px;">`;
+    html += `<label style="display: block; font-weight: 700; margin-bottom: 10px; color: white; font-size: 1.1rem; text-align: center;">¿Cuánto hay?</label>`;
+    html += `<input id="swal-cuanto-hay" type="text" class="form-control-modern" placeholder="$ 0" value="" style="width: 100%; padding: 14px; border-radius: 8px; border: 3px solid white; font-size: 22px; font-weight: 700; text-align: center; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">`;
+    html += `</div>`;
     
-    // Monedas
-    if (monedas.length > 0) {
-        html += '<h4 class="denom-group">🪙 Monedas</h4>';
-        html += '<div class="denom-grid">';
-        monedas.forEach(d => {
-            const valorFormateado = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(d.valor);
-            const esperado = denominacionesEsperadas[d.id] || 0;
-            const labelEsperado = esperado > 0 ? `<small style="color: #666; display: block; margin-top: 4px;">Esperado: ${esperado}</small>` : '';
-            
-            html += `
-                <div class="denom-item">
-                    <label class="denom-label">
-                        ${valorFormateado}
-                        ${labelEsperado}
-                    </label>
-                    <input data-denom-id="${d.id}" 
-                           data-denom-valor="${d.valor}"
-                           data-esperado="${esperado}"
-                           type="number" 
-                           min="0" 
-                           step="1" 
-                           class="denom-input" 
-                           placeholder="${esperado}" 
-                           value="${esperado}">
-                </div>
-            `;
-        });
-        html += '</div>';
-    }
+    // 3. Sección de diferencia (inicialmente oculta)
+    html += `<div id="swal-diferencia-cuadre" style="display: none; margin-bottom: 15px; padding: 12px; border-radius: 8px; text-align: center; font-weight: 600; font-size: 15px;"></div>`;
+    // 3. Sección de diferencia (inicialmente oculta)
+    html += `<div id="swal-diferencia-cuadre" style="display: none; margin-bottom: 15px; padding: 12px; border-radius: 8px; text-align: center; font-weight: 600; font-size: 15px;"></div>`;
     
-    html += '</div>';
-    html += '<div class="swal-total">💰 Total Contado<br><strong id="swal-total">$0</strong></div>';
-    html += '<div id="swal-diferencia" class="swal-diferencia" style="display: none; margin-top: 10px; padding: 10px; border-radius: 5px;"></div>';
-    
-    // Nuevos campos: Dinero en caja y dinero guardado
-    html += '<div style="margin-top: 25px; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 12px; border: 2px solid #e0e0e0;">';
+    // 4. Distribución del Dinero (usando "Cuánto hay" como base)
+    html += '<div style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 12px; border: 2px solid #e0e0e0;">';
     html += '<h4 style="margin: 0 0 15px 0; color: #2c3e50; font-weight: 700; text-align: center;">📦 Distribución del Dinero</h4>';
     
     html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">';
@@ -153,11 +111,76 @@ async function openCerrarModal(){
     html += '<strong id="swal-suma-distribucion" style="color: #3498db; font-size: 20px; font-weight: 700;">$0</strong>';
     html += '</div>';
     
-    // Mensaje de error/validación
+    // Mensaje de error/validación distribución
     html += '<div id="swal-error-distribucion" style="display: none; margin-top: 10px; padding: 10px; border-radius: 8px; background: #f8d7da; color: #721c24; border: 2px solid #f5c6cb; text-align: center; font-weight: 600;"></div>';
+    html += '</div>'; // Fin distribución
+    
+    // 5. Nueva sección: Distribución de Caja (conteo de billetes/monedas del dinero EN CAJA)
+    html += '<div style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); border-radius: 12px; border: 2px solid #f0a07c;">';
+    html += '<h4 style="margin: 0 0 15px 0; color: #2c3e50; font-weight: 700; text-align: center;">🏦 Distribución de Caja</h4>';
+    html += '<p style="text-align: center; color: #555; margin-bottom: 15px; font-size: 14px;">Ingresa exactamente los billetes y monedas que quedaron en caja</p>';
+    
+    // Billetes
+    if (billetes.length > 0) {
+        html += '<h5 class="denom-group">💵 Billetes</h5>';
+        html += '<div class="denom-grid">';
+        billetes.forEach(d => {
+            const valorFormateado = formatearMoneda(d.valor);
+            
+            html += `
+                <div class="denom-item">
+                    <label class="denom-label">${valorFormateado}</label>
+                    <input data-denom-id="${d.id}" 
+                           data-denom-valor="${d.valor}" 
+                           type="number" 
+                           min="0" 
+                           step="1" 
+                           class="denom-input" 
+                           placeholder="0" 
+                           value="0">
+                </div>
+            `;
+        });
+        html += '</div>';
+    }
+    
+    // Monedas
+    if (monedas.length > 0) {
+        html += '<h5 class="denom-group">🪙 Monedas</h5>';
+        html += '<div class="denom-grid">';
+        monedas.forEach(d => {
+            const valorFormateado = formatearMoneda(d.valor);
+            
+            html += `
+                <div class="denom-item">
+                    <label class="denom-label">${valorFormateado}</label>
+                    <input data-denom-id="${d.id}" 
+                           data-denom-valor="${d.valor}"
+                           type="number" 
+                           min="0" 
+                           step="1" 
+                           class="denom-input" 
+                           placeholder="0" 
+                           value="0">
+                </div>
+            `;
+        });
+        html += '</div>';
+    }
+    
+    // Total contado y validación
+    html += '<div style="margin-top: 15px; background: white; padding: 12px; border-radius: 8px; text-align: center; border: 2px solid #28a745;">';
+    html += '<strong style="color: #2c3e50; font-size: 15px;">💰 Total Contado: </strong>';
+    html += '<strong id="swal-total-contado" style="color: #28a745; font-size: 20px; font-weight: 700;">$0</strong>';
     html += '</div>';
     
+    // Mensaje de validación del conteo
+    html += '<div id="swal-error-conteo" style="display: none; margin-top: 10px; padding: 10px; border-radius: 8px; text-align: center; font-weight: 600;"></div>';
+    html += '</div>'; // Fin distribución de caja
+    
+    // Observaciones
     html += '<textarea id="swal-observaciones" class="swal2-textarea" placeholder="Observaciones (opcional)" style="margin-top: 15px;"></textarea>';
+    html += '</div>'; // Fin container
 
     const { value: result } = await Swal.fire({
         title: '🔒 Cerrar Caja',
@@ -175,239 +198,241 @@ async function openCerrarModal(){
             popup: 'caja-modal-popup'
         },
         willOpen: () => {
-            const inputs = Swal.getPopup().querySelectorAll('.denom-input');
-            if (inputs && inputs.length) {
-                const totalEl = Swal.getPopup().querySelector('#swal-total');
-                const diferenciaEl = Swal.getPopup().querySelector('#swal-diferencia');
-                const dineroCajaInput = Swal.getPopup().querySelector('#swal-dinero-caja');
-                const dineroGuardadoInput = Swal.getPopup().querySelector('#swal-dinero-guardado');
-                const sumaDistribucionEl = Swal.getPopup().querySelector('#swal-suma-distribucion');
-                const errorDistribucionEl = Swal.getPopup().querySelector('#swal-error-distribucion');
-                
-                const formatearMoneda = (valor) => {
-                    return new Intl.NumberFormat('es-CO', { 
-                        style: 'currency', 
-                        currency: 'COP',
-                        minimumFractionDigits: 0
-                    }).format(valor);
-                };
-                
-                const limpiarNumero = (texto) => {
-                    return texto.replace(/[^\d]/g, '');
-                };
-                
-                // Variable para rastrear si el usuario ha modificado los campos de distribución
-                let distribucionModificada = false;
-                
-                const calcular = () => {
-                    let total = 0;
-                    inputs.forEach(inp => {
-                        const valor = parseFloat(inp.dataset.denomValor || 0);
-                        const cantidad = parseInt(inp.value || 0);
-                        if (!isNaN(valor) && !isNaN(cantidad) && cantidad > 0) {
-                            total += valor * cantidad;
-                        }
-                    });
-                    
-                    totalEl.textContent = formatearMoneda(total);
-                    
-                    // Auto-llenar "Dinero en Caja" con el total si no se ha modificado
-                    if (!distribucionModificada && total > 0) {
-                        // Formatear el total de la misma forma que los inputs esperan
-                        const totalFormateado = parseInt(total).toLocaleString('es-CO');
-                        dineroCajaInput.value = `$ ${totalFormateado}`;
-                        dineroGuardadoInput.value = '$ 0';
-                    }
-                    
-                    // Calcular y mostrar diferencia
-                    const diferencia = total - totalDisponible;
-                    
-                    if (Math.abs(diferencia) > 0.01) {
-                        const diferenciaFormateada = formatearMoneda(Math.abs(diferencia));
-                        
-                        if (diferencia > 0) {
-                            diferenciaEl.style.display = 'block';
-                            diferenciaEl.style.background = '#d4edda';
-                            diferenciaEl.style.color = '#155724';
-                            diferenciaEl.style.border = '1px solid #c3e6cb';
-                            diferenciaEl.innerHTML = `✅ <strong>Sobrante:</strong> ${diferenciaFormateada}`;
-                        } else {
-                            diferenciaEl.style.display = 'block';
-                            diferenciaEl.style.background = '#f8d7da';
-                            diferenciaEl.style.color = '#721c24';
-                            diferenciaEl.style.border = '1px solid #f5c6cb';
-                            diferenciaEl.innerHTML = `⚠️ <strong>Faltante:</strong> ${diferenciaFormateada}`;
-                        }
+            const popup = Swal.getPopup();
+            
+            // Elementos del DOM
+            const cuantoHayInput = popup.querySelector('#swal-cuanto-hay');
+            const diferenciaCuadreEl = popup.querySelector('#swal-diferencia-cuadre');
+            const dineroCajaInput = popup.querySelector('#swal-dinero-caja');
+            const dineroGuardadoInput = popup.querySelector('#swal-dinero-guardado');
+            const sumaDistribucionEl = popup.querySelector('#swal-suma-distribucion');
+            const errorDistribucionEl = popup.querySelector('#swal-error-distribucion');
+            const denomInputs = popup.querySelectorAll('.denom-input');
+            const totalContadoEl = popup.querySelector('#swal-total-contado');
+            const errorConteoEl = popup.querySelector('#swal-error-conteo');
+            
+            // Función para formatear inputs de dinero
+            const formatearInput = (input) => {
+                input.addEventListener('input', function() {
+                    let value = limpiarNumero(this.value);
+                    if (value && value !== '0') {
+                        value = parseInt(value).toLocaleString('es-CO');
+                        this.value = `$ ${value}`;
                     } else {
-                        diferenciaEl.style.display = 'block';
-                        diferenciaEl.style.background = '#d4edda';
-                        diferenciaEl.style.color = '#155724';
-                        diferenciaEl.style.border = '1px solid #c3e6cb';
-                        diferenciaEl.innerHTML = `✅ <strong>Sin diferencias</strong> - Cuadre perfecto`;
+                        this.value = '';
                     }
-                    
-                    // Validar distribución
-                    validarDistribucion(total);
-                };
-                
-                const validarDistribucion = (totalContado) => {
-                    const dineroCajaLimpio = limpiarNumero(dineroCajaInput.value || '0');
-                    const dineroGuardadoLimpio = limpiarNumero(dineroGuardadoInput.value || '0');
-                    
-                    const dineroCaja = parseFloat(dineroCajaLimpio) || 0;
-                    const dineroGuardado = parseFloat(dineroGuardadoLimpio) || 0;
-                    const suma = dineroCaja + dineroGuardado;
-                    
-                    sumaDistribucionEl.textContent = formatearMoneda(suma);
-                    
-                    // Validaciones
-                    if (dineroCaja === 0 && dineroGuardado === 0) {
-                        errorDistribucionEl.style.display = 'block';
-                        errorDistribucionEl.innerHTML = '⚠️ Al menos uno de los campos debe tener un valor mayor a cero';
-                        errorDistribucionEl.style.background = '#f8d7da';
-                        return false;
-                    } else if (Math.abs(suma - totalContado) > 0.01) {
-                        errorDistribucionEl.style.display = 'block';
-                        errorDistribucionEl.innerHTML = `❌ La suma (${formatearMoneda(suma)}) no coincide con el Total Contado (${formatearMoneda(totalContado)})`;
-                        errorDistribucionEl.style.background = '#f8d7da';
-                        return false;
-                    } else {
-                        errorDistribucionEl.style.display = 'none';
-                        return true;
-                    }
-                };
-                
-                // Formatear inputs de dinero mientras se escribe
-                const formatearInput = (input) => {
-                    input.addEventListener('input', function() {
-                        distribucionModificada = true; // Marcar como modificado
-                        let value = limpiarNumero(this.value);
-                        if (value) {
-                            value = parseInt(value).toLocaleString('es-CO');
-                            this.value = `$ ${value}`;
-                        } else {
-                            this.value = '';
-                        }
-                        calcular(); // Recalcular al cambiar distribución
-                    });
-                    
-                    input.addEventListener('focus', function() {
-                        distribucionModificada = true; // Marcar como modificado al hacer focus
-                        if (this.value === '$ 0' || this.value === '$ ') {
-                            this.value = '';
-                        }
-                        this.select();
-                    });
-                    
-                    input.addEventListener('blur', function() {
-                        if (this.value === '' || this.value === '$ ') {
-                            this.value = '$ 0';
-                        }
-                    });
-                };
-                
-                formatearInput(dineroCajaInput);
-                formatearInput(dineroGuardadoInput);
-                
-                inputs.forEach(i => {
-                    i.addEventListener('input', calcular);
-                    i.addEventListener('focus', function() {
-                        if (this.value === '0') this.value = '';
-                    });
-                    i.addEventListener('blur', function() {
-                        if (this.value === '') {
-                            const esperado = this.dataset.esperado || '0';
-                            this.value = esperado;
-                        }
-                    });
+                    recalcularTodo();
                 });
                 
-                calcular(); // Calcular inicial con valores esperados
-            }
-        },
-        preConfirm: () => {
-            const obs = Swal.getPopup().querySelector('#swal-observaciones') ? Swal.getPopup().querySelector('#swal-observaciones').value : '';
-            const inputs = Swal.getPopup().querySelectorAll('.denom-input');
-            const dineroCajaInput = Swal.getPopup().querySelector('#swal-dinero-caja');
-            const dineroGuardadoInput = Swal.getPopup().querySelector('#swal-dinero-guardado');
+                input.addEventListener('focus', function() {
+                    if (this.value === '$ 0' || this.value === '$ ' || this.value === '') {
+                        this.value = '';
+                    }
+                    this.select();
+                });
+                
+                input.addEventListener('blur', function() {
+                    if (this.value === '' || this.value === '$ ') {
+                        this.value = '$ 0';
+                    }
+                });
+            };
             
-            const conteos = {};
-            let total = 0;
-            let any = false;
-            
-            inputs.forEach(inp => {
-                const cantidad = parseInt(inp.value || 0);
-                if (!isNaN(cantidad) && cantidad > 0) {
-                    conteos[inp.dataset.denomId] = cantidad;
+            // Función para calcular el total contado de denominaciones
+            const calcularTotalContado = () => {
+                let total = 0;
+                denomInputs.forEach(inp => {
                     const valor = parseFloat(inp.dataset.denomValor || 0);
-                    total += valor * cantidad;
-                    any = true;
+                    const cantidad = parseInt(inp.value || 0);
+                    if (!isNaN(valor) && !isNaN(cantidad) && cantidad > 0) {
+                        total += valor * cantidad;
+                    }
+                });
+                return total;
+            };
+            
+            // Función principal que recalcula todo
+            const recalcularTodo = () => {
+                // 1. Validar "Cuánto hay" vs "Debe Haber"
+                const cuantoHayLimpio = limpiarNumero(cuantoHayInput.value || '0');
+                const cuantoHay = parseFloat(cuantoHayLimpio) || 0;
+                
+                if (cuantoHay > 0) {
+                    const diferencia = cuantoHay - totalDisponible;
+                    
+                    if (Math.abs(diferencia) < 0.01) {
+                        // Sin diferencias
+                        diferenciaCuadreEl.style.display = 'block';
+                        diferenciaCuadreEl.style.background = '#d4edda';
+                        diferenciaCuadreEl.style.color = '#155724';
+                        diferenciaCuadreEl.style.border = '2px solid #c3e6cb';
+                        diferenciaCuadreEl.innerHTML = '✅ Sin diferencias - Cuadre perfecto';
+                    } else if (diferencia > 0) {
+                        // Sobrante
+                        const diferenciaFormateada = formatearMoneda(Math.abs(diferencia));
+                        diferenciaCuadreEl.style.display = 'block';
+                        diferenciaCuadreEl.style.background = '#d4edda';
+                        diferenciaCuadreEl.style.color = '#155724';
+                        diferenciaCuadreEl.style.border = '2px solid #c3e6cb';
+                        diferenciaCuadreEl.innerHTML = `✅ <strong>Sobrante:</strong> ${diferenciaFormateada}`;
+                    } else {
+                        // Faltante
+                        const diferenciaFormateada = formatearMoneda(Math.abs(diferencia));
+                        diferenciaCuadreEl.style.display = 'block';
+                        diferenciaCuadreEl.style.background = '#f8d7da';
+                        diferenciaCuadreEl.style.color = '#721c24';
+                        diferenciaCuadreEl.style.border = '2px solid #f5c6cb';
+                        diferenciaCuadreEl.innerHTML = `⚠️ <strong>Faltante:</strong> ${diferenciaFormateada}`;
+                    }
+                } else {
+                    diferenciaCuadreEl.style.display = 'none';
                 }
+                
+                // 2. Validar distribución (Dinero en Caja + Dinero Guardado)
+                const dineroCajaLimpio = limpiarNumero(dineroCajaInput.value || '0');
+                const dineroGuardadoLimpio = limpiarNumero(dineroGuardadoInput.value || '0');
+                
+                const dineroCaja = parseFloat(dineroCajaLimpio) || 0;
+                const dineroGuardado = parseFloat(dineroGuardadoLimpio) || 0;
+                const sumaDistribucion = dineroCaja + dineroGuardado;
+                
+                sumaDistribucionEl.textContent = formatearMoneda(sumaDistribucion);
+                
+                // Validar que no supere "Cuánto hay"
+                if (cuantoHay > 0 && sumaDistribucion > cuantoHay + 0.01) {
+                    errorDistribucionEl.style.display = 'block';
+                    errorDistribucionEl.innerHTML = `❌ La suma (${formatearMoneda(sumaDistribucion)}) no puede ser mayor a "Cuánto hay" (${formatearMoneda(cuantoHay)})`;
+                } else if (cuantoHay > 0 && Math.abs(sumaDistribucion - cuantoHay) > 0.01) {
+                    errorDistribucionEl.style.display = 'block';
+                    errorDistribucionEl.innerHTML = `⚠️ La suma (${formatearMoneda(sumaDistribucion)}) debe ser igual a "Cuánto hay" (${formatearMoneda(cuantoHay)})`;
+                } else if (dineroCaja === 0 && dineroGuardado === 0 && cuantoHay > 0) {
+                    errorDistribucionEl.style.display = 'block';
+                    errorDistribucionEl.innerHTML = '⚠️ Debes distribuir el dinero entre Caja y Guardado';
+                } else {
+                    errorDistribucionEl.style.display = 'none';
+                }
+                
+                // 3. Validar conteo de denominaciones vs Dinero en Caja
+                const totalContado = calcularTotalContado();
+                totalContadoEl.textContent = formatearMoneda(totalContado);
+                
+                if (dineroCaja > 0) {
+                    if (Math.abs(totalContado - dineroCaja) < 0.01) {
+                        // Coincide perfectamente
+                        errorConteoEl.style.display = 'block';
+                        errorConteoEl.style.background = '#d4edda';
+                        errorConteoEl.style.color = '#155724';
+                        errorConteoEl.style.border = '2px solid #c3e6cb';
+                        errorConteoEl.innerHTML = '✅ El conteo coincide con el Dinero en Caja';
+                    } else if (totalContado > dineroCaja) {
+                        // Hay más contado que declarado
+                        const diferencia = totalContado - dineroCaja;
+                        errorConteoEl.style.display = 'block';
+                        errorConteoEl.style.background = '#fff3cd';
+                        errorConteoEl.style.color = '#856404';
+                        errorConteoEl.style.border = '2px solid #ffeaa7';
+                        errorConteoEl.innerHTML = `⚠️ Contaste ${formatearMoneda(diferencia)} más de lo declarado en "Dinero en Caja"`;
+                    } else {
+                        // Hay menos contado que declarado
+                        const diferencia = dineroCaja - totalContado;
+                        errorConteoEl.style.display = 'block';
+                        errorConteoEl.style.background = '#f8d7da';
+                        errorConteoEl.style.color = '#721c24';
+                        errorConteoEl.style.border = '2px solid #f5c6cb';
+                        errorConteoEl.innerHTML = `❌ Contaste ${formatearMoneda(diferencia)} menos de lo declarado en "Dinero en Caja"`;
+                    }
+                } else {
+                    errorConteoEl.style.display = 'none';
+                }
+            };
+            
+            // Aplicar formateo a los inputs de dinero
+            formatearInput(cuantoHayInput);
+            formatearInput(dineroCajaInput);
+            formatearInput(dineroGuardadoInput);
+            
+            // Listeners para denominaciones
+            denomInputs.forEach(inp => {
+                inp.addEventListener('input', recalcularTodo);
+                inp.addEventListener('focus', function() {
+                    if (this.value === '0') this.value = '';
+                });
+                inp.addEventListener('blur', function() {
+                    if (this.value === '') this.value = '0';
+                });
             });
             
-            if (!any) {
-                Swal.showValidationMessage('⚠️ Ingresa al menos una cantidad para las denominaciones');
+            // Calcular inicial
+            recalcularTodo();
+        },
+        preConfirm: () => {
+            const popup = Swal.getPopup();
+            const cuantoHayInput = popup.querySelector('#swal-cuanto-hay');
+            const dineroCajaInput = popup.querySelector('#swal-dinero-caja');
+            const dineroGuardadoInput = popup.querySelector('#swal-dinero-guardado');
+            const denomInputs = popup.querySelectorAll('.denom-input');
+            const obs = popup.querySelector('#swal-observaciones') ? popup.querySelector('#swal-observaciones').value : '';
+            
+            // 1. Validar que "Cuánto hay" tenga valor
+            const cuantoHayLimpio = limpiarNumero(cuantoHayInput.value || '0');
+            const cuantoHay = parseFloat(cuantoHayLimpio) || 0;
+            
+            if (cuantoHay <= 0) {
+                Swal.showValidationMessage('⚠️ Debes ingresar el valor de "¿Cuánto hay?"');
                 return false;
             }
             
-            // Validar distribución del dinero
-            const limpiarNumero = (texto) => {
-                if (!texto || texto === '') return '0';
-                return texto.toString().replace(/[^\d]/g, '');
-            };
-            
-            // Leer valores de los inputs
-            let dineroCajaValue = dineroCajaInput.value || '$ 0';
-            let dineroGuardadoValue = dineroGuardadoInput.value || '$ 0';
-            
-            const dineroCajaLimpio = limpiarNumero(dineroCajaValue);
-            const dineroGuardadoLimpio = limpiarNumero(dineroGuardadoValue);
+            // 2. Validar distribución del dinero
+            const dineroCajaLimpio = limpiarNumero(dineroCajaInput.value || '0');
+            const dineroGuardadoLimpio = limpiarNumero(dineroGuardadoInput.value || '0');
             
             const dineroCaja = parseFloat(dineroCajaLimpio) || 0;
             const dineroGuardado = parseFloat(dineroGuardadoLimpio) || 0;
             const sumaDistribucion = dineroCaja + dineroGuardado;
             
-            // Debug: ver qué valores se están leyendo
-            console.log('Debug valores:', {
-                dineroCajaValue,
-                dineroGuardadoValue,
-                dineroCajaLimpio,
-                dineroGuardadoLimpio,
-                dineroCaja,
-                dineroGuardado,
-                sumaDistribucion,
-                total
+            if (dineroCaja === 0 && dineroGuardado === 0) {
+                Swal.showValidationMessage('⚠️ Debes distribuir el dinero entre Caja y Guardado');
+                return false;
+            }
+            
+            if (Math.abs(sumaDistribucion - cuantoHay) > 0.01) {
+                Swal.showValidationMessage(`❌ La distribución (${formatearMoneda(sumaDistribucion)}) debe ser igual a "Cuánto hay" (${formatearMoneda(cuantoHay)})`);
+                return false;
+            }
+            
+            // 3. Validar conteo de denominaciones
+            const conteos = {};
+            let totalContado = 0;
+            let hayConteo = false;
+            
+            denomInputs.forEach(inp => {
+                const cantidad = parseInt(inp.value || 0);
+                if (!isNaN(cantidad) && cantidad > 0) {
+                    conteos[inp.dataset.denomId] = cantidad;
+                    const valor = parseFloat(inp.dataset.denomValor || 0);
+                    totalContado += valor * cantidad;
+                    hayConteo = true;
+                }
             });
             
-            // Validación 1: Al menos uno debe tener valor
-            if (dineroCaja === 0 && dineroGuardado === 0) {
-                Swal.showValidationMessage('⚠️ Debes especificar cuánto dinero quedó en caja o cuánto se guardó fuera de la caja (al menos uno debe ser mayor a cero)');
+            // Solo si hay dinero en caja, debe haber conteo
+            if (dineroCaja > 0 && !hayConteo) {
+                Swal.showValidationMessage('⚠️ Debes contar las denominaciones del dinero que queda en caja');
                 return false;
             }
             
-            // Validación 2: La suma debe coincidir con el total contado
-            if (Math.abs(sumaDistribucion - total) > 0.01) {
-                const totalFormateado = new Intl.NumberFormat('es-CO', { 
-                    style: 'currency', 
-                    currency: 'COP',
-                    minimumFractionDigits: 0
-                }).format(total);
-                const sumaFormateada = new Intl.NumberFormat('es-CO', { 
-                    style: 'currency', 
-                    currency: 'COP',
-                    minimumFractionDigits: 0
-                }).format(sumaDistribucion);
-                
-                Swal.showValidationMessage(`❌ La distribución (${sumaFormateada}) no coincide con el Total Contado (${totalFormateado})`);
+            // El total contado debe coincidir con el dinero en caja
+            if (dineroCaja > 0 && Math.abs(totalContado - dineroCaja) > 0.01) {
+                Swal.showValidationMessage(`❌ El Total Contado (${formatearMoneda(totalContado)}) debe ser igual al Dinero en Caja (${formatearMoneda(dineroCaja)})`);
                 return false;
             }
             
-            return { 
-                conteos: conteos, 
-                observaciones: obs, 
-                total: total,
+            return {
+                cuanto_hay: cuantoHay,
                 dinero_en_caja: dineroCaja,
-                dinero_guardado: dineroGuardado
+                dinero_guardado: dineroGuardado,
+                conteos: conteos,
+                observaciones: obs
             };
         }
     });
@@ -418,7 +443,8 @@ async function openCerrarModal(){
     try{
         const token = getCookie('csrftoken');
         const payload = { 
-            monto_declarado: result.total, 
+            cuanto_hay: result.cuanto_hay,
+            monto_declarado: result.cuanto_hay, // El "cuanto_hay" es el monto real declarado
             observaciones: result.observaciones, 
             conteos: result.conteos,
             dinero_en_caja: result.dinero_en_caja,

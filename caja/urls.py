@@ -34,4 +34,5 @@ urlpatterns = [
     path('denominaciones/', views.obtener_denominaciones, name='denominaciones'),
     path('tipos-movimiento/', views.obtener_tipos_movimiento, name='tipos_movimiento'),
     path('estado-caja/', views.obtener_estado_caja, name='estado_caja'),
+    path('ultimo-cierre/', views.obtener_ultimo_cierre, name='ultimo_cierre'),
 ]

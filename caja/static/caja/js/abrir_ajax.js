@@ -35,8 +35,43 @@ document.addEventListener('DOMContentLoaded', function(){
             console.warn('No se pudieron cargar denominaciones, se usará campo de monto simple', e);
         }
 
+        // Cargar información del último cierre para prellenar
+        let ultimoCierre = null;
+        try {
+            const respCierre = await fetch(window.CAJA_URLS.ultimo_cierre, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (respCierre.ok) {
+                const json = await respCierre.json();
+                if (json.success && json.hay_cierre_anterior) {
+                    ultimoCierre = json;
+                }
+            }
+        } catch (e) {
+            console.warn('No se pudo cargar el último cierre', e);
+        }
+
         // Construir HTML del modal
         let html = '';
+        
+        // Si hay un cierre anterior, mostrar información
+        if (ultimoCierre) {
+            const dineroFormateado = new Intl.NumberFormat('es-CO', { 
+                style: 'currency', 
+                currency: 'COP',
+                minimumFractionDigits: 0
+            }).format(ultimoCierre.dinero_en_caja);
+            
+            html += `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                            color: white; 
+                            padding: 15px; 
+                            border-radius: 10px; 
+                            margin-bottom: 20px; 
+                            text-align: center;">`;
+            html += `<h3 style="margin: 0; font-size: 1rem;">💼 Dinero del Cierre Anterior</h3>`;
+            html += `<p style="margin: 8px 0 0 0; font-size: 1.5rem; font-weight: bold;">${dineroFormateado}</p>`;
+            html += `<p style="margin: 5px 0 0 0; font-size: 0.85rem; opacity: 0.9;">Cerrado el ${ultimoCierre.fecha_cierre} por ${ultimoCierre.cajero}</p>`;
+            html += `</div>`;
+        }
+        
         if (denominaciones && denominaciones.length > 0) {
             // Separar y ordenar billetes y monedas
             const billetes = denominaciones.filter(d => d.tipo.toUpperCase() === 'BILLETE').sort((a, b) => b.valor - a.valor);
@@ -50,10 +85,19 @@ document.addEventListener('DOMContentLoaded', function(){
                 html += '<div class="denom-grid">';
                 billetes.forEach(d => {
                     const valorFormateado = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(d.valor);
+                    // Obtener cantidad del último cierre si existe
+                    const cantidadInicial = (ultimoCierre && ultimoCierre.conteos && ultimoCierre.conteos[d.id]) ? ultimoCierre.conteos[d.id] : 0;
                     html += `
                         <div class="denom-item">
                             <label class="denom-label">${valorFormateado}</label>
-                            <input data-denom-id="${d.id}" data-denom-valor="${d.valor}" type="number" min="0" step="1" class="denom-input" placeholder="0" value="0">
+                            <input data-denom-id="${d.id}" 
+                                   data-denom-valor="${d.valor}" 
+                                   type="number" 
+                                   min="0" 
+                                   step="1" 
+                                   class="denom-input" 
+                                   placeholder="0" 
+                                   value="${cantidadInicial}">
                         </div>
                     `;
                 });
@@ -66,10 +110,19 @@ document.addEventListener('DOMContentLoaded', function(){
                 html += '<div class="denom-grid">';
                 monedas.forEach(d => {
                     const valorFormateado = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(d.valor);
+                    // Obtener cantidad del último cierre si existe
+                    const cantidadInicial = (ultimoCierre && ultimoCierre.conteos && ultimoCierre.conteos[d.id]) ? ultimoCierre.conteos[d.id] : 0;
                     html += `
                         <div class="denom-item">
                             <label class="denom-label">${valorFormateado}</label>
-                            <input data-denom-id="${d.id}" data-denom-valor="${d.valor}" type="number" min="0" step="1" class="denom-input" placeholder="0" value="0">
+                            <input data-denom-id="${d.id}" 
+                                   data-denom-valor="${d.valor}" 
+                                   type="number" 
+                                   min="0" 
+                                   step="1" 
+                                   class="denom-input" 
+                                   placeholder="0" 
+                                   value="${cantidadInicial}">
                         </div>
                     `;
                 });
