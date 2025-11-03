@@ -99,7 +99,6 @@
     function actualizarBalanceUI(balance) {
         // Actualizar valores
         document.getElementById('totalGuardado').textContent = formatearMoneda(balance.total_dinero_guardado);
-        document.getElementById('totalEnCaja').textContent = formatearMoneda(balance.total_dinero_en_caja);
         document.getElementById('totalIngresos').textContent = formatearMoneda(balance.total_ingresos);
         document.getElementById('totalEgresos').textContent = formatearMoneda(balance.total_egresos);
         document.getElementById('flujoNeto').textContent = formatearMoneda(balance.flujo_neto);

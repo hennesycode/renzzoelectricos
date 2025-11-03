@@ -274,20 +274,21 @@ if not _exists:
         except Exception:
             return False
 
+    # Menú Caja - Directo al Dashboard
     OSCAR_CAJAS_NAV_ITEM = {
         'label': _('Caja'),
         'icon': 'fas fa-cash-register',
         'url_name': 'caja:dashboard',
-        # access_fn must be callable (not a string) because Oscar will call it
         'access_fn': _caja_access_fn,
+    }
+    
+    # Menú Informes - Con submenú Caja
+    OSCAR_INFORMES_NAV_ITEM = {
+        'label': _('Informes'),
+        'icon': 'fas fa-chart-line',
         'children': [
             {
-                'label': _('Dashboard de Caja'),
-                'url_name': 'caja:dashboard',
-                'access_fn': _caja_access_fn,
-            },
-            {
-                'label': _('Informes'),
+                'label': _('Caja'),
                 'url_name': 'caja:informes',
                 'access_fn': _caja_access_fn,
             },
@@ -297,6 +298,8 @@ if not _exists:
     # Insertar justo después del primer elemento (Dashboard)
     try:
         OSCAR_DASHBOARD_NAVIGATION.insert(1, OSCAR_CAJAS_NAV_ITEM)
+        # Agregar Informes al final del menú
+        OSCAR_DASHBOARD_NAVIGATION.append(OSCAR_INFORMES_NAV_ITEM)
     except Exception:
         # Si por alguna razón OSCAR_DASHBOARD_NAVIGATION no es una lista, ignorar
         pass
