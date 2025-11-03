@@ -93,15 +93,14 @@
                                 <label for="buscar_producto">
                                     Buscar Producto
                                 </label>
-                                <input 
-                                    type="text" 
+                                <select 
                                     id="buscar_producto" 
-                                    class="form-control" 
-                                    placeholder="Escriba el nombre del producto o servicio..."
-                                    autocomplete="off"
-                                >
+                                    class="form-control"
+                                    style="width: 100%;">
+                                    <option value="">-- Buscar producto por nombre o código --</option>
+                                </select>
                                 <small class="form-text text-muted">
-                                    Busque productos del catálogo o escriba manualmente. Presione ENTER para agregar.
+                                    Busque productos del catálogo escribiendo al menos 1 carácter.
                                 </small>
                             </div>
                         </div>

@@ -1017,8 +1017,8 @@
         document.getElementById('condicion_pago').value = 'CONTADO';
         document.getElementById('notas').value = '';
         
-        // Limpiar búsqueda
-        document.getElementById('buscar_producto').value = '';
+        // Limpiar búsqueda de productos (Select2)
+        $('#buscar_producto').val(null).trigger('change');
     }
 
 })();
