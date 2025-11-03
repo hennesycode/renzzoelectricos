@@ -57,7 +57,48 @@
                     language: {
                         noResults: function() {
                             return 'No se encontraron clientes';
+                        },
+                        searching: function() {
+                            return 'Buscando...';
                         }
+                    },
+                    // Función personalizada para buscar en nombre, NIT y correo
+                    matcher: function(params, data) {
+                        // Si no hay término de búsqueda, mostrar todo
+                        if ($.trim(params.term) === '') {
+                            return data;
+                        }
+                        
+                        // No filtrar la opción "nuevo"
+                        if (data.id === 'nuevo') {
+                            return data;
+                        }
+                        
+                        // Obtener datos completos del cliente
+                        const clienteData = $(data.element).data('cliente');
+                        if (!clienteData) {
+                            return null;
+                        }
+                        
+                        // Convertir término de búsqueda a minúsculas
+                        const termino = params.term.toLowerCase();
+                        
+                        // Buscar en nombre, NIT y email
+                        const nombre = (clienteData.nombre || '').toLowerCase();
+                        const nit = (clienteData.nit || '').toLowerCase();
+                        const email = (clienteData.email || '').toLowerCase();
+                        const texto = (data.text || '').toLowerCase();
+                        
+                        // Si coincide con alguno de los campos, mostrar
+                        if (nombre.indexOf(termino) > -1 || 
+                            nit.indexOf(termino) > -1 || 
+                            email.indexOf(termino) > -1 ||
+                            texto.indexOf(termino) > -1) {
+                            return data;
+                        }
+                        
+                        // No hay coincidencia
+                        return null;
                     },
                     templateResult: formatearOpcionCliente,
                     templateSelection: formatearSeleccionCliente
