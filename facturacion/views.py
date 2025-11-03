@@ -191,7 +191,11 @@ def buscar_productos_ajax(request):
     page = int(request.GET.get('page', 1))
     page_size = 20
     
-    if not query or len(query) < 2:
+    print(f"[DEBUG PRODUCTOS] Query recibida: '{query}'")
+    print(f"[DEBUG PRODUCTOS] Product disponible: {Product is not None}")
+    
+    if not query or len(query) < 1:  # Cambiado de 2 a 1
+        print(f"[DEBUG PRODUCTOS] Query muy corta o vacía")
         return JsonResponse({
             'results': [],
             'pagination': {'more': False}
@@ -204,8 +208,12 @@ def buscar_productos_ajax(request):
                 Q(title__icontains=query) | Q(upc__icontains=query)
             ).distinct()[:page_size]
             
+            print(f"[DEBUG PRODUCTOS] Productos encontrados: {productos.count()}")
+            
             results = []
             for producto in productos:
+                print(f"[DEBUG PRODUCTOS] Procesando: {producto.title}")
+                
                 # Obtener precio del producto
                 precio = Decimal('0.00')
                 if hasattr(producto, 'stockrecords') and producto.stockrecords.exists():
@@ -213,13 +221,17 @@ def buscar_productos_ajax(request):
                     if stockrecord.price:
                         precio = stockrecord.price
                 
-                results.append({
+                result_item = {
                     'id': producto.id,
                     'text': producto.title,
                     'upc': producto.upc or '',
                     'precio': str(precio),
                     'descripcion': producto.description or producto.title,
-                })
+                }
+                results.append(result_item)
+                print(f"[DEBUG PRODUCTOS] Agregado: {result_item}")
+            
+            print(f"[DEBUG PRODUCTOS] Total resultados: {len(results)}")
             
             return JsonResponse({
                 'results': results,
@@ -227,6 +239,7 @@ def buscar_productos_ajax(request):
             })
         else:
             # Oscar no está instalado o configurado
+            print(f"[DEBUG PRODUCTOS] Product is None - Oscar no disponible")
             return JsonResponse({
                 'results': [],
                 'pagination': {'more': False},
@@ -234,6 +247,9 @@ def buscar_productos_ajax(request):
             })
             
     except Exception as e:
+        print(f"[DEBUG PRODUCTOS] ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({
             'results': [],
             'pagination': {'more': False},

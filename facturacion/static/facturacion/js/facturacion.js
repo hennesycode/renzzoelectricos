@@ -10,6 +10,9 @@
     let clienteSeleccionado = null;
     let productosEnTabla = [];
     let productoIdCounter = 1;
+    
+    // URLs para AJAX
+    const buscarProductosUrl = '/facturacion/ajax/buscar-productos/';
 
     // Inicialización cuando el DOM esté listo
     document.addEventListener('DOMContentLoaded', function() {
@@ -560,18 +563,105 @@
      * Inicializa el sistema de búsqueda de productos
      */
     function inicializarBusquedaProductos() {
-        const inputBuscar = document.getElementById('buscar_producto');
+        const inputBuscar = $('#buscar_producto');
         
-        // Evento ENTER para agregar producto
-        inputBuscar.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const descripcion = this.value.trim();
-                if (descripcion) {
-                    agregarProductoManual(descripcion);
-                    this.value = '';
+        // Inicializar Select2 con búsqueda AJAX
+        inputBuscar.select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Buscar producto por nombre o código...',
+            allowClear: true,
+            minimumInputLength: 1,
+            language: {
+                inputTooShort: function() {
+                    return 'Escriba al menos 1 carácter para buscar';
+                },
+                searching: function() {
+                    return 'Buscando productos...';
+                },
+                noResults: function() {
+                    return 'No se encontraron productos';
+                },
+                errorLoading: function() {
+                    return 'Error al cargar productos';
                 }
+            },
+            ajax: {
+                url: buscarProductosUrl,
+                dataType: 'json',
+                delay: 300,
+                data: function(params) {
+                    return {
+                        q: params.term,
+                        page: params.page || 1
+                    };
+                },
+                processResults: function(data) {
+                    console.log('Productos encontrados:', data.results);
+                    return {
+                        results: data.results.map(function(producto) {
+                            return {
+                                id: producto.id,
+                                text: producto.text,
+                                producto: producto
+                            };
+                        }),
+                        pagination: data.pagination
+                    };
+                },
+                cache: true
+            },
+            templateResult: function(data) {
+                if (data.loading) {
+                    return 'Buscando...';
+                }
+                
+                if (!data.producto) {
+                    return data.text;
+                }
+                
+                const producto = data.producto;
+                const precio = parseFloat(producto.precio || 0);
+                
+                return $(`
+                    <div class="select2-producto-result">
+                        <div class="fw-bold">${producto.text}</div>
+                        <div class="small text-muted">
+                            ${producto.upc ? `Código: ${producto.upc} | ` : ''}
+                            Precio: $${precio.toFixed(2)}
+                        </div>
+                    </div>
+                `);
+            },
+            templateSelection: function(data) {
+                return data.text;
             }
+        });
+        
+        // Evento cuando se selecciona un producto
+        inputBuscar.on('select2:select', function(e) {
+            const data = e.params.data;
+            
+            if (data.producto) {
+                // Agregar producto de Oscar a la tabla
+                const producto = {
+                    id: `oscar_${data.producto.id}`,
+                    descripcion: data.producto.text,
+                    cantidad: 1,
+                    precio_unitario: parseFloat(data.producto.precio || 0),
+                    descuento: 0,
+                    producto_oscar_id: data.producto.id
+                };
+                
+                agregarProductoATabla(producto);
+                
+                // Limpiar select
+                inputBuscar.val(null).trigger('change');
+            }
+        });
+        
+        // También mantener el evento ENTER para productos manuales
+        inputBuscar.on('select2:close', function() {
+            // Permitir que se pueda escribir texto libre y presionar ENTER
         });
     }
 
