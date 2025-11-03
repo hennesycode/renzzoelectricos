@@ -48,6 +48,40 @@ class Category(AbstractCategory):
             # Forzar que use transacciones para evitar el error de MySQL
             super().save(*args, **kwargs)
     
+    def set_ancestors_are_public(self):
+        """
+        Override del método que causa el error MySQL.
+        
+        El método original hace:
+        self.get_descendants_and_self().update(ancestors_are_public=...)
+        
+        Pero esa query tiene una subconsulta que MySQL no permite.
+        Solución: Hacer el update en dos pasos sin subconsulta.
+        """
+        from django.db import connection
+        
+        # Calcular el valor de ancestors_are_public basándose en los ancestros
+        ancestors = self.get_ancestors()
+        ancestors_are_public = all(ancestor.is_public for ancestor in ancestors)
+        
+        # Actualizar este nodo y todos sus descendientes
+        # En lugar de usar .update() con subconsulta, iteramos
+        descendants = self.get_descendants(include_self=True)
+        
+        # Usar raw SQL para evitar subconsultas
+        if descendants:
+            category_ids = [cat.id for cat in descendants]
+            with connection.cursor() as cursor:
+                # Update directo sin subconsultas
+                cursor.execute(
+                    """
+                    UPDATE catalogue_category 
+                    SET ancestors_are_public = %s 
+                    WHERE id IN ({})
+                    """.format(','.join(['%s'] * len(category_ids))),
+                    [ancestors_are_public] + category_ids
+                )
+    
     @classmethod
     def fix_tree(cls, destructive=False):
         """
