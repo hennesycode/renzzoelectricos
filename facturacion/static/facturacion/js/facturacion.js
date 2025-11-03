@@ -95,6 +95,22 @@
         selectCliente.on('select2:clear', function() {
             ocultarInfoCliente();
         });
+
+        // Evento cuando se abre el dropdown - forzar búsqueda inicial
+        selectCliente.on('select2:open', function() {
+            // Si el dropdown está vacío, forzar una búsqueda inicial
+            const select2Data = selectCliente.data('select2');
+            if (select2Data && select2Data.$results) {
+                // Trigger búsqueda con término vacío para cargar todos
+                setTimeout(function() {
+                    const searchField = document.querySelector('.select2-search__field');
+                    if (searchField) {
+                        const event = new Event('input', { bubbles: true });
+                        searchField.dispatchEvent(event);
+                    }
+                }, 50);
+            }
+        });
     }
 
     /**
