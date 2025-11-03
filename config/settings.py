@@ -399,3 +399,18 @@ OSCAR_SHOP_NAME = 'Renzzo Eléctricos'
 OSCAR_ALLOW_ANON_CHECKOUT = False
 OSCAR_REQUIRED_ADDRESS_FIELDS = ('first_name', 'last_name', 'line1', 'line4', 'postcode', 'country')
 
+# ================================================================
+# DJANGO-TREEBEARD FIX PARA MYSQL
+# ================================================================
+# Fix para error MySQL: "You can't specify target table for update in FROM clause"
+# Este error ocurre cuando treebeard intenta hacer UPDATE con subconsultas
+# Documentación: https://django-treebeard.readthedocs.io/en/latest/caveats.html#mysql
+# 
+# Solución: Modificar sql_mode de MySQL para permitir las operaciones de treebeard
+# Agregamos init_command para configurar la sesión MySQL automáticamente
+DATABASES['default']['OPTIONS'] = DATABASES['default'].get('OPTIONS', {})
+DATABASES['default']['OPTIONS']['init_command'] = (
+    "SET sql_mode='STRICT_TRANS_TABLES';"  # Quitar ONLY_FULL_GROUP_BY
+    "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;"
+)
+
