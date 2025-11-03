@@ -11,7 +11,18 @@ from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
+from django.utils import timezone
+from decimal import Decimal
 import json
+
+# Importar modelos de Oscar
+try:
+    from oscar.apps.catalogue.models import Product
+except ImportError:
+    Product = None
+
+# Importar modelos propios
+from .models import Factura, DetalleFactura
 
 User = get_user_model()
 
@@ -153,4 +164,184 @@ def crear_cliente_ajax(request):
         return JsonResponse({
             'success': False,
             'message': f'Error al crear cliente: {str(e)}'
+        }, status=500)
+
+
+@login_required
+@require_GET
+def buscar_productos_ajax(request):
+    """
+    Busca productos del catálogo de Django Oscar por título o UPC.
+    Retorna un JSON compatible con Select2.
+    """
+    query = request.GET.get('q', '').strip()
+    page = int(request.GET.get('page', 1))
+    page_size = 20
+    
+    if not query or len(query) < 2:
+        return JsonResponse({
+            'results': [],
+            'pagination': {'more': False}
+        })
+    
+    try:
+        if Product:
+            # Buscar en productos de Oscar
+            productos = Product.objects.filter(
+                Q(title__icontains=query) | Q(upc__icontains=query)
+            ).distinct()[:page_size]
+            
+            results = []
+            for producto in productos:
+                # Obtener precio del producto
+                precio = Decimal('0.00')
+                if hasattr(producto, 'stockrecords') and producto.stockrecords.exists():
+                    stockrecord = producto.stockrecords.first()
+                    if stockrecord.price:
+                        precio = stockrecord.price
+                
+                results.append({
+                    'id': producto.id,
+                    'text': producto.title,
+                    'upc': producto.upc or '',
+                    'precio': str(precio),
+                    'descripcion': producto.description or producto.title,
+                })
+            
+            return JsonResponse({
+                'results': results,
+                'pagination': {'more': False}
+            })
+        else:
+            # Oscar no está instalado o configurado
+            return JsonResponse({
+                'results': [],
+                'pagination': {'more': False},
+                'message': 'Catálogo de productos no disponible'
+            })
+            
+    except Exception as e:
+        return JsonResponse({
+            'results': [],
+            'pagination': {'more': False},
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_POST
+def guardar_factura_ajax(request):
+    """
+    Guarda una factura completa con todos sus detalles.
+    Recibe un JSON con:
+    - cliente_id
+    - detalles: [{ descripcion, cantidad, precio_unitario, descuento }]
+    - metodo_pago
+    - condicion_pago
+    - notas
+    """
+    try:
+        data = json.loads(request.body)
+        
+        # Validar cliente
+        cliente_id = data.get('cliente_id')
+        if not cliente_id:
+            return JsonResponse({
+                'success': False,
+                'message': 'Debe seleccionar un cliente'
+            }, status=400)
+        
+        cliente = User.objects.get(id=cliente_id, rol='CLIENTE')
+        
+        # Validar detalles
+        detalles = data.get('detalles', [])
+        if not detalles or len(detalles) == 0:
+            return JsonResponse({
+                'success': False,
+                'message': 'Debe agregar al menos un producto a la factura'
+            }, status=400)
+        
+        # Obtener datos de pago
+        metodo_pago = data.get('metodo_pago', 'EFECTIVO')
+        condicion_pago = data.get('condicion_pago', 'CONTADO')
+        notas = data.get('notas', '')
+        
+        # Crear factura con transacción atómica
+        with transaction.atomic():
+            # Crear la factura (el código se genera automáticamente)
+            factura = Factura.objects.create(
+                cliente=cliente,
+                usuario_emisor=request.user,
+                metodo_pago=metodo_pago,
+                condicion_pago=condicion_pago,
+                notas=notas,
+                fecha_emision=timezone.now(),
+            )
+            
+            # Crear los detalles
+            subtotal = Decimal('0.00')
+            total_descuentos = Decimal('0.00')
+            
+            for i, detalle_data in enumerate(detalles):
+                cantidad = Decimal(str(detalle_data.get('cantidad', 1)))
+                precio_unitario = Decimal(str(detalle_data.get('precio_unitario', 0)))
+                descuento = Decimal(str(detalle_data.get('descuento', 0)))
+                descripcion = detalle_data.get('descripcion', '')
+                producto_oscar_id = detalle_data.get('producto_id', None)
+                
+                # Crear detalle (los cálculos se hacen automáticamente en el modelo)
+                detalle = DetalleFactura.objects.create(
+                    factura=factura,
+                    descripcion=descripcion,
+                    cantidad=cantidad,
+                    precio_unitario=precio_unitario,
+                    descuento=descuento,
+                    producto_oscar_id=producto_oscar_id,
+                    orden=i + 1
+                )
+                
+                # Acumular totales
+                subtotal += detalle.precio_unitario * cantidad
+                total_descuentos += descuento * cantidad
+            
+            # Calcular subtotal neto e IVA
+            subtotal_neto = subtotal - total_descuentos
+            total_iva = subtotal_neto * Decimal('0.19')  # IVA 19%
+            total_pagar = subtotal_neto + total_iva
+            
+            # Actualizar factura con totales
+            factura.subtotal = subtotal
+            factura.total_descuentos = total_descuentos
+            factura.subtotal_neto = subtotal_neto
+            factura.total_iva = total_iva
+            factura.total_pagar = total_pagar
+            factura.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Factura generada exitosamente',
+                'factura': {
+                    'id': factura.id,
+                    'codigo_factura': factura.codigo_factura,
+                    'total_pagar': str(factura.total_pagar),
+                    'fecha_emision': factura.fecha_emision.strftime('%d/%m/%Y %H:%M'),
+                }
+            })
+            
+    except User.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Cliente no encontrado'
+        }, status=404)
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Datos JSON inválidos'
+        }, status=400)
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error al guardar la factura: {str(e)}'
         }, status=500)

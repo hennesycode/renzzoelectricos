@@ -80,6 +80,159 @@
                 </div>
             </div>
 
+            <!-- Sección 2: Productos -->
+            <div class="form-section">
+                <div class="section-header">
+                    <i class="fas fa-box"></i>
+                    <h3>2. Productos / Servicios</h3>
+                </div>
+                <div class="section-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="buscar_producto">
+                                    Buscar Producto
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="buscar_producto" 
+                                    class="form-control" 
+                                    placeholder="Escriba el nombre del producto o servicio..."
+                                    autocomplete="off"
+                                >
+                                <small class="form-text text-muted">
+                                    Busque productos del catálogo o escriba manualmente. Presione ENTER para agregar.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de productos -->
+                    <div class="table-responsive mt-3">
+                        <table class="table table-bordered productos-table">
+                            <thead>
+                                <tr>
+                                    <th width="35%">Descripción</th>
+                                    <th width="10%">Cantidad</th>
+                                    <th width="15%">Precio Unit.</th>
+                                    <th width="15%">Descuento</th>
+                                    <th width="15%">Valor Unit.</th>
+                                    <th width="15%">Total</th>
+                                    <th width="5%">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productosTableBody">
+                                <tr class="empty-table-message">
+                                    <td colspan="7" class="text-center text-muted">
+                                        <i class="fas fa-box-open fa-2x mb-2"></i>
+                                        <p>No hay productos agregados. Use el buscador para agregar productos.</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 3: Resumen de Totales -->
+            <div class="form-section">
+                <div class="section-header">
+                    <i class="fas fa-calculator"></i>
+                    <h3>3. Resumen de Totales</h3>
+                </div>
+                <div class="section-body">
+                    <div class="totales-card">
+                        <div class="totales-row">
+                            <span class="totales-label">Subtotal:</span>
+                            <span class="totales-valor" id="totalSubtotal">$0.00</span>
+                        </div>
+                        <div class="totales-row">
+                            <span class="totales-label">Descuentos:</span>
+                            <span class="totales-valor text-danger" id="totalDescuentos">$0.00</span>
+                        </div>
+                        <div class="totales-row">
+                            <span class="totales-label">Subtotal Neto:</span>
+                            <span class="totales-valor" id="totalSubtotalNeto">$0.00</span>
+                        </div>
+                        <div class="totales-row">
+                            <span class="totales-label">IVA (19%):</span>
+                            <span class="totales-valor" id="totalIva">$0.00</span>
+                        </div>
+                        <div class="totales-row totales-final">
+                            <span class="totales-label">TOTAL A PAGAR:</span>
+                            <span class="totales-valor-final" id="totalPagar">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 4: Condiciones de Pago -->
+            <div class="form-section">
+                <div class="section-header">
+                    <i class="fas fa-money-check-alt"></i>
+                    <h3>4. Condiciones de Pago</h3>
+                </div>
+                <div class="section-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="metodo_pago">
+                                    Método de Pago <span class="text-danger">*</span>
+                                </label>
+                                <select id="metodo_pago" name="metodo_pago" class="form-control" required>
+                                    <option value="EFECTIVO">Efectivo</option>
+                                    <option value="TRANSFERENCIA">Transferencia Bancaria</option>
+                                    <option value="TARJETA">Tarjeta de Crédito/Débito</option>
+                                    <option value="CHEQUE">Cheque</option>
+                                    <option value="OTRO">Otro</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="condicion_pago">
+                                    Condición de Pago <span class="text-danger">*</span>
+                                </label>
+                                <select id="condicion_pago" name="condicion_pago" class="form-control" required>
+                                    <option value="CONTADO" selected>Contado (Pago Inmediato)</option>
+                                    <option value="CREDITO_15">Crédito 15 Días</option>
+                                    <option value="CREDITO_30">Crédito 30 Días</option>
+                                    <option value="CREDITO_60">Crédito 60 Días</option>
+                                    <option value="CREDITO_90">Crédito 90 Días</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="notas">
+                                    Notas / Observaciones
+                                </label>
+                                <textarea 
+                                    id="notas" 
+                                    name="notas" 
+                                    class="form-control" 
+                                    rows="3"
+                                    placeholder="Condiciones especiales, garantías, agradecimientos, etc."
+                                ></textarea>
+                                <small class="form-text text-muted">
+                                    Esta información aparecerá en la factura
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botón de Generar Factura -->
+            <div class="form-actions">
+                <button type="button" id="btnGenerarFactura" class="btn btn-generar-factura">
+                    <i class="fas fa-file-invoice"></i>
+                    Generar Factura
+                </button>
+            </div>
+
         </form>
     </div>
 </div>

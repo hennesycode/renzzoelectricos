@@ -8,10 +8,15 @@
 
     // Variables globales
     let clienteSeleccionado = null;
+    let productosEnTabla = [];
+    let productoIdCounter = 1;
 
     // Inicialización cuando el DOM esté listo
     document.addEventListener('DOMContentLoaded', function() {
         inicializarSelect2Cliente();
+        inicializarBusquedaProductos();
+        inicializarEventosTabla();
+        inicializarBotonGenerarFactura();
     });
 
     /**
@@ -483,6 +488,381 @@
                 text: 'No se pudo conectar con el servidor. Por favor, intente nuevamente.'
             });
         });
+    }
+
+    /**
+     * Inicializa el sistema de búsqueda de productos
+     */
+    function inicializarBusquedaProductos() {
+        const inputBuscar = document.getElementById('buscar_producto');
+        
+        // Evento ENTER para agregar producto
+        inputBuscar.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const descripcion = this.value.trim();
+                if (descripcion) {
+                    agregarProductoManual(descripcion);
+                    this.value = '';
+                }
+            }
+        });
+    }
+
+    /**
+     * Agrega un producto manual (texto libre) a la tabla
+     */
+    function agregarProductoManual(descripcion) {
+        const producto = {
+            id: `manual_${productoIdCounter++}`,
+            descripcion: descripcion,
+            cantidad: 1,
+            precio_unitario: 0,
+            descuento: 0,
+            producto_oscar_id: null
+        };
+        
+        agregarProductoATabla(producto);
+    }
+
+    /**
+     * Agrega un producto a la tabla
+     */
+    function agregarProductoATabla(producto) {
+        // Agregar al array
+        productosEnTabla.push(producto);
+        
+        // Ocultar mensaje de tabla vacía
+        const emptyMessage = document.querySelector('.empty-table-message');
+        if (emptyMessage) {
+            emptyMessage.style.display = 'none';
+        }
+        
+        // Crear fila
+        const tbody = document.getElementById('productosTableBody');
+        const tr = document.createElement('tr');
+        tr.dataset.productoId = producto.id;
+        
+        const valorUnitario = parseFloat(producto.precio_unitario) - parseFloat(producto.descuento);
+        const total = valorUnitario * parseFloat(producto.cantidad);
+        
+        tr.innerHTML = `
+            <td>
+                <input type="text" 
+                       class="form-control form-control-sm campo-editable" 
+                       data-campo="descripcion"
+                       value="${producto.descripcion}">
+            </td>
+            <td>
+                <input type="number" 
+                       class="form-control form-control-sm campo-editable text-end" 
+                       data-campo="cantidad"
+                       value="${producto.cantidad}"
+                       min="0.01"
+                       step="0.01">
+            </td>
+            <td>
+                <input type="number" 
+                       class="form-control form-control-sm campo-editable text-end" 
+                       data-campo="precio_unitario"
+                       value="${producto.precio_unitario}"
+                       min="0"
+                       step="0.01">
+            </td>
+            <td>
+                <input type="number" 
+                       class="form-control form-control-sm campo-editable text-end" 
+                       data-campo="descuento"
+                       value="${producto.descuento}"
+                       min="0"
+                       step="0.01">
+            </td>
+            <td class="text-end valor-unitario">
+                $${valorUnitario.toFixed(2)}
+            </td>
+            <td class="text-end total-producto">
+                $${total.toFixed(2)}
+            </td>
+            <td class="text-center">
+                <button type="button" 
+                        class="btn btn-sm btn-danger btn-eliminar-producto"
+                        title="Eliminar">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        
+        tbody.appendChild(tr);
+        
+        // Recalcular totales
+        calcularTotales();
+    }
+
+    /**
+     * Inicializa eventos de la tabla (edición, eliminación)
+     */
+    function inicializarEventosTabla() {
+        const tbody = document.getElementById('productosTableBody');
+        
+        // Delegación de eventos para campos editables
+        tbody.addEventListener('input', function(e) {
+            if (e.target.classList.contains('campo-editable')) {
+                const tr = e.target.closest('tr');
+                const productoId = tr.dataset.productoId;
+                const campo = e.target.dataset.campo;
+                const valor = e.target.value;
+                
+                // Actualizar en el array
+                const producto = productosEnTabla.find(p => p.id === productoId);
+                if (producto) {
+                    producto[campo] = campo === 'descripcion' ? valor : parseFloat(valor) || 0;
+                    actualizarFilaProducto(tr, producto);
+                }
+            }
+        });
+        
+        // Delegación de eventos para botón eliminar
+        tbody.addEventListener('click', function(e) {
+            const btnEliminar = e.target.closest('.btn-eliminar-producto');
+            if (btnEliminar) {
+                const tr = btnEliminar.closest('tr');
+                const productoId = tr.dataset.productoId;
+                eliminarProducto(productoId, tr);
+            }
+        });
+    }
+
+    /**
+     * Actualiza los valores calculados de una fila (valor unitario y total)
+     */
+    function actualizarFilaProducto(tr, producto) {
+        const valorUnitario = parseFloat(producto.precio_unitario) - parseFloat(producto.descuento);
+        const total = valorUnitario * parseFloat(producto.cantidad);
+        
+        tr.querySelector('.valor-unitario').textContent = `$${valorUnitario.toFixed(2)}`;
+        tr.querySelector('.total-producto').textContent = `$${total.toFixed(2)}`;
+        
+        calcularTotales();
+    }
+
+    /**
+     * Elimina un producto de la tabla
+     */
+    function eliminarProducto(productoId, tr) {
+        Swal.fire({
+            title: '¿Eliminar producto?',
+            text: '¿Está seguro de eliminar este producto de la factura?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Eliminar del array
+                productosEnTabla = productosEnTabla.filter(p => p.id !== productoId);
+                
+                // Eliminar fila
+                tr.remove();
+                
+                // Mostrar mensaje si está vacía
+                if (productosEnTabla.length === 0) {
+                    const emptyMessage = document.querySelector('.empty-table-message');
+                    if (emptyMessage) {
+                        emptyMessage.style.display = '';
+                    }
+                }
+                
+                // Recalcular totales
+                calcularTotales();
+            }
+        });
+    }
+
+    /**
+     * Calcula todos los totales de la factura
+     */
+    function calcularTotales() {
+        let subtotal = 0;
+        let totalDescuentos = 0;
+        
+        productosEnTabla.forEach(producto => {
+            const cantidad = parseFloat(producto.cantidad) || 0;
+            const precioUnitario = parseFloat(producto.precio_unitario) || 0;
+            const descuento = parseFloat(producto.descuento) || 0;
+            
+            subtotal += precioUnitario * cantidad;
+            totalDescuentos += descuento * cantidad;
+        });
+        
+        const subtotalNeto = subtotal - totalDescuentos;
+        const iva = subtotalNeto * 0.19; // IVA 19%
+        const totalPagar = subtotalNeto + iva;
+        
+        // Actualizar UI
+        document.getElementById('totalSubtotal').textContent = `$${subtotal.toFixed(2)}`;
+        document.getElementById('totalDescuentos').textContent = `$${totalDescuentos.toFixed(2)}`;
+        document.getElementById('totalSubtotalNeto').textContent = `$${subtotalNeto.toFixed(2)}`;
+        document.getElementById('totalIva').textContent = `$${iva.toFixed(2)}`;
+        document.getElementById('totalPagar').textContent = `$${totalPagar.toFixed(2)}`;
+        
+        return {
+            subtotal,
+            totalDescuentos,
+            subtotalNeto,
+            iva,
+            totalPagar
+        };
+    }
+
+    /**
+     * Inicializa el botón de generar factura
+     */
+    function inicializarBotonGenerarFactura() {
+        const btnGenerar = document.getElementById('btnGenerarFactura');
+        
+        btnGenerar.addEventListener('click', function() {
+            generarFactura();
+        });
+    }
+
+    /**
+     * Genera y guarda la factura completa
+     */
+    function generarFactura() {
+        // Validar cliente
+        if (!clienteSeleccionado || !clienteSeleccionado.id) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Cliente requerido',
+                text: 'Debe seleccionar un cliente para generar la factura'
+            });
+            return;
+        }
+        
+        // Validar productos
+        if (productosEnTabla.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Productos requeridos',
+                text: 'Debe agregar al menos un producto a la factura'
+            });
+            return;
+        }
+        
+        // Obtener datos del formulario
+        const metodoPago = document.getElementById('metodo_pago').value;
+        const condicionPago = document.getElementById('condicion_pago').value;
+        const notas = document.getElementById('notas').value;
+        
+        // Preparar detalles para enviar
+        const detalles = productosEnTabla.map(p => ({
+            descripcion: p.descripcion,
+            cantidad: parseFloat(p.cantidad),
+            precio_unitario: parseFloat(p.precio_unitario),
+            descuento: parseFloat(p.descuento),
+            producto_id: p.producto_oscar_id
+        }));
+        
+        // Datos a enviar
+        const datosFactura = {
+            cliente_id: clienteSeleccionado.id,
+            detalles: detalles,
+            metodo_pago: metodoPago,
+            condicion_pago: condicionPago,
+            notas: notas
+        };
+        
+        // Mostrar loading
+        Swal.fire({
+            title: 'Generando factura...',
+            text: 'Por favor espere',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Enviar al servidor
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch('/facturacion/ajax/guardar-factura/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify(datosFactura)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar éxito con información de la factura
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Factura Generada!',
+                    html: `
+                        <div class="factura-exitosa">
+                            <p><strong>Código:</strong> ${data.factura.codigo_factura}</p>
+                            <p><strong>Total:</strong> $${parseFloat(data.factura.total_pagar).toFixed(2)}</p>
+                            <p><strong>Fecha:</strong> ${data.factura.fecha_emision}</p>
+                        </div>
+                    `,
+                    confirmButtonText: 'Aceptar'
+                }).then(() => {
+                    // Limpiar formulario para nueva factura
+                    limpiarFormulario();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error al generar factura',
+                    text: data.message
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión',
+                text: 'No se pudo conectar con el servidor. Por favor, intente nuevamente.'
+            });
+        });
+    }
+
+    /**
+     * Limpia el formulario para crear una nueva factura
+     */
+    function limpiarFormulario() {
+        // Limpiar cliente
+        $('#cliente_id').val(null).trigger('change');
+        clienteSeleccionado = null;
+        document.getElementById('clienteInfo').style.display = 'none';
+        
+        // Limpiar productos
+        productosEnTabla = [];
+        const tbody = document.getElementById('productosTableBody');
+        tbody.innerHTML = `
+            <tr class="empty-table-message">
+                <td colspan="7" class="text-center text-muted">
+                    <i class="fas fa-box-open fa-2x mb-2"></i>
+                    <p>No hay productos agregados. Use el buscador para agregar productos.</p>
+                </td>
+            </tr>
+        `;
+        
+        // Limpiar totales
+        calcularTotales();
+        
+        // Limpiar campos de pago
+        document.getElementById('metodo_pago').value = 'EFECTIVO';
+        document.getElementById('condicion_pago').value = 'CONTADO';
+        document.getElementById('notas').value = '';
+        
+        // Limpiar búsqueda
+        document.getElementById('buscar_producto').value = '';
     }
 
 })();
