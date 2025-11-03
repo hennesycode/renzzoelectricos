@@ -1,0 +1,316 @@
+/* 
+ * Estilos para el módulo de Facturación
+ * Renzzo Eléctricos - Villavicencio, Meta
+ */
+
+:root {
+    --verde-oscuro-primary: #1b4332;
+    --verde-oscuro-secondary: #2d6a4f;
+    --verde-medio: #40916c;
+    --verde-claro: #52b788;
+    --verde-muy-claro: #74c69d;
+    --blanco: #ffffff;
+    --gris-claro: #f8f9fa;
+    --gris-medio: #6c757d;
+    --border-radius: 8px;
+}
+
+/* Container principal */
+.facturacion-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Header */
+.facturacion-header {
+    background: linear-gradient(135deg, var(--verde-oscuro-primary) 0%, var(--verde-oscuro-secondary) 100%);
+    color: var(--blanco);
+    padding: 2.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.header-icon {
+    font-size: 3rem;
+    opacity: 0.95;
+}
+
+.header-text h1 {
+    margin: 0;
+    font-size: 2.2rem;
+    font-weight: 600;
+}
+
+.header-text p {
+    margin: 0.5rem 0 0 0;
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+/* Tarjeta del formulario */
+.facturacion-form-card {
+    background: var(--blanco);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Secciones del formulario */
+.form-section {
+    border-bottom: 1px solid #e9ecef;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+}
+
+.section-header {
+    background: linear-gradient(135deg, var(--verde-medio) 0%, var(--verde-claro) 100%);
+    color: var(--blanco);
+    padding: 1.25rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.section-header i {
+    font-size: 1.5rem;
+}
+
+.section-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.section-body {
+    padding: 2rem;
+}
+
+/* Form groups */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.form-group .text-danger {
+    color: #dc3545;
+}
+
+.form-control {
+    border-radius: var(--border-radius);
+    border: 1px solid #ced4da;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: var(--verde-medio);
+    box-shadow: 0 0 0 0.2rem rgba(64, 145, 108, 0.25);
+}
+
+/* Select2 personalizado */
+.select2-container--bootstrap-5 .select2-selection {
+    min-height: 45px;
+    border-radius: var(--border-radius);
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    line-height: 45px;
+}
+
+.select2-container--bootstrap-5.select2-container--focus .select2-selection,
+.select2-container--bootstrap-5.select2-container--open .select2-selection {
+    border-color: var(--verde-medio);
+    box-shadow: 0 0 0 0.2rem rgba(64, 145, 108, 0.25);
+}
+
+.select2-container--bootstrap-5 .select2-dropdown {
+    border-color: var(--verde-medio);
+}
+
+.select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: var(--verde-medio);
+}
+
+/* Opción "Crear Nuevo Cliente" destacada */
+.select2-results__option[aria-label*="Crear Nuevo Cliente"] {
+    background-color: var(--verde-muy-claro);
+    font-weight: 600;
+    color: var(--verde-oscuro-primary);
+    border-top: 2px solid var(--verde-medio);
+    margin-top: 5px;
+}
+
+/* Info card del cliente */
+.cliente-info {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.info-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid var(--verde-medio);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+}
+
+.info-card p {
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.info-card p strong {
+    color: var(--verde-oscuro-primary);
+    min-width: 100px;
+    display: inline-block;
+}
+
+/* SweetAlert2 personalizado */
+.swal2-popup {
+    border-radius: 12px;
+}
+
+.swal2-title {
+    color: var(--verde-oscuro-primary);
+}
+
+.swal2-confirm {
+    background-color: var(--verde-medio) !important;
+    border-radius: var(--border-radius);
+}
+
+.swal2-confirm:hover {
+    background-color: var(--verde-oscuro-secondary) !important;
+}
+
+.swal2-cancel {
+    border-radius: var(--border-radius);
+}
+
+/* Modal de SweetAlert2 para crear cliente */
+.swal2-html-container .modal-section {
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.swal2-html-container .modal-section h4 {
+    color: var(--verde-oscuro-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--verde-claro);
+}
+
+.swal2-html-container .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.swal2-html-container .form-row-full {
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.swal2-html-container .form-field label {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.3rem;
+    font-size: 0.9rem;
+}
+
+.swal2-html-container .form-field input,
+.swal2-html-container .form-field textarea {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: border-color 0.3s ease;
+}
+
+.swal2-html-container .form-field input:focus,
+.swal2-html-container .form-field textarea:focus {
+    outline: none;
+    border-color: var(--verde-medio);
+    box-shadow: 0 0 0 0.2rem rgba(64, 145, 108, 0.25);
+}
+
+.swal2-html-container .required-mark {
+    color: #dc3545;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .facturacion-container {
+        padding: 1rem;
+    }
+
+    .facturacion-header {
+        padding: 1.5rem;
+    }
+
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .header-text h1 {
+        font-size: 1.8rem;
+    }
+
+    .section-body {
+        padding: 1.5rem;
+    }
+
+    .swal2-html-container .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 576px) {
+    .header-icon {
+        font-size: 2rem;
+    }
+
+    .header-text h1 {
+        font-size: 1.5rem;
+    }
+
+    .section-header {
+        padding: 1rem 1.5rem;
+    }
+
+    .section-header h3 {
+        font-size: 1.1rem;
+    }
+}

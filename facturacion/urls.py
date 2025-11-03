@@ -10,4 +10,8 @@ app_name = 'facturacion'
 urlpatterns = [
     # Vista principal de facturación
     path('', views.facturacion_index, name='index'),
+    
+    # AJAX endpoints
+    path('ajax/listar-clientes/', views.listar_clientes_ajax, name='listar_clientes_ajax'),
+    path('ajax/crear-cliente/', views.crear_cliente_ajax, name='crear_cliente_ajax'),
 ]

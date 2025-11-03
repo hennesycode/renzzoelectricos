@@ -8,64 +8,18 @@
 
 {% block extrastyles %}
 {{ block.super }}
-<style>
-    .facturacion-container {
-        padding: 2rem;
-        max-width: 1400px;
-        margin: 0 auto;
-    }
-
-    .facturacion-header {
-        background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%);
-        color: white;
-        padding: 2.5rem;
-        border-radius: 12px;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    }
-
-    .header-content {
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-    }
-
-    .header-icon {
-        font-size: 3rem;
-        opacity: 0.95;
-    }
-
-    .header-text h1 {
-        margin: 0;
-        font-size: 2.2rem;
-        font-weight: 600;
-    }
-
-    .header-text p {
-        margin: 0.5rem 0 0 0;
-        font-size: 1rem;
-        opacity: 0.9;
-    }
-
-    @media (max-width: 768px) {
-        .facturacion-header {
-            padding: 1.5rem;
-        }
-
-        .header-content {
-            flex-direction: column;
-            text-align: center;
-        }
-
-        .header-text h1 {
-            font-size: 1.8rem;
-        }
-    }
-</style>
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<!-- SweetAlert2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+<!-- CSS personalizado -->
+<link rel="stylesheet" href="{% static 'facturacion/css/facturacion.css' %}">
 {% endblock %}
 
 {% block dashboard_content %}
 <div class="facturacion-container">
+    <!-- Header -->
     <div class="facturacion-header">
         <div class="header-content">
             <div class="header-icon">
@@ -77,5 +31,66 @@
             </div>
         </div>
     </div>
+
+    <!-- Formulario de Facturación -->
+    <div class="facturacion-form-card">
+        <form id="formFacturacion" method="post">
+            {% csrf_token %}
+            
+            <!-- Sección 1: Datos del Cliente -->
+            <div class="form-section">
+                <div class="section-header">
+                    <i class="fas fa-user-tie"></i>
+                    <h3>1. Datos del Cliente</h3>
+                </div>
+                <div class="section-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="cliente_id">
+                                    Cliente <span class="text-danger">*</span>
+                                </label>
+                                <select id="cliente_id" name="cliente_id" class="form-control select2-cliente" required>
+                                    <option value="">-- Seleccionar Cliente --</option>
+                                    <option value="nuevo">+ Crear Nuevo Cliente</option>
+                                </select>
+                                <small class="form-text text-muted">
+                                    Busque por nombre, email o NIT. Si no existe, seleccione "Crear Nuevo Cliente"
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información del cliente seleccionado -->
+                    <div id="clienteInfo" class="cliente-info mt-3" style="display: none;">
+                        <div class="info-card">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Nombre:</strong> <span id="infoNombre">-</span></p>
+                                    <p><strong>NIT:</strong> <span id="infoNit">-</span></p>
+                                    <p><strong>Correo:</strong> <span id="infoEmail">-</span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Teléfono:</strong> <span id="infoTelefono">-</span></p>
+                                    <p><strong>Dirección:</strong> <span id="infoDireccion">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </form>
+    </div>
 </div>
+{% endblock %}
+
+{% block extrascripts %}
+{{ block.super }}
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- JS personalizado -->
+<script src="{% static 'facturacion/js/facturacion.js' %}"></script>
 {% endblock %}
