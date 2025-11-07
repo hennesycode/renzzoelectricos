@@ -69,25 +69,9 @@ def tesoreria_dashboard(request):
         descripcion__icontains='[BANCO]'
     ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
     
-    # MENOS: Egresos desde Banco (gastos y compras)
-    egresos_banco = Decimal('0.00')
-    ingresos_banco = Decimal('0.00')
-    
-    if cuenta_banco:
-        # Egresos desde banco
-        egresos_banco = TransaccionGeneral.objects.filter(
-            cuenta=cuenta_banco,
-            tipo='EGRESO'
-        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-        
-        # Ingresos a banco (transferencias hacia banco)
-        ingresos_banco = TransaccionGeneral.objects.filter(
-            cuenta=cuenta_banco,
-            tipo='INGRESO'
-        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-    
-    # Banco = Entradas banco + Ingresos - Egresos
-    saldo_banco = total_entradas_banco + ingresos_banco - egresos_banco
+    # USAR SALDO_ACTUAL DIRECTAMENTE DE LA CUENTA (YA CORREGIDO)
+    # El cálculo dinámico anterior era incorrecto, ahora usamos el saldo real de la cuenta
+    saldo_banco = cuenta_banco.saldo_actual if cuenta_banco else Decimal('0.00')
     
     # ========== CALCULAR DINERO GUARDADO ==========
     # Suma de TODO el dinero guardado de TODAS las cajas cerradas
@@ -186,24 +170,9 @@ def get_saldos_tesoreria(request):
         descripcion__icontains='[BANCO]'
     ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
     
-    egresos_banco = Decimal('0.00')
-    ingresos_banco = Decimal('0.00')
-    
-    if cuenta_banco:
-        # Egresos desde banco (gastos/compras)
-        egresos_banco = TransaccionGeneral.objects.filter(
-            cuenta=cuenta_banco,
-            tipo='EGRESO'
-        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-        
-        # Ingresos a banco (transferencias hacia banco)
-        ingresos_banco = TransaccionGeneral.objects.filter(
-            cuenta=cuenta_banco,
-            tipo='INGRESO'
-        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-    
-    # Banco = Entradas banco + Ingresos - Egresos
-    saldo_banco = total_entradas_banco + ingresos_banco - egresos_banco
+    # USAR SALDO_ACTUAL DIRECTAMENTE DE LA CUENTA (YA CORREGIDO)
+    # El cálculo dinámico anterior era incorrecto, ahora usamos el saldo real de la cuenta
+    saldo_banco = cuenta_banco.saldo_actual if cuenta_banco else Decimal('0.00')
     
     # ========== DINERO GUARDADO (RESERVA) ==========
     # Suma de TODO el dinero guardado de TODAS las cajas cerradas
@@ -358,25 +327,10 @@ def registrar_egreso_tesoreria(request):
                 except Cuenta.DoesNotExist:
                     return JsonResponse({'error': 'La cuenta seleccionada no existe'}, status=400)
                 
-                # Validar fondos disponibles según cálculo dinámico
+                # Validar fondos disponibles usando saldo_actual
                 if cuenta.tipo == 'BANCO':
-                    # Calcular saldo banco dinámico
-                    total_entradas = MovimientoCaja.objects.filter(
-                        tipo='INGRESO',
-                        descripcion__icontains='[BANCO]'
-                    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-                    
-                    egresos = TransaccionGeneral.objects.filter(
-                        cuenta=cuenta,
-                        tipo='EGRESO'
-                    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-                    
-                    ingresos = TransaccionGeneral.objects.filter(
-                        cuenta=cuenta,
-                        tipo='INGRESO'
-                    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-                    
-                    saldo_disponible = total_entradas + ingresos - egresos
+                    # Usar saldo_actual directamente (ya corregido)
+                    saldo_disponible = cuenta.saldo_actual
                     
                     if monto > saldo_disponible:
                         return JsonResponse({
@@ -503,24 +457,10 @@ def transferir_fondos(request):
                 except Cuenta.DoesNotExist:
                     return JsonResponse({'error': 'Cuenta origen no válida'}, status=400)
                 
-                # Validar fondos disponibles según cálculo dinámico
+                # Validar fondos disponibles usando saldo_actual
                 if cuenta_origen.tipo == 'BANCO':
-                    total_entradas = MovimientoCaja.objects.filter(
-                        tipo='INGRESO',
-                        descripcion__icontains='[BANCO]'
-                    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-                    
-                    egresos = TransaccionGeneral.objects.filter(
-                        cuenta=cuenta_origen,
-                        tipo='EGRESO'
-                    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-                    
-                    ingresos = TransaccionGeneral.objects.filter(
-                        cuenta=cuenta_origen,
-                        tipo='INGRESO'
-                    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-                    
-                    saldo_disponible = total_entradas + ingresos - egresos
+                    # Usar saldo_actual directamente (ya corregido)
+                    saldo_disponible = cuenta_origen.saldo_actual
                     
                 elif cuenta_origen.tipo == 'RESERVA':
                     total_guardado = CajaRegistradora.objects.filter(
