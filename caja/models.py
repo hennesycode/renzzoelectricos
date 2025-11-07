@@ -503,7 +503,45 @@ class Cuenta(models.Model):
         ordering = ['tipo', 'nombre']
     
     def __str__(self):
-        return f"{self.nombre} ({self.get_tipo_display()}) - ${self.saldo_actual:,.2f}"
+        """
+        Representación en string de la cuenta.
+        Maneja errores para evitar crashes en el admin.
+        """
+        try:
+            tipo_display = self.get_tipo_display() if hasattr(self, 'get_tipo_display') else self.tipo
+            return f"{self.nombre} ({tipo_display}) - ${self.saldo_actual:,.2f}"
+        except Exception:
+            # Fallback si hay algún error
+            return f"{self.nombre} ({self.tipo})"
+    
+    def clean(self):
+        """
+        Validación personalizada: solo puede haber 1 cuenta activa de cada tipo.
+        """
+        from django.core.exceptions import ValidationError
+        
+        # Verificar si ya existe una cuenta activa del mismo tipo
+        if self.activo:
+            cuentas_mismo_tipo = Cuenta.objects.filter(
+                tipo=self.tipo,
+                activo=True
+            ).exclude(pk=self.pk)
+            
+            if cuentas_mismo_tipo.exists():
+                cuenta_existente = cuentas_mismo_tipo.first()
+                tipo_nombre = 'BANCO' if self.tipo == 'BANCO' else 'RESERVA/Dinero Guardado'
+                raise ValidationError({
+                    'tipo': f'⚠️ Ya existe una cuenta {tipo_nombre} activa: "{cuenta_existente.nombre}". '
+                            f'El sistema solo permite 1 cuenta activa de cada tipo. '
+                            f'Desactiva la cuenta existente primero si quieres crear una nueva.'
+                })
+    
+    def save(self, *args, **kwargs):
+        """
+        Sobrescribir save para ejecutar validación.
+        """
+        self.full_clean()  # Ejecuta clean()
+        super().save(*args, **kwargs)
     
     def tiene_fondos_suficientes(self, monto):
         """Verifica si la cuenta tiene fondos suficientes."""

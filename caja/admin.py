@@ -781,6 +781,7 @@ class DetalleConteoAdmin(admin.ModelAdmin):
 class CuentaAdmin(admin.ModelAdmin):
     """
     Administrador para Cuenta (Banco, Reserva).
+    IMPORTANTE: El sistema está diseñado para tener SOLO 1 cuenta BANCO y 1 cuenta RESERVA.
     """
     list_display = (
         'id',
@@ -794,6 +795,18 @@ class CuentaAdmin(admin.ModelAdmin):
     search_fields = ('nombre',)
     ordering = ('tipo', 'nombre')
     
+    def get_queryset(self, request):
+        """
+        Sobrescribir para evitar errores con datos corruptos.
+        """
+        try:
+            return super().get_queryset(request)
+        except Exception as e:
+            # Si hay error, devolver queryset vacío
+            from django.contrib import messages
+            messages.error(request, f'Error al cargar cuentas: {str(e)}')
+            return Cuenta.objects.none()
+    
     def get_readonly_fields(self, request, obj=None):
         """
         Superusuarios pueden editar TODOS los campos, incluido saldo_actual.
@@ -803,6 +816,22 @@ class CuentaAdmin(admin.ModelAdmin):
         return ('fecha_creacion', 'saldo_actual')  # Staff no puede editar saldo manualmente
     
     fieldsets = (
+        (_('⚠️ IMPORTANTE - Lee esto primero'), {
+            'fields': (),
+            'description': (
+                '<div style="background: #fff3cd; border: 2px solid #ffc107; padding: 15px; border-radius: 5px; margin-bottom: 10px;">'
+                '<h3 style="margin-top: 0; color: #856404;">📚 ¿Cómo funcionan las Cuentas?</h3>'
+                '<p><strong>El sistema maneja 2 tipos de cuentas:</strong></p>'
+                '<ul>'
+                '<li><strong>🏦 BANCO:</strong> Dinero en cuenta bancaria (transferencias, pagos electrónicos)</li>'
+                '<li><strong>🔒 RESERVA:</strong> Dinero guardado físicamente (caja fuerte, efectivo resguardado)</li>'
+                '</ul>'
+                '<p><strong style="color: #d9534f;">⚠️ LIMITACIÓN:</strong> Solo puedes tener <u>1 cuenta activa de cada tipo</u>.</p>'
+                '<p><strong>🔄 Para cambiar de cuenta:</strong> Desactiva la existente (activo=False) antes de crear una nueva.</p>'
+                '<p><strong>💡 Uso en Tesorería:</strong> Estas cuentas aparecen en las opciones de transferencia/gastos/ingresos.</p>'
+                '</div>'
+            )
+        }),
         (_('Información Básica'), {
             'fields': ('nombre', 'tipo', 'activo')
         }),
@@ -823,41 +852,53 @@ class CuentaAdmin(admin.ModelAdmin):
     
     def tipo_badge(self, obj):
         """Muestra el tipo con icono."""
-        if obj.tipo == 'BANCO':
-            icon = '🏦'
-            color = '#2196F3'
-        elif obj.tipo == 'RESERVA':
-            icon = '🔒'
-            color = '#4CAF50'
-        else:
-            icon = '❓'
-            color = 'gray'
-        return format_html(
-            '<span style="color: {};">{} {}</span>',
-            color,
-            icon,
-            obj.get_tipo_display()
-        )
+        try:
+            if obj.tipo == 'BANCO':
+                icon = '🏦'
+                color = '#2196F3'
+                display = 'Banco'
+            elif obj.tipo == 'RESERVA':
+                icon = '🔒'
+                color = '#4CAF50'
+                display = 'Reserva / Dinero Guardado'
+            else:
+                icon = '❓'
+                color = 'gray'
+                display = str(obj.tipo)
+            return format_html(
+                '<span style="color: {};">{} {}</span>',
+                color,
+                icon,
+                display
+            )
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
     tipo_badge.short_description = 'Tipo'
     tipo_badge.admin_order_field = 'tipo'
     
     def saldo_actual_fmt(self, obj):
         """Formatea el saldo actual."""
-        saldo = safe_decimal_to_float(obj.saldo_actual)
-        color = 'red' if saldo < 0 else 'green'
-        return format_html(
-            '<strong style="color: {};">${:,.0f}</strong>',
-            color,
-            saldo
-        )
+        try:
+            saldo = safe_decimal_to_float(obj.saldo_actual)
+            color = 'red' if saldo < 0 else 'green'
+            return format_html(
+                '<strong style="color: {};">${:,.0f}</strong>',
+                color,
+                saldo
+            )
+        except Exception as e:
+            return format_html('<span style="color: red;">Error</span>')
     saldo_actual_fmt.short_description = 'Saldo Actual'
     saldo_actual_fmt.admin_order_field = 'saldo_actual'
     
     def activo_badge(self, obj):
         """Muestra el estado activo con color."""
-        if obj.activo:
-            return format_html('<span style="color: green;">✓ Activo</span>')
-        return format_html('<span style="color: red;">✗ Inactivo</span>')
+        try:
+            if obj.activo:
+                return format_html('<span style="color: green;">✓ Activo</span>')
+            return format_html('<span style="color: red;">✗ Inactivo</span>')
+        except Exception as e:
+            return format_html('<span style="color: red;">Error</span>')
     activo_badge.short_description = 'Estado'
     activo_badge.admin_order_field = 'activo'
 
