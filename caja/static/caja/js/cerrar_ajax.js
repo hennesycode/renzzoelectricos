@@ -55,8 +55,8 @@ async function openCerrarModal(){
     const totalDisponible = estadoCaja.total_disponible;
     const totalEntradasBanco = estadoCaja.total_entradas_banco || 0;
     
-    // Debe Haber en Caja = Total Disponible - Entradas Banco
-    const debeHaberEnCaja = totalDisponible - totalEntradasBanco;
+    // Debe Haber en Caja = Total Disponible (ya excluye entradas banco)
+    const debeHaberEnCaja = totalDisponible;
     
     // Separar y ordenar billetes y monedas
     const billetes = denoms.filter(d => d.tipo.toUpperCase() === 'BILLETE').sort((a, b) => b.valor - a.valor);

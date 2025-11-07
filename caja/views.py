@@ -19,7 +19,8 @@ import json
 
 from .models import (
     CajaRegistradora, MovimientoCaja, TipoMovimiento,
-    DenominacionMoneda, ConteoEfectivo, DetalleConteo
+    DenominacionMoneda, ConteoEfectivo, DetalleConteo,
+    Cuenta, TransaccionGeneral
 )
 from .decorators import staff_or_permission_required
 
@@ -54,11 +55,9 @@ def caja_dashboard(request):
             total=Sum('monto')
         )['total'] or Decimal('0.00')
         
-        # Total de ingresos EN EFECTIVO (excluir apertura y banco)
+        # Total de ingresos EN EFECTIVO (excluir banco, incluir apertura)
         total_ingresos = movimientos_caja.filter(
             tipo='INGRESO'
-        ).exclude(
-            tipo_movimiento__codigo='APERTURA'
         ).exclude(
             descripcion__icontains='[BANCO]'
         ).aggregate(
@@ -69,20 +68,42 @@ def caja_dashboard(request):
             total=Sum('monto')
         )['total'] or Decimal('0.00')
         
-        # Total disponible = monto inicial + ingresos efectivo + ingresos banco - egresos
-        total_disponible = caja_actual.monto_inicial + total_ingresos + total_entradas_banco - total_egresos
+        # Dinero en Caja = Total Ingresos Efectivo - Total Egresos
+        dinero_en_caja = total_ingresos - total_egresos
+        
+        # Total disponible en CAJA = solo el dinero físico en caja (sin banco)
+        total_disponible = dinero_en_caja
         
         # Mostrar TODOS los movimientos de la caja abierta (incluyendo apertura)
         ultimos_movimientos = movimientos_caja.select_related(
             'tipo_movimiento', 'caja', 'usuario'
         ).order_by('-fecha_movimiento')[:50]
     
+    # Separar total_ingresos para mostrar solo ingresos sin apertura
+    total_ingresos_sin_apertura = Decimal('0.00')
+    dinero_en_caja_calculado = Decimal('0.00')
+    
+    if caja_actual:
+        # Total de ingresos SIN apertura (para mostrar en estadísticas)
+        total_ingresos_sin_apertura = movimientos_caja.filter(
+            tipo='INGRESO'
+        ).exclude(
+            tipo_movimiento__codigo='APERTURA'
+        ).exclude(
+            descripcion__icontains='[BANCO]'
+        ).aggregate(
+            total=Sum('monto')
+        )['total'] or Decimal('0.00')
+        
+        dinero_en_caja_calculado = dinero_en_caja
+    
     estadisticas = {
-        'total_ingresos': total_ingresos,
+        'total_ingresos': total_ingresos_sin_apertura,  # Solo ingresos sin apertura
         'total_egresos': total_egresos,
         'total_entradas_banco': total_entradas_banco,
+        'dinero_en_caja': dinero_en_caja_calculado,    # Dinero físico en caja
         'numero_movimientos': len(ultimos_movimientos),
-        'total_disponible': total_disponible,
+        'total_disponible': total_disponible,           # Total: caja + banco
     }
     
     context = {
@@ -161,6 +182,9 @@ def abrir_caja(request):
         # Usar transacción atómica para asegurar que caja y movimiento se crean juntos
         with transaction.atomic():
             # Crear caja ÚNICA GLOBAL (el cajero es quien la abre)
+            # La señal post_save se encargará de crear automáticamente:
+            # 1. MovimientoCaja de apertura
+            # 2. TransaccionGeneral en tesorería
             caja = CajaRegistradora.objects.create(
                 cajero=request.user,
                 monto_inicial=monto_inicial,
@@ -190,10 +214,6 @@ def abrir_caja(request):
                         )
                     except DenominacionMoneda.DoesNotExist:
                         continue
-
-            # NO CREAR movimiento de apertura porque monto_inicial ya representa ese valor
-            # El cálculo es: monto_inicial + ingresos - egresos
-            # Si creamos un movimiento INGRESO por monto_inicial, estaríamos duplicando
 
         # Preparar mensaje de éxito
         monto_formateado = f'${monto_inicial:,.0f}'
@@ -333,13 +353,42 @@ def cerrar_caja(request):
             except DenominacionMoneda.DoesNotExist:
                 continue
 
-        # Cerrar caja (actualiza monto_final_declarado usando cuanto_hay, diferencia, estado)
-        diferencia = caja.cerrar_caja(monto_declarado, observaciones)
-        
-        # Guardar la distribución del dinero
-        caja.dinero_en_caja = dinero_en_caja
-        caja.dinero_guardado = dinero_guardado
-        caja.save()
+        # Usar transacción atómica para asegurar consistencia
+        with transaction.atomic():
+            # Cerrar caja (actualiza monto_final_declarado usando cuanto_hay, diferencia, estado)
+            diferencia = caja.cerrar_caja(monto_declarado, observaciones)
+            
+            # Guardar la distribución del dinero
+            caja.dinero_en_caja = dinero_en_caja
+            caja.dinero_guardado = dinero_guardado
+            caja.save()
+            
+            # Crear transacciones en tesorería para el dinero guardado
+            if dinero_guardado > 0:
+                # Obtener cuenta de reserva
+                cuenta_reserva = Cuenta.objects.filter(tipo='RESERVA', activo=True).first()
+                if cuenta_reserva:
+                    # Obtener tipo de movimiento para transferencia interna
+                    tipo_interno, _ = TipoMovimiento.objects.get_or_create(
+                        codigo='CIERRE_CAJA',
+                        defaults={
+                            'nombre': 'Cierre de Caja - Dinero Guardado',
+                            'descripcion': 'Dinero retirado de caja y guardado al cierre',
+                            'tipo_base': TipoMovimiento.TipoBaseChoices.INTERNO,
+                            'activo': True
+                        }
+                    )
+                    
+                    # Crear transacción de ingreso en reserva
+                    TransaccionGeneral.objects.create(
+                        tipo='INGRESO',
+                        monto=dinero_guardado,
+                        descripcion=f'Cierre caja #{caja.id} - Dinero guardado por {request.user.username}',
+                        referencia=f'CIERRE-{caja.id}',
+                        tipo_movimiento=tipo_interno,
+                        cuenta=cuenta_reserva,
+                        usuario=request.user
+                    )
 
         return JsonResponse({
             'success': True,
@@ -560,11 +609,9 @@ def obtener_estado_caja(request):
         descripcion__icontains='[BANCO]'
     ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
     
-    # Total de ingresos EN EFECTIVO (excluir apertura y banco)
+    # Total de ingresos EN EFECTIVO (incluir apertura, excluir banco)
     total_ingresos = movimientos.filter(
         tipo='INGRESO'
-    ).exclude(
-        tipo_movimiento__codigo='APERTURA'
     ).exclude(
         descripcion__icontains='[BANCO]'
     ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
@@ -573,8 +620,11 @@ def obtener_estado_caja(request):
         tipo='EGRESO'
     ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
     
-    # Total disponible = monto inicial + ingresos efectivo + ingresos banco - egresos
-    total_disponible = caja.monto_inicial + total_ingresos + total_entradas_banco - total_egresos
+    # Dinero en caja = total ingresos efectivo - total egresos
+    dinero_en_caja = total_ingresos - total_egresos
+    
+    # Total disponible en CAJA = solo dinero físico (sin entradas banco)
+    total_disponible = dinero_en_caja
     
     # Calcular denominaciones esperadas (distribución óptima)
     # Este es un cálculo aproximado - en la realidad el efectivo puede variar
@@ -586,6 +636,7 @@ def obtener_estado_caja(request):
         'monto_inicial': float(caja.monto_inicial),
         'total_ingresos': float(total_ingresos),
         'total_egresos': float(total_egresos),
+        'dinero_en_caja': float(dinero_en_caja),
         'total_disponible': float(total_disponible),
         'total_entradas_banco': float(total_entradas_banco),
         'denominaciones_esperadas': denominaciones_esperadas

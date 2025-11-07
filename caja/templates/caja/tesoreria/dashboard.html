@@ -445,6 +445,10 @@
                             <span class="badge bg-success">
                                 <i class="bi bi-bank"></i> Banco
                             </span>
+                        {% elif trans.cuenta.nombre == 'Caja Virtual' or 'Cierre caja' in trans.descripcion %}
+                            <span class="badge bg-primary">
+                                <i class="bi bi-wallet2"></i> Caja
+                            </span>
                         {% else %}
                             <span class="badge bg-warning text-dark">
                                 <i class="bi bi-safe"></i> Guardado
@@ -452,7 +456,15 @@
                         {% endif %}
                     </td>
                     <td style="color: #333;">
-                        {% if trans.tipo_movimiento.tipo_base == 'GASTO' %}
+                        {% if trans.tipo_movimiento.codigo == 'APERTURA' %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-play-circle"></i> APERTURA
+                            </span>
+                        {% elif trans.tipo_movimiento.codigo == 'CIERRE_CAJA' %}
+                            <span class="badge bg-danger">
+                                <i class="bi bi-lock"></i> CIERRE
+                            </span>
+                        {% elif trans.tipo_movimiento.tipo_base == 'GASTO' %}
                             <span class="badge bg-danger">
                                 <i class="bi bi-dash-circle"></i> {{ trans.tipo_movimiento.nombre }}
                             </span>

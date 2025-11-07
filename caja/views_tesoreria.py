@@ -39,11 +39,9 @@ def tesoreria_dashboard(request):
         # Caja ABIERTA: calcular en tiempo real (SIN entradas banco)
         movimientos = MovimientoCaja.objects.filter(caja=caja_abierta)
         
-        # Total de ingresos EN EFECTIVO (excluir apertura y banco)
+        # Total de ingresos EN EFECTIVO (incluir apertura, excluir banco)
         total_ingresos = movimientos.filter(
             tipo='INGRESO'
-        ).exclude(
-            tipo_movimiento__codigo='APERTURA'
         ).exclude(
             descripcion__icontains='[BANCO]'
         ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
@@ -52,8 +50,9 @@ def tesoreria_dashboard(request):
             total=Sum('monto')
         )['total'] or Decimal('0.00')
         
-        # Dinero en caja = monto inicial + ingresos efectivo - egresos
-        saldo_caja = caja_abierta.monto_inicial + total_ingresos - total_egresos
+        # Dinero en caja = total ingresos efectivo - total egresos
+        # (total_ingresos ya incluye la apertura)
+        saldo_caja = total_ingresos - total_egresos
     else:
         # Caja CERRADA: mostrar dinero_en_caja de la última caja cerrada
         ultima_caja_cerrada = CajaRegistradora.objects.filter(
@@ -64,19 +63,59 @@ def tesoreria_dashboard(request):
             saldo_caja = ultima_caja_cerrada.dinero_en_caja
     
     # ========== CALCULAR BANCO PRINCIPAL ==========
-    # Suma de TODAS las entradas [BANCO] de MovimientoCaja
+    # Calcular saldo dinámicamente: entradas banco - gastos/compras desde banco
+    
+    # 1. Suma de TODAS las entradas [BANCO] de MovimientoCaja
     total_entradas_banco = MovimientoCaja.objects.filter(
         tipo='INGRESO',
         descripcion__icontains='[BANCO]'
     ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
     
-    # USAR SALDO_ACTUAL DIRECTAMENTE DE LA CUENTA (YA CORREGIDO)
-    # El cálculo dinámico anterior era incorrecto, ahora usamos el saldo real de la cuenta
-    saldo_banco = cuenta_banco.saldo_actual if cuenta_banco else Decimal('0.00')
+    # 2. Restar gastos/compras realizados desde banco (TransaccionGeneral de tipo EGRESO en cuenta banco)
+    total_egresos_banco = Decimal('0.00')
+    if cuenta_banco:
+        total_egresos_banco = TransaccionGeneral.objects.filter(
+            cuenta=cuenta_banco,
+            tipo='EGRESO'
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+    
+    # 3. Saldo banco = entradas - egresos
+    saldo_banco = total_entradas_banco - total_egresos_banco
     
     # ========== CALCULAR DINERO GUARDADO ==========
-    # USAR SALDO_ACTUAL DIRECTAMENTE DE LA CUENTA RESERVA (como en banco)
-    saldo_reserva = cuenta_reserva.saldo_actual if cuenta_reserva else Decimal('0.00')
+    # El dinero guardado se calcula SOLO de las cajas cerradas
+    # Las transacciones automáticas de cierre se crean pero NO se suman (evitar duplicación)
+    cuenta_reserva = Cuenta.objects.filter(tipo='RESERVA', activo=True).first()
+    
+    # Total de dinero guardado de cierres de caja
+    cajas_cerradas = CajaRegistradora.objects.filter(estado='CERRADA')
+    total_dinero_guardado_cajas = sum(
+        caja.dinero_guardado or Decimal('0.00') 
+        for caja in cajas_cerradas
+    )
+    
+    # Solo transacciones manuales en cuenta reserva (NO incluir cierres automáticos)
+    transacciones_reserva_manuales = Decimal('0.00')
+    if cuenta_reserva:
+        # Excluir transacciones automáticas de cierre para evitar duplicación
+        ingresos_reserva = TransaccionGeneral.objects.filter(
+            cuenta=cuenta_reserva,
+            tipo='INGRESO'
+        ).exclude(
+            descripcion__icontains='Cierre caja'
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+        
+        egresos_reserva = TransaccionGeneral.objects.filter(
+            cuenta=cuenta_reserva,
+            tipo='EGRESO'
+        ).exclude(
+            descripcion__icontains='Cierre caja'
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+        
+        transacciones_reserva_manuales = ingresos_reserva - egresos_reserva
+    
+    # SOLO el dinero de cajas + ajustes manuales (NO duplicar cierres automáticos)
+    saldo_reserva = total_dinero_guardado_cajas + transacciones_reserva_manuales
     
     # ========== TOTAL DISPONIBLE ==========
     saldo_total = saldo_caja + saldo_banco + saldo_reserva
@@ -119,8 +158,6 @@ def get_saldos_tesoreria(request):
         total_ingresos = movimientos.filter(
             tipo='INGRESO'
         ).exclude(
-            tipo_movimiento__codigo='APERTURA'
-        ).exclude(
             descripcion__icontains='[BANCO]'
         ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
         
@@ -128,7 +165,7 @@ def get_saldos_tesoreria(request):
             total=Sum('monto')
         )['total'] or Decimal('0.00')
         
-        saldo_caja = caja_abierta.monto_inicial + total_ingresos - total_egresos
+        saldo_caja = total_ingresos - total_egresos
     else:
         # Caja CERRADA: mostrar dinero_en_caja de la última caja cerrada
         ultima_caja_cerrada = CajaRegistradora.objects.filter(
@@ -139,24 +176,62 @@ def get_saldos_tesoreria(request):
             saldo_caja = ultima_caja_cerrada.dinero_en_caja
     
     # ========== BANCO PRINCIPAL ==========
-    # Suma de TODAS las entradas [BANCO] de MovimientoCaja
+    # Calcular saldo dinámicamente: entradas banco - gastos/compras desde banco
     cuenta_banco = Cuenta.objects.filter(tipo='BANCO', activo=True).first()
     banco_id = cuenta_banco.id if cuenta_banco else None
     
+    # 1. Suma de TODAS las entradas [BANCO] de MovimientoCaja
     total_entradas_banco = MovimientoCaja.objects.filter(
         tipo='INGRESO',
         descripcion__icontains='[BANCO]'
     ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
     
-    # USAR SALDO_ACTUAL DIRECTAMENTE DE LA CUENTA (YA CORREGIDO)
-    # El cálculo dinámico anterior era incorrecto, ahora usamos el saldo real de la cuenta
-    saldo_banco = cuenta_banco.saldo_actual if cuenta_banco else Decimal('0.00')
+    # 2. Restar gastos/compras realizados desde banco
+    total_egresos_banco = Decimal('0.00')
+    if cuenta_banco:
+        total_egresos_banco = TransaccionGeneral.objects.filter(
+            cuenta=cuenta_banco,
+            tipo='EGRESO'
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+    
+    # 3. Saldo banco = entradas - egresos
+    saldo_banco = total_entradas_banco - total_egresos_banco
     
     # ========== DINERO GUARDADO (RESERVA) ==========
-    # USAR SALDO_ACTUAL DIRECTAMENTE DE LA CUENTA RESERVA (como en banco)
+    # El dinero guardado se calcula SOLO de las cajas cerradas
+    # Las transacciones automáticas de cierre se crean pero NO se suman (evitar duplicación)
     cuenta_reserva = Cuenta.objects.filter(tipo='RESERVA', activo=True).first()
     reserva_id = cuenta_reserva.id if cuenta_reserva else None
-    saldo_reserva = cuenta_reserva.saldo_actual if cuenta_reserva else Decimal('0.00')
+    
+    # Total de dinero guardado de cierres de caja
+    cajas_cerradas = CajaRegistradora.objects.filter(estado='CERRADA')
+    total_dinero_guardado_cajas = sum(
+        caja.dinero_guardado or Decimal('0.00') 
+        for caja in cajas_cerradas
+    )
+    
+    # Solo transacciones manuales en cuenta reserva (NO incluir cierres automáticos)
+    transacciones_reserva_manuales = Decimal('0.00')
+    if cuenta_reserva:
+        # Excluir transacciones automáticas de cierre para evitar duplicación
+        ingresos_reserva = TransaccionGeneral.objects.filter(
+            cuenta=cuenta_reserva,
+            tipo='INGRESO'
+        ).exclude(
+            descripcion__icontains='Cierre caja'
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+        
+        egresos_reserva = TransaccionGeneral.objects.filter(
+            cuenta=cuenta_reserva,
+            tipo='EGRESO'
+        ).exclude(
+            descripcion__icontains='Cierre caja'
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+        
+        transacciones_reserva_manuales = ingresos_reserva - egresos_reserva
+    
+    # SOLO el dinero de cajas + ajustes manuales (NO duplicar cierres automáticos)
+    saldo_reserva = total_dinero_guardado_cajas + transacciones_reserva_manuales
     
     return JsonResponse({
         'success': True,
@@ -244,8 +319,6 @@ def registrar_egreso_tesoreria(request):
                 total_ingresos = movimientos.filter(
                     tipo='INGRESO'
                 ).exclude(
-                    tipo_movimiento__codigo='APERTURA'
-                ).exclude(
                     descripcion__icontains='[BANCO]'
                 ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
                 
@@ -253,7 +326,10 @@ def registrar_egreso_tesoreria(request):
                     total=Sum('monto')
                 )['total'] or Decimal('0.00')
                 
-                saldo_disponible = caja_abierta.monto_inicial + total_ingresos + total_entradas_banco - total_egresos
+                # Saldo disponible = dinero en caja + entradas banco
+                # dinero_en_caja = total_ingresos - total_egresos (ya incluye apertura)
+                dinero_en_caja = total_ingresos - total_egresos
+                saldo_disponible = dinero_en_caja + total_entradas_banco
                 
                 if monto > saldo_disponible:
                     return JsonResponse({
@@ -280,10 +356,20 @@ def registrar_egreso_tesoreria(request):
                 except Cuenta.DoesNotExist:
                     return JsonResponse({'error': 'La cuenta seleccionada no existe'}, status=400)
                 
-                # Validar fondos disponibles usando saldo_actual
+                # Validar fondos disponibles calculando dinámicamente
                 if cuenta.tipo == 'BANCO':
-                    # Usar saldo_actual directamente (ya corregido)
-                    saldo_disponible = cuenta.saldo_actual
+                    # Calcular saldo banco dinámicamente: entradas - egresos
+                    entradas_banco = MovimientoCaja.objects.filter(
+                        tipo='INGRESO',
+                        descripcion__icontains='[BANCO]'
+                    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+                    
+                    egresos_banco = TransaccionGeneral.objects.filter(
+                        cuenta=cuenta,
+                        tipo='EGRESO'
+                    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+                    
+                    saldo_disponible = entradas_banco - egresos_banco
                     
                     if monto > saldo_disponible:
                         return JsonResponse({
@@ -291,23 +377,23 @@ def registrar_egreso_tesoreria(request):
                         }, status=400)
                 
                 elif cuenta.tipo == 'RESERVA':
-                    # Calcular saldo reserva dinámico
-                    total_guardado = CajaRegistradora.objects.filter(
-                        estado='CERRADA',
-                        dinero_guardado__gt=0
-                    ).aggregate(total=Sum('dinero_guardado'))['total'] or Decimal('0.00')
+                    # Para RESERVA, usar dinero_guardado de las cajas cerradas
+                    cajas_cerradas = CajaRegistradora.objects.filter(estado='CERRADA')
+                    total_cajas_cerradas = sum(
+                        caja.dinero_guardado or Decimal('0.00') 
+                        for caja in cajas_cerradas
+                    )
                     
-                    egresos = TransaccionGeneral.objects.filter(
-                        cuenta=cuenta,
-                        tipo='EGRESO'
-                    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+                    # Sumar/restar transacciones directas en la cuenta RESERVA
+                    transacciones = TransaccionGeneral.objects.filter(cuenta=cuenta)
+                    ingresos = transacciones.filter(tipo='INGRESO').aggregate(
+                        total=Sum('monto')
+                    )['total'] or Decimal('0.00')
+                    egresos = transacciones.filter(tipo='EGRESO').aggregate(
+                        total=Sum('monto')
+                    )['total'] or Decimal('0.00')
                     
-                    ingresos = TransaccionGeneral.objects.filter(
-                        cuenta=cuenta,
-                        tipo='INGRESO'
-                    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-                    
-                    saldo_disponible = total_guardado + ingresos - egresos
+                    saldo_disponible = total_cajas_cerradas + ingresos - egresos
                     
                     if monto > saldo_disponible:
                         return JsonResponse({
@@ -386,14 +472,21 @@ def transferir_fondos(request):
                 # así que no validamos aquí (se asume que el frontend envía el monto correcto)
                 
                 # Crear TransaccionGeneral de ingreso a la cuenta destino
-                tipo_mov_interno = TipoMovimiento.objects.filter(
-                    codigo='APERTURA'
-                ).first()  # Usamos APERTURA como tipo interno
+                tipo_mov_interno, _ = TipoMovimiento.objects.get_or_create(
+                    codigo='TRANSFERENCIA',
+                    defaults={
+                        'nombre': 'Transferencia entre Cuentas',
+                        'descripcion': 'Movimiento de fondos entre cuentas',
+                        'tipo_base': TipoMovimiento.TipoBaseChoices.INTERNO,
+                        'activo': True
+                    }
+                )
                 
                 TransaccionGeneral.objects.create(
                     tipo='INGRESO',
                     monto=monto,
                     descripcion=f'Transferencia desde Caja. {descripcion}',
+                    referencia=f'TRANSFER-CAJA-{timezone.now().strftime("%Y%m%d-%H%M%S")}',
                     tipo_movimiento=tipo_mov_interno,
                     cuenta=cuenta_destino,
                     usuario=request.user
@@ -410,28 +503,39 @@ def transferir_fondos(request):
                 except Cuenta.DoesNotExist:
                     return JsonResponse({'error': 'Cuenta origen no válida'}, status=400)
                 
-                # Validar fondos disponibles usando saldo_actual
+                # Validar fondos disponibles calculando dinámicamente
                 if cuenta_origen.tipo == 'BANCO':
-                    # Usar saldo_actual directamente (ya corregido)
-                    saldo_disponible = cuenta_origen.saldo_actual
+                    # Calcular saldo banco dinámicamente: entradas - egresos
+                    entradas_banco = MovimientoCaja.objects.filter(
+                        tipo='INGRESO',
+                        descripcion__icontains='[BANCO]'
+                    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
                     
-                elif cuenta_origen.tipo == 'RESERVA':
-                    total_guardado = CajaRegistradora.objects.filter(
-                        estado='CERRADA',
-                        dinero_guardado__gt=0
-                    ).aggregate(total=Sum('dinero_guardado'))['total'] or Decimal('0.00')
-                    
-                    egresos = TransaccionGeneral.objects.filter(
+                    egresos_banco = TransaccionGeneral.objects.filter(
                         cuenta=cuenta_origen,
                         tipo='EGRESO'
                     ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
                     
-                    ingresos = TransaccionGeneral.objects.filter(
-                        cuenta=cuenta_origen,
-                        tipo='INGRESO'
-                    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+                    saldo_disponible = entradas_banco - egresos_banco
                     
-                    saldo_disponible = total_guardado + ingresos - egresos
+                elif cuenta_origen.tipo == 'RESERVA':
+                    # Usar dinero_guardado de las cajas cerradas
+                    cajas_cerradas = CajaRegistradora.objects.filter(estado='CERRADA')
+                    total_cajas_cerradas = sum(
+                        caja.dinero_guardado or Decimal('0.00') 
+                        for caja in cajas_cerradas
+                    )
+                    
+                    # Sumar/restar transacciones directas en la cuenta RESERVA
+                    transacciones = TransaccionGeneral.objects.filter(cuenta=cuenta_origen)
+                    ingresos = transacciones.filter(tipo='INGRESO').aggregate(
+                        total=Sum('monto')
+                    )['total'] or Decimal('0.00')
+                    egresos = transacciones.filter(tipo='EGRESO').aggregate(
+                        total=Sum('monto')
+                    )['total'] or Decimal('0.00')
+                    
+                    saldo_disponible = total_cajas_cerradas + ingresos - egresos
                 else:
                     saldo_disponible = cuenta_origen.saldo_actual
                 
@@ -440,13 +544,25 @@ def transferir_fondos(request):
                         'error': f'Fondos insuficientes en {cuenta_origen.nombre}. Disponible: ${saldo_disponible:,.2f}'
                     }, status=400)
                 
-                # Registrar EGRESO de cuenta origen
-                tipo_mov_interno = TipoMovimiento.objects.filter(codigo='APERTURA').first()
+                # Obtener tipo de movimiento para transferencias
+                tipo_mov_interno, _ = TipoMovimiento.objects.get_or_create(
+                    codigo='TRANSFERENCIA',
+                    defaults={
+                        'nombre': 'Transferencia entre Cuentas',
+                        'descripcion': 'Movimiento de fondos entre cuentas',
+                        'tipo_base': TipoMovimiento.TipoBaseChoices.INTERNO,
+                        'activo': True
+                    }
+                )
                 
+                referencia_transferencia = f'TRANSFER-{timezone.now().strftime("%Y%m%d-%H%M%S")}'
+                
+                # Registrar EGRESO de cuenta origen
                 TransaccionGeneral.objects.create(
                     tipo='EGRESO',
                     monto=monto,
                     descripcion=f'Transferencia hacia {cuenta_destino.nombre}. {descripcion}',
+                    referencia=referencia_transferencia,
                     tipo_movimiento=tipo_mov_interno,
                     cuenta=cuenta_origen,
                     usuario=request.user
@@ -457,6 +573,7 @@ def transferir_fondos(request):
                     tipo='INGRESO',
                     monto=monto,
                     descripcion=f'Transferencia desde {cuenta_origen.nombre}. {descripcion}',
+                    referencia=referencia_transferencia,
                     tipo_movimiento=tipo_mov_interno,
                     cuenta=cuenta_destino,
                     usuario=request.user
@@ -555,7 +672,8 @@ def aplicar_balance_cuentas(request):
                 elif cuenta_tipo == 'reserva' and cuenta_reserva:
                     descripcion += f"Dinero Guardado (${saldo_sistema:,.0f} → ${saldo_real:,.0f})"
                     
-                    # Crear transacción en reserva
+                    # Para dinero guardado, crear transacción de ajuste en cuenta RESERVA
+                    # Esto representa ajustes manuales al dinero guardado físico
                     TransaccionGeneral.objects.create(
                         fecha=timezone.now(),
                         tipo=tipo_transaccion,
@@ -567,9 +685,8 @@ def aplicar_balance_cuentas(request):
                         usuario=request.user
                     )
                     
-                    # ACTUALIZAR DIRECTAMENTE EL SALDO DE LA CUENTA RESERVA AL VALOR REAL
-                    cuenta_reserva.saldo_actual = saldo_real
-                    cuenta_reserva.save()
+                    # NO actualizamos saldo_actual de RESERVA porque se calcula dinámicamente
+                    # La transacción creada arriba ya representa el ajuste necesario
                     
                     transacciones_creadas += 1
                     resumen_cambios.append(f"Dinero Guardado: ${diferencia:+,.0f}")

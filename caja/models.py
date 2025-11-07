@@ -6,6 +6,8 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 from decimal import Decimal
 
 
@@ -139,15 +141,15 @@ class CajaRegistradora(models.Model):
     def calcular_monto_sistema(self):
         """
         Calcula el monto que debería haber EN EFECTIVO según los movimientos.
+        INCLUYE:
+        - Movimiento de apertura (dinero inicial en caja)
+        - Ingresos en efectivo (excluir banco)
         EXCLUYE:
-        - Movimientos de apertura (ya están en monto_inicial)
         - Entradas al banco (tienen [BANCO] en descripción)
         """
-        # Ingresos en efectivo (excluir apertura y banco)
+        # Ingresos en efectivo (incluir apertura, excluir banco)
         total_ingresos = self.movimientos.filter(
             tipo='INGRESO'
-        ).exclude(
-            tipo_movimiento__codigo='APERTURA'
         ).exclude(
             descripcion__icontains='[BANCO]'
         ).aggregate(
@@ -161,7 +163,9 @@ class CajaRegistradora(models.Model):
             total=models.Sum('monto')
         )['total'] or Decimal('0.00')
         
-        return self.monto_inicial + total_ingresos - total_egresos
+        # Ahora el cálculo es: total_ingresos - total_egresos
+        # (porque total_ingresos ya incluye la apertura)
+        return total_ingresos - total_egresos
     
     def cerrar_caja(self, monto_final_declarado, observaciones_cierre=''):
         """Cierra la caja calculando diferencias."""
@@ -302,6 +306,17 @@ class MovimientoCaja(models.Model):
     fecha_movimiento = models.DateTimeField(
         auto_now_add=True,
         verbose_name=_('Fecha del movimiento')
+    )
+    
+    # Relación con tesorería (para sincronización)
+    transaccion_asociada = models.OneToOneField(
+        'TransaccionGeneral',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='movimiento_caja_origen',
+        verbose_name=_('Transacción asociada'),
+        help_text=_('Transacción de tesorería generada por este movimiento')
     )
     
     class Meta:
@@ -559,6 +574,19 @@ class Cuenta(models.Model):
             raise ValueError(f'Fondos insuficientes en {self.nombre}')
         self.saldo_actual -= monto_decimal
         self.save()
+    
+    @classmethod
+    def get_cuenta_caja_virtual(cls):
+        """Obtiene o crea la cuenta virtual para tracking de caja."""
+        cuenta, created = cls.objects.get_or_create(
+            nombre='Caja Virtual',
+            defaults={
+                'tipo': 'RESERVA',
+                'saldo_actual': Decimal('0.00'),
+                'activo': False
+            }
+        )
+        return cuenta
 
 
 class TransaccionGeneral(models.Model):
@@ -648,3 +676,139 @@ class TransaccionGeneral(models.Model):
     
     def __str__(self):
         return f"{self.get_tipo_display()} - {self.tipo_movimiento.nombre} - ${self.monto:,.2f}"
+
+
+# ============================================================================
+# SEÑALES PARA SINCRONIZACIÓN AUTOMÁTICA
+# ============================================================================
+
+@receiver(post_save, sender='caja.CajaRegistradora')
+def crear_transaccion_apertura_caja(sender, instance, created, **kwargs):
+    """
+    Cuando se abre una caja, crear:
+    1. Movimiento de apertura en la caja 
+    2. Transacción en tesorería (Origen: caja, Tipo: apertura caja)
+    """
+    if created and instance.estado == 'ABIERTA':
+        # 1. Crear movimiento de apertura en la caja
+        tipo_apertura, _ = TipoMovimiento.objects.get_or_create(
+            codigo='APERTURA',
+            defaults={
+                'nombre': 'Apertura de Caja',
+                'descripcion': 'Dinero inicial al abrir la caja',
+                'tipo_base': TipoMovimiento.TipoBaseChoices.INTERNO,
+                'activo': True
+            }
+        )
+        
+        movimiento_apertura = MovimientoCaja.objects.create(
+            caja=instance,
+            tipo_movimiento=tipo_apertura,
+            tipo='INGRESO',
+            monto=instance.monto_inicial,
+            descripcion=f'Apertura de caja - Monto inicial: ${instance.monto_inicial:,.2f}',
+            usuario=instance.cajero
+        )
+        
+        # 2. Crear transacción en tesorería
+        # Primero obtener o crear cuenta "Caja" virtual para tracking
+        cuenta_caja_virtual, _ = Cuenta.objects.get_or_create(
+            nombre='Caja Virtual',
+            defaults={
+                'tipo': 'RESERVA',  # Usar RESERVA como tipo base
+                'saldo_actual': Decimal('0.00'),
+                'activo': False  # No mostrar en listados normales
+            }
+        )
+        
+        transaccion = TransaccionGeneral.objects.create(
+            tipo='INGRESO',
+            monto=instance.monto_inicial,
+            descripcion=f'Apertura caja - Cajero: {instance.cajero.username}',
+            referencia=f'APERTURA-CAJA-{instance.id}',
+            tipo_movimiento=tipo_apertura,
+            cuenta=cuenta_caja_virtual,
+            usuario=instance.cajero
+        )
+        
+        # Vincular movimiento y transacción
+        movimiento_apertura.transaccion_asociada = transaccion
+        movimiento_apertura.save()
+
+
+@receiver(post_save, sender='caja.MovimientoCaja')
+def crear_transaccion_tesoreria_desde_movimiento(sender, instance, created, **kwargs):
+    """
+    Cuando se crea un movimiento en caja (que no sea apertura), crear la transacción
+    correspondiente en tesorería con origen caja y tipo entrada:categoría o salida:categoría
+    """
+    if created and instance.tipo_movimiento.codigo != 'APERTURA':
+        # Obtener cuenta destino según el tipo de movimiento
+        if '[BANCO]' in instance.descripcion:
+            # Es una entrada al banco
+            cuenta_destino = Cuenta.objects.filter(tipo='BANCO', activo=True).first()
+            tipo_origen = 'banco'
+            descripcion_base = f'Entrada:{instance.tipo_movimiento.nombre}'
+        else:
+            # Es un movimiento de caja normal
+            cuenta_caja_virtual, _ = Cuenta.objects.get_or_create(
+                nombre='Caja Virtual',
+                defaults={
+                    'tipo': 'RESERVA',
+                    'saldo_actual': Decimal('0.00'),
+                    'activo': False
+                }
+            )
+            cuenta_destino = cuenta_caja_virtual
+            tipo_origen = 'caja'
+            
+            if instance.tipo == 'INGRESO':
+                descripcion_base = f'Entrada:{instance.tipo_movimiento.nombre}'
+            else:
+                descripcion_base = f'Salida:{instance.tipo_movimiento.nombre}'
+        
+        if cuenta_destino:
+            # Crear transacción en tesorería
+            transaccion = TransaccionGeneral.objects.create(
+                tipo=instance.tipo,  # INGRESO o EGRESO
+                monto=instance.monto,
+                descripcion=f'Origen {tipo_origen} - {descripcion_base} - {instance.descripcion}',
+                referencia=instance.referencia or f'MOV-{instance.id}',
+                tipo_movimiento=instance.tipo_movimiento,
+                cuenta=cuenta_destino,
+                usuario=instance.usuario
+            )
+            
+            # Vincular movimiento y transacción
+            instance.transaccion_asociada = transaccion
+            instance.save(update_fields=['transaccion_asociada'])
+            
+            # Actualizar saldo de cuenta si es banco
+            if cuenta_destino.tipo == 'BANCO':
+                if instance.tipo == 'INGRESO':
+                    cuenta_destino.saldo_actual += instance.monto
+                else:
+                    cuenta_destino.saldo_actual -= instance.monto
+                cuenta_destino.save(update_fields=['saldo_actual'])
+
+
+@receiver(post_delete, sender='caja.MovimientoCaja')
+def eliminar_transaccion_tesoreria_asociada(sender, instance, **kwargs):
+    """
+    Cuando se elimina un movimiento de caja, eliminar también su transacción asociada
+    y ajustar el saldo de la cuenta si es necesario
+    """
+    if instance.transaccion_asociada:
+        # Si hay cuenta banco asociada, ajustar saldo
+        if (instance.transaccion_asociada.cuenta and 
+            instance.transaccion_asociada.cuenta.tipo == 'BANCO'):
+            
+            cuenta = instance.transaccion_asociada.cuenta
+            if instance.tipo == 'INGRESO':
+                cuenta.saldo_actual -= instance.monto
+            else:
+                cuenta.saldo_actual += instance.monto
+            cuenta.save(update_fields=['saldo_actual'])
+        
+        # Eliminar transacción asociada
+        instance.transaccion_asociada.delete()
