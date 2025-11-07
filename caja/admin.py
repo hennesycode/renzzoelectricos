@@ -7,7 +7,8 @@ from django.utils.html import format_html
 from decimal import Decimal
 from .models import (
     CajaRegistradora, MovimientoCaja, TipoMovimiento,
-    DenominacionMoneda, ConteoEfectivo, DetalleConteo
+    DenominacionMoneda, ConteoEfectivo, DetalleConteo,
+    Cuenta, TransaccionGeneral
 )
 
 
@@ -417,6 +418,14 @@ class TipoMovimientoAdmin(admin.ModelAdmin):
             'fields': ('descripcion',)
         }),
     )
+
+    def has_add_permission(self, request):
+        """Deshabilitar creación de nuevos tipos desde el admin (las categorías por defecto son fijas)."""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """Deshabilitar eliminación desde el admin."""
+        return False
     
     def activo_badge(self, obj):
         """Muestra el estado activo con color."""
@@ -700,4 +709,184 @@ class DetalleConteoAdmin(admin.ModelAdmin):
             return format_html('<span style="color: red;">Error</span>')
     subtotal_fmt.short_description = 'Subtotal'
     subtotal_fmt.admin_order_field = 'subtotal'
+
+
+# ============================================================================
+# ADMINISTRADORES DE TESORERÍA
+# ============================================================================
+
+@admin.register(Cuenta)
+class CuentaAdmin(admin.ModelAdmin):
+    """
+    Administrador para Cuenta (Banco, Reserva).
+    """
+    list_display = (
+        'id',
+        'nombre',
+        'tipo_badge',
+        'saldo_actual_fmt',
+        'activo_badge',
+        'fecha_creacion'
+    )
+    list_filter = ('tipo', 'activo', 'fecha_creacion')
+    search_fields = ('nombre',)
+    ordering = ('tipo', 'nombre')
+    readonly_fields = ('fecha_creacion', 'saldo_actual')
+    
+    fieldsets = (
+        (_('Información Básica'), {
+            'fields': ('nombre', 'tipo', 'activo')
+        }),
+        (_('Saldo'), {
+            'fields': ('saldo_actual',)
+        }),
+        (_('Metadata'), {
+            'fields': ('fecha_creacion',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def tipo_badge(self, obj):
+        """Muestra el tipo con icono."""
+        if obj.tipo == 'BANCO':
+            icon = '🏦'
+            color = '#2196F3'
+        elif obj.tipo == 'RESERVA':
+            icon = '🔒'
+            color = '#4CAF50'
+        else:
+            icon = '❓'
+            color = 'gray'
+        return format_html(
+            '<span style="color: {};">{} {}</span>',
+            color,
+            icon,
+            obj.get_tipo_display()
+        )
+    tipo_badge.short_description = 'Tipo'
+    tipo_badge.admin_order_field = 'tipo'
+    
+    def saldo_actual_fmt(self, obj):
+        """Formatea el saldo actual."""
+        saldo = safe_decimal_to_float(obj.saldo_actual)
+        color = 'red' if saldo < 0 else 'green'
+        return format_html(
+            '<strong style="color: {};">${:,.0f}</strong>',
+            color,
+            saldo
+        )
+    saldo_actual_fmt.short_description = 'Saldo Actual'
+    saldo_actual_fmt.admin_order_field = 'saldo_actual'
+    
+    def activo_badge(self, obj):
+        """Muestra el estado activo con color."""
+        if obj.activo:
+            return format_html('<span style="color: green;">✓ Activo</span>')
+        return format_html('<span style="color: red;">✗ Inactivo</span>')
+    activo_badge.short_description = 'Estado'
+    activo_badge.admin_order_field = 'activo'
+
+
+@admin.register(TransaccionGeneral)
+class TransaccionGeneralAdmin(admin.ModelAdmin):
+    """
+    Administrador para TransaccionGeneral.
+    """
+    list_display = (
+        'id',
+        'fecha',
+        'tipo_badge',
+        'tipo_movimiento',
+        'monto_fmt',
+        'cuenta_info',
+        'usuario_info',
+        'referencia'
+    )
+    list_filter = ('tipo', 'tipo_movimiento', 'cuenta__tipo', 'fecha', 'usuario')
+    search_fields = (
+        'id',
+        'descripcion',
+        'referencia',
+        'usuario__username',
+        'cuenta__nombre',
+        'tipo_movimiento__nombre'
+    )
+    ordering = ('-fecha',)
+    readonly_fields = ('fecha',)
+    date_hierarchy = 'fecha'
+    
+    fieldsets = (
+        (_('Información de la Transacción'), {
+            'fields': ('tipo', 'tipo_movimiento', 'usuario', 'fecha')
+        }),
+        (_('Cuentas'), {
+            'fields': ('cuenta', 'cuenta_destino')
+        }),
+        (_('Detalles Financieros'), {
+            'fields': ('monto', 'descripcion', 'referencia')
+        }),
+        (_('Relaciones'), {
+            'fields': ('movimiento_caja_asociado',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def tipo_badge(self, obj):
+        """Muestra el tipo con color."""
+        if obj.tipo == 'INGRESO':
+            color = 'green'
+            icon = '↑'
+        elif obj.tipo == 'EGRESO':
+            color = 'red'
+            icon = '↓'
+        elif obj.tipo == 'TRANSFERENCIA':
+            color = 'blue'
+            icon = '↔'
+        else:
+            color = 'gray'
+            icon = '?'
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{} {}</span>',
+            color,
+            icon,
+            obj.get_tipo_display()
+        )
+    tipo_badge.short_description = 'Tipo'
+    tipo_badge.admin_order_field = 'tipo'
+    
+    def monto_fmt(self, obj):
+        """Formatea el monto con color."""
+        if obj.tipo == 'INGRESO':
+            color = 'green'
+            signo = '+'
+        elif obj.tipo == 'EGRESO':
+            color = 'red'
+            signo = '-'
+        else:
+            color = 'blue'
+            signo = ''
+        monto = safe_decimal_to_float(obj.monto)
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{} ${:,.0f}</span>',
+            color,
+            signo,
+            monto
+        )
+    monto_fmt.short_description = 'Monto'
+    monto_fmt.admin_order_field = 'monto'
+    
+    def cuenta_info(self, obj):
+        """Muestra información de la cuenta."""
+        info = f'{obj.cuenta.nombre}'
+        if obj.cuenta_destino:
+            info += f' → {obj.cuenta_destino.nombre}'
+        return format_html('<strong>{}</strong>', info)
+    cuenta_info.short_description = 'Cuenta(s)'
+    
+    def usuario_info(self, obj):
+        """Muestra información del usuario."""
+        full_name = obj.usuario.get_full_name() or obj.usuario.username
+        return format_html('<strong>{}</strong>', full_name)
+    usuario_info.short_description = 'Usuario'
+    usuario_info.admin_order_field = 'usuario__username'
 

@@ -137,13 +137,24 @@ class CajaRegistradora(models.Model):
             return timezone.now() - self.fecha_apertura
     
     def calcular_monto_sistema(self):
-        """Calcula el monto que debería haber según los movimientos."""
+        """
+        Calcula el monto que debería haber EN EFECTIVO según los movimientos.
+        EXCLUYE:
+        - Movimientos de apertura (ya están en monto_inicial)
+        - Entradas al banco (tienen [BANCO] en descripción)
+        """
+        # Ingresos en efectivo (excluir apertura y banco)
         total_ingresos = self.movimientos.filter(
             tipo='INGRESO'
+        ).exclude(
+            tipo_movimiento__codigo='APERTURA'
+        ).exclude(
+            descripcion__icontains='[BANCO]'
         ).aggregate(
             total=models.Sum('monto')
         )['total'] or Decimal('0.00')
         
+        # Todos los egresos (siempre salen de caja)
         total_egresos = self.movimientos.filter(
             tipo='EGRESO'
         ).aggregate(
@@ -171,6 +182,12 @@ class TipoMovimiento(models.Model):
     """
     Tipos de movimientos de caja (Venta, Gasto, Cambio, etc.).
     """
+    class TipoBaseChoices(models.TextChoices):
+        INGRESO = 'INGRESO', _('Ingreso')
+        GASTO = 'GASTO', _('Gasto Operativo')
+        INVERSION = 'INVERSION', _('Compra / Inversión')
+        INTERNO = 'INTERNO', _('Movimiento Interno')
+    
     nombre = models.CharField(
         max_length=50,
         unique=True,
@@ -178,7 +195,7 @@ class TipoMovimiento(models.Model):
     )
     
     codigo = models.CharField(
-        max_length=10,
+        max_length=20,
         unique=True,
         verbose_name=_('Código')
     )
@@ -193,6 +210,14 @@ class TipoMovimiento(models.Model):
         verbose_name=_('Activo')
     )
     
+    tipo_base = models.CharField(
+        max_length=20,
+        choices=TipoBaseChoices.choices,
+        default=TipoBaseChoices.GASTO,
+        verbose_name=_('Tipo Base'),
+        help_text=_('Categoría base para filtrado en tesorería')
+    )
+    
     class Meta:
         verbose_name = _('Tipo de Movimiento')
         verbose_name_plural = _('Tipos de Movimientos')
@@ -200,6 +225,23 @@ class TipoMovimiento(models.Model):
     
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
+
+    # Códigos fijos que deben existir por defecto y no pueden eliminarse
+    DEFAULT_CODES = {
+        'VENTA', 'COBRO_CXC', 'DEV_PAGO', 'REC_GASTOS',
+        'GASTO', 'COMPRA', 'FLETES', 'DEV_VENTA', 'SUELDOS', 'SUMINISTROS', 
+        'ALQUILER', 'MANTENIMIENTO', 'APERTURA'
+    }
+
+    def delete(self, *args, **kwargs):
+        """Impedir la eliminación de tipos de movimiento por defecto."""
+        try:
+            if self.codigo in self.DEFAULT_CODES:
+                raise Exception('No se permite eliminar tipos de movimiento por defecto')
+        except Exception:
+            # Re-raise as a ValueError para que Django lo maneje en admin/flows
+            raise
+        return super().delete(*args, **kwargs)
 
 
 class MovimientoCaja(models.Model):
@@ -409,3 +451,162 @@ class DetalleConteo(models.Model):
         """Calcula automáticamente el subtotal."""
         self.subtotal = self.cantidad * self.denominacion.valor
         super().save(*args, **kwargs)
+
+
+# ============================================================================
+# MODELOS DE TESORERÍA
+# ============================================================================
+
+class Cuenta(models.Model):
+    """
+    Representa cuentas financieras del negocio (Banco, Reserva).
+    La 'Caja' no es una cuenta porque su saldo es volátil y 
+    lo gestiona CajaRegistradora.
+    """
+    class TipoCuentaChoices(models.TextChoices):
+        BANCO = 'BANCO', _('Banco')
+        RESERVA = 'RESERVA', _('Reserva / Dinero Guardado')
+    
+    nombre = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name=_('Nombre de la cuenta')
+    )
+    
+    tipo = models.CharField(
+        max_length=20,
+        choices=TipoCuentaChoices.choices,
+        verbose_name=_('Tipo de cuenta')
+    )
+    
+    saldo_actual = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name=_('Saldo actual'),
+        help_text=_('Saldo disponible en esta cuenta')
+    )
+    
+    activo = models.BooleanField(
+        default=True,
+        verbose_name=_('Activo')
+    )
+    
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('Fecha de creación')
+    )
+    
+    class Meta:
+        verbose_name = _('Cuenta')
+        verbose_name_plural = _('Cuentas')
+        ordering = ['tipo', 'nombre']
+    
+    def __str__(self):
+        return f"{self.nombre} ({self.get_tipo_display()}) - ${self.saldo_actual:,.2f}"
+    
+    def tiene_fondos_suficientes(self, monto):
+        """Verifica si la cuenta tiene fondos suficientes."""
+        return self.saldo_actual >= monto
+    
+    def agregar_fondos(self, monto):
+        """Agrega fondos a la cuenta."""
+        self.saldo_actual += Decimal(str(monto))
+        self.save()
+    
+    def retirar_fondos(self, monto):
+        """Retira fondos de la cuenta (con validación)."""
+        monto_decimal = Decimal(str(monto))
+        if not self.tiene_fondos_suficientes(monto_decimal):
+            raise ValueError(f'Fondos insuficientes en {self.nombre}')
+        self.saldo_actual -= monto_decimal
+        self.save()
+
+
+class TransaccionGeneral(models.Model):
+    """
+    Log de todos los movimientos de Tesorería (Banco y Reserva).
+    Los movimientos de Caja se quedan en MovimientoCaja.
+    """
+    class TipoTransaccionChoices(models.TextChoices):
+        INGRESO = 'INGRESO', _('Ingreso')
+        EGRESO = 'EGRESO', _('Egreso')
+        TRANSFERENCIA = 'TRANSFERENCIA', _('Transferencia')
+    
+    fecha = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('Fecha de transacción')
+    )
+    
+    tipo = models.CharField(
+        max_length=20,
+        choices=TipoTransaccionChoices.choices,
+        verbose_name=_('Tipo de transacción')
+    )
+    
+    monto = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name=_('Monto')
+    )
+    
+    descripcion = models.TextField(
+        blank=True,
+        verbose_name=_('Descripción')
+    )
+    
+    referencia = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name=_('Referencia'),
+        help_text=_('Número de comprobante, recibo, etc.')
+    )
+    
+    # Relaciones
+    tipo_movimiento = models.ForeignKey(
+        TipoMovimiento,
+        on_delete=models.PROTECT,
+        verbose_name=_('Tipo de movimiento')
+    )
+    
+    cuenta = models.ForeignKey(
+        Cuenta,
+        on_delete=models.PROTECT,
+        related_name='transacciones',
+        verbose_name=_('Cuenta'),
+        help_text=_('Cuenta de origen (para egresos) o destino (para ingresos)')
+    )
+    
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        verbose_name=_('Usuario')
+    )
+    
+    # Relación opcional con MovimientoCaja (para tracking unificado)
+    movimiento_caja_asociado = models.OneToOneField(
+        'MovimientoCaja',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_('Movimiento de caja asociado')
+    )
+    
+    # Para transferencias entre cuentas
+    cuenta_destino = models.ForeignKey(
+        Cuenta,
+        on_delete=models.PROTECT,
+        related_name='transferencias_recibidas',
+        null=True,
+        blank=True,
+        verbose_name=_('Cuenta destino')
+    )
+    
+    class Meta:
+        verbose_name = _('Transacción General')
+        verbose_name_plural = _('Transacciones Generales')
+        ordering = ['-fecha']
+    
+    def __str__(self):
+        return f"{self.get_tipo_display()} - {self.tipo_movimiento.nombre} - ${self.monto:,.2f}"

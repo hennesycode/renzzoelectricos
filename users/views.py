@@ -18,11 +18,8 @@ def login_view(request):
     Vista personalizada de login con soporte AJAX y recordarme.
     """
     if request.user.is_authenticated:
-        # Si es staff, enviar al dashboard de Oscar, si no al perfil de cliente
-        if request.user.is_staff:
-            return redirect('/dashboard/')
-        else:
-            return redirect('customer:summary')
+        # Redirigir a caja
+        return redirect('/dashboard/caja/')
     
     # Verificar si es una petición AJAX
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
@@ -47,11 +44,8 @@ def login_view(request):
                 
                 login(request, user)
                 
-                # Determinar URL de redirección según el tipo de usuario
-                if user.is_staff:
-                    redirect_url = '/dashboard/'
-                else:
-                    redirect_url = str(reverse('customer:summary'))
+                # Redirigir a caja
+                redirect_url = '/dashboard/caja/'
                 
                 # Respuesta AJAX
                 if is_ajax:
@@ -136,8 +130,7 @@ def logout_view(request):
     Vista para cerrar sesión.
     """
     logout(request)
-    messages.info(request, _('Has cerrado sesión exitosamente.'))
-    return redirect('login')
+    return redirect('users:login')
 
 
 # La vista dashboard_view se ha eliminado - usamos el dashboard nativo de Oscar

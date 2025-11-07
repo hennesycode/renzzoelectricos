@@ -1,4 +1,4 @@
-{% extends 'oscar/dashboard/layout.html' %}
+{% extends 'dashboard/base.html' %}
 {% load i18n %}
 {% load static %}
 
@@ -6,13 +6,14 @@
     {% trans "Informes de Caja" %} | {{ block.super }}
 {% endblock %}
 
-{% block extrastyles %}
-{{ block.super }}
+{% block extra_css %}
 <link rel="stylesheet" href="{% static 'caja/css/informes.css' %}">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 {% endblock %}
 
-{% block dashboard_content %}
+{% block page_title %}Informes de Caja{% endblock %}
+
+{% block content %}
 <div class="informes-caja-container">
     <!-- Header -->
     <div class="informes-header">
@@ -304,7 +305,6 @@
 
 {% endblock %}
 
-{% block extrascripts %}
-{{ block.super }}
+{% block extra_js %}
 <script src="{% static 'caja/js/informes.js' %}"></script>
 {% endblock %}

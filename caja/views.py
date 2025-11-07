@@ -39,18 +39,28 @@ def caja_dashboard(request):
     total_ingresos = Decimal('0.00')
     total_egresos = Decimal('0.00')
     total_disponible = Decimal('0.00')
+    total_entradas_banco = Decimal('0.00')
     ultimos_movimientos = []
     
     if caja_actual:
         # Si hay caja abierta, calcular movimientos de ESA caja específica
         movimientos_caja = MovimientoCaja.objects.filter(caja=caja_actual)
         
-        # Excluir el movimiento de apertura del cálculo de ingresos
-        # para no duplicar el monto inicial
+        # Calcular total de entradas al banco (movimientos con [BANCO] en la descripción)
+        total_entradas_banco = movimientos_caja.filter(
+            tipo='INGRESO',
+            descripcion__icontains='[BANCO]'
+        ).aggregate(
+            total=Sum('monto')
+        )['total'] or Decimal('0.00')
+        
+        # Total de ingresos EN EFECTIVO (excluir apertura y banco)
         total_ingresos = movimientos_caja.filter(
             tipo='INGRESO'
         ).exclude(
             tipo_movimiento__codigo='APERTURA'
+        ).exclude(
+            descripcion__icontains='[BANCO]'
         ).aggregate(
             total=Sum('monto')
         )['total'] or Decimal('0.00')
@@ -59,8 +69,8 @@ def caja_dashboard(request):
             total=Sum('monto')
         )['total'] or Decimal('0.00')
         
-        # Total disponible = monto inicial + ingresos (sin apertura) - egresos
-        total_disponible = caja_actual.monto_inicial + total_ingresos - total_egresos
+        # Total disponible = monto inicial + ingresos efectivo + ingresos banco - egresos
+        total_disponible = caja_actual.monto_inicial + total_ingresos + total_entradas_banco - total_egresos
         
         # Mostrar TODOS los movimientos de la caja abierta (incluyendo apertura)
         ultimos_movimientos = movimientos_caja.select_related(
@@ -70,6 +80,7 @@ def caja_dashboard(request):
     estadisticas = {
         'total_ingresos': total_ingresos,
         'total_egresos': total_egresos,
+        'total_entradas_banco': total_entradas_banco,
         'numero_movimientos': len(ultimos_movimientos),
         'total_disponible': total_disponible,
     }
@@ -376,18 +387,36 @@ def nuevo_movimiento(request):
         return JsonResponse({'success': False, 'error': 'Payload inválido'}, status=400)
 
     tipo = payload.get('tipo')
-    tipo_movimiento_id = payload.get('tipo_movimiento')
+    tipo_movimiento_id = payload.get('tipo_movimiento')  # puede venir como id numérico o como código (string)
     monto = payload.get('monto', '0')
     descripcion = payload.get('descripcion', '')
     referencia = payload.get('referencia', '')
+    es_banco = payload.get('es_banco', False)  # Flag para identificar entradas al banco
 
     try:
         monto = Decimal(monto)
         if monto <= 0:
             raise ValueError('El monto debe ser mayor a cero')
 
-        tipo_movimiento = get_object_or_404(TipoMovimiento, id=tipo_movimiento_id)
+        # Resolver tipo_movimiento: primero intentar por id numérico, si falla buscar por codigo
+        tipo_movimiento = None
+        try:
+            # Si viene como número (string de dígitos) intentar por id
+            if isinstance(tipo_movimiento_id, int) or (isinstance(tipo_movimiento_id, str) and tipo_movimiento_id.isdigit()):
+                tipo_movimiento = TipoMovimiento.objects.get(id=int(tipo_movimiento_id))
+            else:
+                # Buscar por codigo (ej: 'VENTA', 'GASTO', etc.)
+                tipo_movimiento = TipoMovimiento.objects.get(codigo=str(tipo_movimiento_id))
+        except TipoMovimiento.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Tipo de movimiento no encontrado en el sistema. Pide al administrador que ejecute el script de inicialización para crear las categorías por defecto.'}, status=400)
 
+        # Si es entrada banco, agregar identificador en la descripción
+        if es_banco:
+            if descripcion:
+                descripcion = f"[BANCO] {descripcion}"
+            else:
+                descripcion = "[BANCO] Entrada al banco"
+        
         movimiento = MovimientoCaja.objects.create(
             caja=caja,
             tipo=tipo,
@@ -525,17 +554,27 @@ def obtener_estado_caja(request):
     # Calcular totales
     movimientos = MovimientoCaja.objects.filter(caja=caja)
     
+    # Calcular total de entradas al banco
+    total_entradas_banco = movimientos.filter(
+        tipo='INGRESO',
+        descripcion__icontains='[BANCO]'
+    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+    
+    # Total de ingresos EN EFECTIVO (excluir apertura y banco)
     total_ingresos = movimientos.filter(
         tipo='INGRESO'
     ).exclude(
         tipo_movimiento__codigo='APERTURA'
+    ).exclude(
+        descripcion__icontains='[BANCO]'
     ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
     
     total_egresos = movimientos.filter(
         tipo='EGRESO'
     ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
     
-    total_disponible = caja.monto_inicial + total_ingresos - total_egresos
+    # Total disponible = monto inicial + ingresos efectivo + ingresos banco - egresos
+    total_disponible = caja.monto_inicial + total_ingresos + total_entradas_banco - total_egresos
     
     # Calcular denominaciones esperadas (distribución óptima)
     # Este es un cálculo aproximado - en la realidad el efectivo puede variar
@@ -548,6 +587,7 @@ def obtener_estado_caja(request):
         'total_ingresos': float(total_ingresos),
         'total_egresos': float(total_egresos),
         'total_disponible': float(total_disponible),
+        'total_entradas_banco': float(total_entradas_banco),
         'denominaciones_esperadas': denominaciones_esperadas
     })
 
@@ -588,25 +628,40 @@ def obtener_tipos_movimiento(request):
 
     # Obtener el tipo de movimiento solicitado (INGRESO o EGRESO)
     tipo_filtro = request.GET.get('tipo', '').upper()
-    
-    # Definir códigos permitidos por tipo
-    CODIGOS_INGRESO = ['AJUSTE', 'CAMBIO', 'DEVOL', 'INGRESO', 'VENTA']
-    CODIGOS_EGRESO = ['GASTO', 'PAGO', 'RETIRO']
-    
-    # Filtrar tipos según el parámetro
-    if tipo_filtro == 'INGRESO':
-        tipos = TipoMovimiento.objects.filter(activo=True, codigo__in=CODIGOS_INGRESO)
-    elif tipo_filtro == 'EGRESO':
-        tipos = TipoMovimiento.objects.filter(activo=True, codigo__in=CODIGOS_EGRESO)
-    else:
-        # Si no se especifica tipo, devolver todos los activos (excepto APERTURA)
-        tipos = TipoMovimiento.objects.filter(activo=True).exclude(codigo='APERTURA')
-    
-    data = [
-        {'id': t.id, 'nombre': t.nombre, 'codigo': t.codigo}
-        for t in tipos.order_by('nombre')
+
+    # Listas fijas (ordenadas) solicitadas por el producto
+    CODIGOS_INGRESO_ORDERED = [
+        ('VENTA', 'Venta'),
+        ('COBRO_CXC', 'Cobro de Cuentas por Cobrar'),
+        ('DEV_PAGO', 'Devolución de un Pago'),
+        ('REC_GASTOS', 'Recuperación de Gastos'),
     ]
-    return JsonResponse({'success': True, 'tipos': data})
+
+    CODIGOS_EGRESO_ORDERED = [
+        ('GASTO', 'Gasto general'),
+        ('COMPRA', 'Compra de Mercadería'),
+        ('FLETES', 'Fletes y Transporte'),
+        ('DEV_VENTA', 'Devolución de Venta'),
+        ('SUELDOS', 'Sueldos y Salarios'),
+        ('SUMINISTROS', 'Suministros'),
+        ('ALQUILER', 'Alquiler y Servicios'),
+        ('MANTENIMIENTO', 'Mantenimiento y Reparaciones'),
+    ]
+
+    tipos = []
+    if tipo_filtro == 'INGRESO':
+        for codigo, nombre in CODIGOS_INGRESO_ORDERED:
+            tipos.append({'codigo': codigo, 'nombre': nombre})
+    elif tipo_filtro == 'EGRESO':
+        for codigo, nombre in CODIGOS_EGRESO_ORDERED:
+            tipos.append({'codigo': codigo, 'nombre': nombre})
+    else:
+        # Devolver todas las anteriores en un solo listado (INGRESOS primero, luego EGRESOS)
+        tipos = [
+            {'codigo': c, 'nombre': n} for c, n in (CODIGOS_INGRESO_ORDERED + CODIGOS_EGRESO_ORDERED)
+        ]
+
+    return JsonResponse({'success': True, 'tipos': tipos})
 
 
 @staff_or_permission_required('users.can_view_caja')

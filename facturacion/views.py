@@ -15,8 +15,9 @@ from django.utils import timezone
 from decimal import Decimal
 import json
 
-# Importar modelos de Oscar - Usar el modelo correcto después del fork
-from catalogue.models import Product
+# Importar modelos de Oscar - TEMPORALMENTE COMENTADO (Oscar removido)
+# from catalogue.models import Product
+Product = None  # Placeholder temporal
 
 # Importar modelos propios
 from .models import Factura, DetalleFactura

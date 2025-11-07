@@ -1,0 +1,95 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Estadísticas{% endblock %}
+{% block page_title %}Estadísticas de Caja{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title"><i class="fas fa-chart-line"></i> Estadísticas</h2>
+    </div>
+    <div style="padding: 20px;">
+        <form method="get" style="display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap;">
+            <input type="date" name="fecha_inicio" value="{{ fecha_inicio|date:'Y-m-d' }}"
+                   style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--bg-dark); color: var(--text-light);">
+            <input type="date" name="fecha_fin" value="{{ fecha_fin|date:'Y-m-d' }}"
+                   style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--bg-dark); color: var(--text-light);">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filtrar</button>
+        </form>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-arrow-up"></i></div>
+        <div class="stat-content">
+            <h3>Total Ingresos</h3>
+            <p>${{ total_ingresos|floatformat:0 }}</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-arrow-down"></i></div>
+        <div class="stat-content">
+            <h3>Total Egresos</h3>
+            <p>${{ total_egresos|floatformat:0 }}</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-balance-scale"></i></div>
+        <div class="stat-content">
+            <h3>Saldo Neto</h3>
+            <p>${{ saldo_neto|floatformat:0 }}</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-exchange-alt"></i></div>
+        <div class="stat-content">
+            <h3>Total Movimientos</h3>
+            <p>{{ total_movimientos }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title"><i class="fas fa-list"></i> Últimos Movimientos</h2>
+    </div>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Descripción</th>
+                    <th>Monto</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mov in ultimos_movimientos %}
+                <tr>
+                    <td>{{ mov.fecha_movimiento|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        {% if mov.tipo == 'INGRESO' %}
+                            <span class="badge badge-success">INGRESO</span>
+                        {% else %}
+                            <span class="badge badge-danger">EGRESO</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ mov.descripcion }}</td>
+                    <td>${{ mov.monto|floatformat:0 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center" style="padding: 30px; color: var(--text-muted);">
+                        No hay movimientos en este período
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

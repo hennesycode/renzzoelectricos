@@ -48,50 +48,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.sites',  # Requerido por Oscar
-    'django.contrib.flatpages',  # Requerido por Oscar
+    'django.contrib.sites',  # Mantenemos para compatibilidad
     
     # Apps de terceros
     'django_extensions',
-    
-    # Django Oscar
-    'oscar.config.Shop',
-    'oscar.apps.analytics.apps.AnalyticsConfig',
-    'oscar.apps.checkout.apps.CheckoutConfig',
-    'oscar.apps.address.apps.AddressConfig',
-    'oscar.apps.shipping.apps.ShippingConfig',
-    'catalogue.apps.CatalogueConfig',  # Forked para fix MySQL
-    'oscar.apps.catalogue.reviews.apps.CatalogueReviewsConfig',
-    'oscar.apps.communication.apps.CommunicationConfig',
-    'oscar.apps.partner.apps.PartnerConfig',
-    'oscar.apps.basket.apps.BasketConfig',
-    'oscar.apps.payment.apps.PaymentConfig',
-    'oscar.apps.offer.apps.OfferConfig',
-    'oscar.apps.order.apps.OrderConfig',
-    'oscar.apps.customer.apps.CustomerConfig',
-    'oscar.apps.search.apps.SearchConfig',
-    'oscar.apps.voucher.apps.VoucherConfig',
-    'oscar.apps.wishlists.apps.WishlistsConfig',
-    'oscar.apps.dashboard.apps.DashboardConfig',
-    'oscar.apps.dashboard.reports.apps.ReportsDashboardConfig',
-    'oscar.apps.dashboard.users.apps.UsersDashboardConfig',
-    'oscar.apps.dashboard.orders.apps.OrdersDashboardConfig',
-    'oscar.apps.dashboard.catalogue.apps.CatalogueDashboardConfig',
-    'oscar.apps.dashboard.offers.apps.OffersDashboardConfig',
-    'oscar.apps.dashboard.partners.apps.PartnersDashboardConfig',
-    'oscar.apps.dashboard.pages.apps.PagesDashboardConfig',
-    'oscar.apps.dashboard.ranges.apps.RangesDashboardConfig',
-    'oscar.apps.dashboard.reviews.apps.ReviewsDashboardConfig',
-    'oscar.apps.dashboard.vouchers.apps.VouchersDashboardConfig',
-    'oscar.apps.dashboard.communications.apps.CommunicationsDashboardConfig',
-    'oscar.apps.dashboard.shipping.apps.ShippingDashboardConfig',
-    
-    # Dependencias de Oscar
-    'widget_tweaks',
-    'haystack',
-    'treebeard',
-    'sorl.thumbnail',
-    'django_tables2',
     
     # Apps locales
     'users.apps.UsersConfig',
@@ -113,7 +73,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'oscar.apps.basket.middleware.BasketMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -134,10 +93,6 @@ TEMPLATES = [
                 'django.template.context_processors.i18n',
                 'django.template.context_processors.media',
                 'django.template.context_processors.static',
-                'oscar.apps.search.context_processors.search_form',
-                'oscar.apps.checkout.context_processors.checkout',
-                'oscar.apps.communication.notifications.context_processors.notifications',
-                'oscar.core.context_processors.metadata',
             ],
         },
     },
@@ -240,131 +195,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Configuración de autenticación personalizada
 AUTH_USER_MODEL = 'users.User'
 
-# Configuración de Oscar
-from oscar.defaults import *  # noqa
-
-# --- Añadir entrada 'Caja' al menú del dashboard de Oscar ---
-# Inserta el item junto a 'Dashboard' para integrarlo con la navegación de Oscar.
-try:
-    # Evitar duplicados: solo insertar si no existe ya una entrada apuntando a 'caja:dashboard'
-    _exists = any(item.get('url_name') == 'caja:dashboard' for item in OSCAR_DASHBOARD_NAVIGATION)
-except Exception:
-    _exists = False
-
-if not _exists:
-    from django.utils.translation import gettext_lazy as _
-
-    # Definir un access_fn callable que delega en la función dentro de la app `caja`.
-    # Permitir acceso a staff/superuser por defecto, o delegar al permiso específico.
-    def _caja_access_fn(user, url_name, url_args=None, url_kwargs=None):
-        """
-        Control de acceso para el menú Caja en Oscar Dashboard.
-        Permite: staff, superuser, o usuarios con permiso 'users.can_view_caja'
-        """
-        if not user or not user.is_authenticated:
-            return False
-        
-        # Permitir acceso a staff/superuser sin verificar permisos
-        if user.is_staff or user.is_superuser:
-            return True
-        
-        # Para usuarios no-staff, verificar permiso específico
-        try:
-            from caja.dashboard import caja_access_fn
-            return caja_access_fn(user, url_name, url_args, url_kwargs)
-        except Exception:
-            return False
-
-    # Menú Caja - Directo al Dashboard
-    OSCAR_CAJAS_NAV_ITEM = {
-        'label': _('Caja'),
-        'icon': 'fas fa-cash-register',
-        'url_name': 'caja:dashboard',
-        'access_fn': _caja_access_fn,
-    }
-    
-    # Menú Informes - Con submenú Caja
-    OSCAR_INFORMES_NAV_ITEM = {
-        'label': _('Informes'),
-        'icon': 'fas fa-chart-line',
-        'children': [
-            {
-                'label': _('Caja'),
-                'url_name': 'caja:informes',
-                'access_fn': _caja_access_fn,
-            },
-        ]
-    }
-    
-    # Menú Contabilidad - Con submenús Facturación, Nómina, Gastos
-    OSCAR_CONTABILIDAD_NAV_ITEM = {
-        'label': _('Contabilidad'),
-        'icon': 'fas fa-calculator',
-        'children': [
-            {
-                'label': _('Facturación'),
-                'url_name': 'facturacion:index',
-            },
-            # TODO: Implementar módulos de Nómina y Gastos
-            # {
-            #     'label': _('Nómina'),
-            #     'url_name': 'nomina:index',
-            # },
-            # {
-            #     'label': _('Gastos'),
-            #     'url_name': 'gastos:index',
-            # },
-        ]
-    }
-
-    # Insertar justo después del primer elemento (Dashboard)
-    try:
-        OSCAR_DASHBOARD_NAVIGATION.insert(1, OSCAR_CAJAS_NAV_ITEM)
-        # Agregar Contabilidad después de Caja
-        OSCAR_DASHBOARD_NAVIGATION.insert(2, OSCAR_CONTABILIDAD_NAV_ITEM)
-        # Agregar Informes al final del menú
-        OSCAR_DASHBOARD_NAVIGATION.append(OSCAR_INFORMES_NAV_ITEM)
-    except Exception:
-        # Si por alguna razón OSCAR_DASHBOARD_NAVIGATION no es una lista, ignorar
-        pass
-
-
-# Configuración de moneda para Colombia
-OSCAR_DEFAULT_CURRENCY = 'COP'
-OSCAR_CURRENCY_FORMAT = {
-    'COP': {
-        'format': '#,##0',
-        'currency_digits': False,
-    }
-}
-
-# Configuración de Haystack (búsqueda)
-HAYSTACK_CONNECTIONS = {
-    'default': {
-        'ENGINE': 'haystack.backends.simple_backend.SimpleEngine',
-    },
-}
-
-# Configuración de autenticación
-AUTHENTICATION_BACKENDS = (
-    'oscar.apps.customer.auth_backends.EmailBackend',
+# Backend de autenticación
+AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
-)
+]
 
 # URLs de login/logout
 LOGIN_URL = '/accounts/login/'
-# Los usuarios staff van al dashboard, los clientes al perfil - esto se maneja en la vista
-LOGIN_REDIRECT_URL = '/accounts/profile/'  # Por defecto al perfil de cliente
+LOGIN_REDIRECT_URL = '/dashboard/caja/'
 LOGOUT_REDIRECT_URL = '/'
 
-# Configuración del pipeline de órdenes de Oscar
-OSCAR_INITIAL_ORDER_STATUS = 'Pending'
-OSCAR_INITIAL_LINE_STATUS = 'Pending'
-OSCAR_ORDER_STATUS_PIPELINE = {
-    'Pending': ('Being processed', 'Cancelled',),
-    'Being processed': ('Processed', 'Cancelled',),
-    'Cancelled': (),
-}
+# Site ID
+SITE_ID = 1
 
 # Configuración de sesión
 SESSION_COOKIE_AGE = 1209600  # 2 semanas
@@ -393,24 +235,4 @@ CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
 SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=0)  # 0 = desactivado
 # Redirección SSL (False porque Cloudflare maneja HTTPS)
 SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=False)
-
-# Configuración de Oscar específica
-OSCAR_SHOP_NAME = 'Renzzo Eléctricos'
-OSCAR_ALLOW_ANON_CHECKOUT = False
-OSCAR_REQUIRED_ADDRESS_FIELDS = ('first_name', 'last_name', 'line1', 'line4', 'postcode', 'country')
-
-# ================================================================
-# DJANGO-TREEBEARD FIX PARA MYSQL
-# ================================================================
-# Fix para error MySQL: "You can't specify target table for update in FROM clause"
-# Este error ocurre cuando treebeard intenta hacer UPDATE con subconsultas
-# Documentación: https://django-treebeard.readthedocs.io/en/latest/caveats.html#mysql
-# 
-# Solución: Modificar sql_mode de MySQL para permitir las operaciones de treebeard
-# Agregamos init_command para configurar la sesión MySQL automáticamente
-DATABASES['default']['OPTIONS'] = DATABASES['default'].get('OPTIONS', {})
-DATABASES['default']['OPTIONS']['init_command'] = (
-    "SET sql_mode='STRICT_TRANS_TABLES';"  # Quitar ONLY_FULL_GROUP_BY
-    "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;"
-)
 

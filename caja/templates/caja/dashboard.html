@@ -1,27 +1,17 @@
-{% extends "oscar/dashboard/layout.html" %}
+{% extends "dashboard/base.html" %}
 {% load static %}
 {% load caja_filters %}
 
 {% block title %}Sistema de Caja - Renzzo Eléctricos{% endblock %}
 
-{% block extrastyles %}
-    {{ block.super }}
+{% block extra_css %}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{% static 'caja/css/caja-modern.css' %}">
 {% endblock %}
 
-{% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' %}">Panel</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Caja</li>
-        </ol>
-    </nav>
-{% endblock %}
+{% block page_title %}Gestión de Caja{% endblock %}
 
-{% block headertext %}Gestión de Caja{% endblock %}
-
-{% block dashboard_content %}
+{% block content %}
 <style>
     /* Animaciones generales */
     @keyframes fadeInUp {
@@ -49,17 +39,17 @@
     .caja-btn {
         border-radius: 14px;
         padding: 16px 32px;
-        font-size: 16px;
-        font-weight: 600;
+        font-size: 15px;
+        font-weight: 700;
         border: none;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 12px;
+        gap: 10px;
         transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-        min-width: 200px;
-        margin: 0 8px;
+        min-width: 180px;
+        margin: 0;
         position: relative;
         overflow: hidden;
         animation: fadeInUp 0.6s ease-out;
@@ -114,19 +104,21 @@
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 0;
-        margin: 0 -8px;
+        align-items: center;
+        gap: 12px;
+        margin: 0 auto;
         animation: fadeIn 0.8s ease-out;
+        max-width: 900px;
     }
     
     /* Cards de resumen mejoradas con animación */
     .resumen-card {
         border-radius: 20px;
-        padding: 35px;
+        padding: 30px 20px;
         text-align: center;
         color: white;
         box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-        min-height: 180px;
+        min-height: 160px;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -135,6 +127,10 @@
         overflow: hidden;
         animation: fadeInUp 0.8s ease-out;
     }
+
+    /* Variantes utilitarias para asegurar tamaño completo en columnas flex */
+    .resumen-card.w-100 { width: 100%; }
+    .resumen-card.h-100 { height: 100%; min-height: 100%; }
     
     .resumen-card::before {
         content: '';
@@ -155,6 +151,41 @@
     .resumen-card:hover::before {
         transform: translate(20%, 20%);
     }
+
+    /* Garantizar que las tarjetas siempre tengan la misma altura y se estiren dentro de la celda */
+    .resumen-card { box-sizing: border-box; flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; }
+
+    /* Clases para reducir ligeramente el tamaño del texto cuando el contenido es largo */
+    .resumen-small h2 { font-size: clamp(1.4rem, 3.0vw, 2.1rem); }
+    .resumen-small p  { font-size: clamp(0.85rem, 1.4vw, 0.95rem); }
+
+    .resumen-xsmall h2 { font-size: clamp(1.1rem, 2.4vw, 1.6rem); }
+    .resumen-xsmall p  { font-size: clamp(0.8rem, 1.0vw, 0.85rem); }
+
+    /* Permitir que el texto haga wrap y no rompa el tamaño de la tarjeta */
+    .resumen-card p, .resumen-card h2 { white-space: normal; word-break: break-word; }
+
+    /* Grid responsiva para mostrar hasta 4 columnas de tarjetas */
+    .resumen-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .resumen-cell { display: flex; }
+
+    /* Ajustes para pantallas intermedias y pequeñas */
+    @media (max-width: 1200px) {
+        .resumen-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 900px) {
+        .resumen-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+        .resumen-grid { grid-template-columns: 1fr; }
+        .caja-btn { width: 100%; }
+    }
     
     .resumen-disponible { 
         background: linear-gradient(135deg, #2196F3 0%, #0D47A1 100%); 
@@ -170,8 +201,8 @@
     }
     
     .resumen-card h2 { 
-        font-size: 2.8rem; 
-        margin: 12px 0; 
+        font-size: clamp(1.6rem, 3.5vw, 2.5rem);
+        margin: 8px 0; 
         font-weight: 800;
         text-shadow: 0 2px 10px rgba(0,0,0,0.3);
         animation: pulse 2s ease-in-out infinite;
@@ -180,12 +211,12 @@
     }
     
     .resumen-card p { 
-        font-size: 1.1rem; 
+        font-size: clamp(0.9rem, 1.6vw, 1rem);
         margin: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
+        gap: 8px;
         font-weight: 600;
         text-shadow: 0 1px 3px rgba(0,0,0,0.2);
         position: relative;
@@ -270,15 +301,19 @@
     /* Responsive mejorado */
     @media (max-width: 768px) {
         .caja-btn {
-            min-width: 160px;
-            padding: 14px 24px;
+            min-width: 150px;
+            padding: 14px 20px;
             font-size: 14px;
-            margin: 5px 4px;
+            margin: 0;
+        }
+        
+        .botones-caja-container {
+            gap: 8px;
         }
         
         .resumen-card {
-            padding: 25px;
-            min-height: 140px;
+            padding: 20px 15px;
+            min-height: 120px;
         }
         
         .resumen-card h2 {
@@ -286,7 +321,7 @@
         }
         
         .resumen-card p {
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
         
         .movimientos-table thead th {
@@ -324,6 +359,10 @@
                         <i class="bi bi-dash-circle-fill" style="font-size: 1.2rem;"></i>
                         Registrar Salida
                     </button>
+                    <button id="btn-entrada-banco" class="caja-btn btn-banco" aria-label="Entrada banco">
+                        <i class="fas fa-university me-2" aria-hidden="true" style="font-size:1.2rem;"></i>
+                        Entrada BANCO
+                    </button>
                 </div>
             {% else %}
                 <button id="btn-open-caja" class="caja-btn btn-abrir">
@@ -335,36 +374,49 @@
     </div>
 
     <!-- Resumen - SIEMPRE MOSTRAR (abierta o cerrada) -->
-    <h3 class="mb-3 text-center fw-bold">
-        {% if caja_actual %}
-            Resumen Caja Abierta
-            <small class="text-muted" style="font-size: 0.8rem;">(Abierta por {{ caja_actual.cajero.get_full_name|default:caja_actual.cajero.username }})</small>
-            <br>
-            <small class="text-success" style="font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;">
+    {% if caja_actual %}
+        <h3 class="mb-1 text-center fw-bold">Resumen Caja Abierta</h3>
+        <div class="text-center abierta-por">Abierta por {{ caja_actual.cajero.get_full_name|default:caja_actual.cajero.username }}</div>
+        <div class="text-center mt-2">
+            <small class="text-success" style="font-size: 0.95rem; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
                 <i class="bi bi-cash-stack"></i>
                 Abierta con: ${{ caja_actual.monto_inicial|formato_pesos_colombia }}
             </small>
-        {% else %}
-            Resumen de Caja
-        {% endif %}
-    </h3>
-    <div class="row mb-5 g-3">
-        <div class="col-md-4">
-            <div class="resumen-card resumen-disponible">
-                <p><i class="bi bi-wallet2"></i> Total Disponible</p>
-                <h2 id="total-disponible">${{ estadisticas.total_disponible|formato_pesos_colombia }}</h2>
-            </div>
         </div>
-        <div class="col-md-4">
-            <div class="resumen-card resumen-entradas">
-                <p><i class="bi bi-arrow-up-circle"></i> Total en Entradas</p>
-                <h2 id="total-entradas">${{ estadisticas.total_ingresos|formato_pesos_colombia }}</h2>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="resumen-card resumen-salidas">
-                <p><i class="bi bi-arrow-down-circle"></i> Total en Salidas</p>
-                <h2 id="total-salidas">${{ estadisticas.total_egresos|formato_pesos_colombia }}</h2>
+    {% else %}
+        <h3 class="mb-3 text-center fw-bold">Resumen de Caja</h3>
+    {% endif %}
+    <div class="row mb-4 g-3">
+        <div class="col-12">
+            <!-- Grid responsiva de 4 columnas para tarjetas de resumen -->
+            <div class="resumen-grid">
+                <div class="resumen-cell">
+                    <div class="resumen-card resumen-disponible w-100 h-100">
+                        <p><i class="bi bi-wallet2"></i> Total Disponible</p>
+                        <h2 id="total-disponible">${{ estadisticas.total_disponible|formato_pesos_colombia }}</h2>
+                    </div>
+                </div>
+
+                <div class="resumen-cell">
+                    <div class="resumen-card resumen-entradas w-100 h-100">
+                        <p><i class="bi bi-arrow-up-circle"></i> Total en Entradas</p>
+                        <h2 id="total-entradas">${{ estadisticas.total_ingresos|formato_pesos_colombia }}</h2>
+                    </div>
+                </div>
+
+                <div class="resumen-cell">
+                    <div class="resumen-card resumen-salidas w-100 h-100">
+                        <p><i class="bi bi-arrow-down-circle"></i> Total en Salidas</p>
+                        <h2 id="total-salidas">${{ estadisticas.total_egresos|formato_pesos_colombia }}</h2>
+                    </div>
+                </div>
+
+                <div class="resumen-cell">
+                    <div class="resumen-card resumen-banco w-100 h-100">
+                        <p><i class="bi bi-unlock"></i> Entradas Banco</p>
+                        <h2 id="total-entradas-banco">${{ estadisticas.total_entradas_banco|default:0|formato_pesos_colombia }}</h2>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -376,22 +428,23 @@
     <div class="movimientos-table">
         {% if ultimos_movimientos %}
         <table class="table table-hover mb-0">
-            <thead>
+            <thead style="background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%); color: white;">
                 <tr>
-                    <th>Fecha y Hora</th>
-                    <th>Usuario</th>
-                    <th>Motivo</th>
-                    <th class="text-end">Total</th>
+                    <th style="color: white; font-weight: 600;">Fecha y Hora</th>
+                    <th style="color: white; font-weight: 600;">Usuario</th>
+                    <th style="color: white; font-weight: 600;">Motivo</th>
+                    <th style="color: white; font-weight: 600;">Referencia</th>
+                    <th class="text-end" style="color: white; font-weight: 600;">Total</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody style="background: white;">
                 {% for movimiento in ultimos_movimientos %}
                 <tr>
-                    <td><strong>{{ movimiento.fecha_movimiento|date:"d/m/Y H:i:s" }}</strong></td>
-                    <td>
+                    <td style="color: #333;"><strong>{{ movimiento.fecha_movimiento|date:"d/m/Y H:i:s" }}</strong></td>
+                    <td style="color: #333;">
                         <strong>{{ movimiento.usuario.get_full_name|default:movimiento.usuario.username }}</strong>
                     </td>
-                    <td>
+                    <td style="color: #333;">
                         {% if movimiento.tipo == 'INGRESO' %}
                             <span class="badge bg-success">
                                 <i class="bi bi-arrow-up"></i> {{ movimiento.tipo_movimiento.nombre }}
@@ -403,6 +456,15 @@
                         {% endif %}
                         <br>
                         <small class="text-muted">{{ movimiento.descripcion|default:"Sin descripción" }}</small>
+                    </td>
+                    <td style="color: #333;">
+                        {% if movimiento.referencia %}
+                            <span class="badge bg-info text-dark">
+                                <i class="bi bi-tag"></i> {{ movimiento.referencia }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted small">—</span>
+                        {% endif %}
                     </td>
                     <td class="text-end">
                         {% if movimiento.tipo == 'INGRESO' %}
@@ -425,8 +487,7 @@
 </div>
 {% endblock %}
 
-{% block extrascripts %}
-    {{ block.super }}
+{% block extra_js %}
     <script>
         // URLs para uso por los JS estáticos
         window.CAJA_URLS = {
@@ -441,6 +502,30 @@
             ultimo_cierre: "{% url 'caja:ultimo_cierre' %}",
             dashboard: "{% url 'caja:dashboard' %}"
         };
+    </script>
+    <script>
+        (function(){
+            function adjustResumenCards(){
+                var cards = document.querySelectorAll('.resumen-card');
+                if(!cards) return;
+                cards.forEach(function(card){
+                    card.classList.remove('resumen-small','resumen-xsmall');
+                    var p = card.querySelector('p');
+                    var h2 = card.querySelector('h2');
+                    var textLen = 0;
+                    if(p && p.innerText) textLen += p.innerText.trim().length;
+                    if(h2 && h2.innerText) textLen += h2.innerText.trim().length;
+                    var vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+                    var smallThreshold = 40; var xsmallThreshold = 80;
+                    if (vw < 900) { smallThreshold = 30; xsmallThreshold = 60; }
+                    if (textLen > xsmallThreshold) card.classList.add('resumen-xsmall');
+                    else if (textLen > smallThreshold) card.classList.add('resumen-small');
+                });
+            }
+            window.addEventListener('DOMContentLoaded', adjustResumenCards);
+            var _rTO = null;
+            window.addEventListener('resize', function(){ clearTimeout(_rTO); _rTO = setTimeout(adjustResumenCards, 120); });
+        })();
     </script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

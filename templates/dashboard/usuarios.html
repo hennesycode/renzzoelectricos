@@ -1,0 +1,85 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Usuarios{% endblock %}
+{% block page_title %}Gestión de Usuarios{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title"><i class="fas fa-users"></i> Lista de Usuarios</h2>
+        <div>
+            <a href="{% url 'users:user-create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nuevo Usuario
+            </a>
+        </div>
+    </div>
+    
+    <div style="padding: 20px;">
+        <form method="get" style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+            <input type="text" name="search" placeholder="Buscar usuario..." value="{{ search }}" 
+                   style="flex: 1; min-width: 200px; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--bg-dark); color: var(--text-light);">
+            <select name="status" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--bg-dark); color: var(--text-light);">
+                <option value="">Todos</option>
+                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Activos</option>
+                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactivos</option>
+                <option value="staff" {% if status_filter == 'staff' %}selected{% endif %}>Staff</option>
+            </select>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Buscar</button>
+        </form>
+        
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Nombre Completo</th>
+                        <th>Email</th>
+                        <th>Estado</th>
+                        <th>Tipo</th>
+                        <th>Fecha Registro</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td><strong>{{ usuario.username }}</strong></td>
+                        <td>{{ usuario.get_full_name|default:"-" }}</td>
+                        <td>{{ usuario.email }}</td>
+                        <td>
+                            {% if usuario.is_active %}
+                                <span class="badge badge-success">Activo</span>
+                            {% else %}
+                                <span class="badge badge-danger">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.is_superuser %}
+                                <span class="badge badge-danger">Superusuario</span>
+                            {% elif usuario.is_staff %}
+                                <span class="badge badge-warning">Staff</span>
+                            {% else %}
+                                <span class="badge badge-success">Usuario</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ usuario.date_joined|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'users:user-update' usuario.pk %}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center" style="padding: 30px;">
+                            <i class="fas fa-users" style="font-size: 48px; color: var(--text-muted); margin-bottom: 10px;"></i>
+                            <p style="color: var(--text-muted);">No se encontraron usuarios</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

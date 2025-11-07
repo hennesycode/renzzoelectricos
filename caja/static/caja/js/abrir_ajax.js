@@ -30,6 +30,11 @@ document.addEventListener('DOMContentLoaded', function(){
             if (respDen.ok) {
                 const json = await respDen.json();
                 denominaciones = (json && json.denominaciones) ? json.denominaciones : [];
+            } else {
+                // Log detallado para depuración: en caso de 403/500 el response puede ser HTML
+                const text = await respDen.text();
+                console.warn('[abrir_ajax] denominaciones: respuesta no OK', respDen.status, respDen.statusText);
+                console.debug('[abrir_ajax] denominaciones body:', text);
             }
         } catch (e) {
             console.warn('No se pudieron cargar denominaciones, se usará campo de monto simple', e);
@@ -44,6 +49,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 if (json.success && json.hay_cierre_anterior) {
                     ultimoCierre = json;
                 }
+            } else {
+                const text = await respCierre.text();
+                console.warn('[abrir_ajax] ultimo_cierre: respuesta no OK', respCierre.status, respCierre.statusText);
+                console.debug('[abrir_ajax] ultimo_cierre body:', text);
             }
         } catch (e) {
             console.warn('No se pudo cargar el último cierre', e);
@@ -60,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 minimumFractionDigits: 0
             }).format(ultimoCierre.dinero_en_caja);
             
-            html += `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            html += `<div style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); 
                             color: white; 
                             padding: 15px; 
                             border-radius: 10px; 

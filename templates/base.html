@@ -44,17 +44,22 @@
                             <i class="bi bi-speedometer2"></i> Dashboard
                         </a>
                     </li>
-                    {% if user.has_perm('users.can_manage_users') %}
+                    {% if perms.users.can_manage_users %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'user_list' %}">
                             <i class="bi bi-people"></i> Usuarios
                         </a>
                     </li>
                     {% endif %}
-                    {% if user.has_perm('users.can_view_caja') %}
+                    {% if perms.users.can_view_caja %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'caja:dashboard' %}">
                             <i class="bi bi-cash-coin"></i> Caja
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'caja:tesoreria_dashboard' %}">
+                            <i class="bi bi-bank"></i> Tesorería
                         </a>
                     </li>
                     {% endif %}
@@ -72,7 +77,7 @@
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="#"><i class="bi bi-person"></i> Perfil</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Cerrar Sesión</a></li>
+                            <li><a class="dropdown-item" href="{% url 'users:logout' %}"><i class="bi bi-box-arrow-right"></i> Cerrar Sesión</a></li>
                         </ul>
                     </li>
                 </ul>

@@ -1,16 +1,15 @@
-{% extends "oscar/dashboard/layout.html" %}
+{% extends "dashboard/base.html" %}
 {% load static %}
 
 {% block title %}Historial de Cajas - Renzzo Eléctricos{% endblock %}
 
-{% block extrastyles %}
-    {{ block.super }}
+{% block extra_css %}
     <link rel="stylesheet" href="{% static 'caja/css/caja.css' %}">
 {% endblock %}
 
-{% block headertext %}Historial de Cajas{% endblock %}
+{% block page_title %}Historial de Cajas{% endblock %}
 
-{% block dashboard_content %}
+{% block content %}
 <div class="container-fluid mt-4">
     <div class="row">
         <div class="col-12">
@@ -209,7 +208,6 @@
 </div>
 {% endblock %}
 
-{% block extrascripts %}
-    {{ block.super }}
+{% block extra_js %}
     <script src="{% static 'caja/js/caja.js' %}"></script>
 {% endblock %}

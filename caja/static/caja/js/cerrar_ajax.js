@@ -53,6 +53,10 @@ async function openCerrarModal(){
     }
     
     const totalDisponible = estadoCaja.total_disponible;
+    const totalEntradasBanco = estadoCaja.total_entradas_banco || 0;
+    
+    // Debe Haber en Caja = Total Disponible - Entradas Banco
+    const debeHaberEnCaja = totalDisponible - totalEntradasBanco;
     
     // Separar y ordenar billetes y monedas
     const billetes = denoms.filter(d => d.tipo.toUpperCase() === 'BILLETE').sort((a, b) => b.valor - a.valor);
@@ -60,25 +64,28 @@ async function openCerrarModal(){
 
     let html = '<div class="denominaciones-container" style="text-align: left;">';
     
-    // 1. Mostrar "Debe Haber" (total teórico del sistema)
-    const totalDisponibleFormateado = formatearMoneda(totalDisponible);
+    // 1. Mostrar "Debe Haber en Caja" (total teórico SIN incluir entradas banco)
+    const debeHaberFormateado = formatearMoneda(debeHaberEnCaja);
     
-    html += `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+    html += `<div style="background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%); 
                         color: white; 
                         padding: 15px; 
                         border-radius: 10px; 
                         margin-bottom: 15px; 
-                        text-align: center;">`;
-    html += `<h3 style="margin: 0; font-size: 1.2rem;">💰 Debe Haber</h3>`;
-    html += `<p style="margin: 10px 0 0 0; font-size: 1.8rem; font-weight: bold;">${totalDisponibleFormateado}</p>`;
+                        text-align: center;
+                        box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);">`;
+    html += `<h3 style="margin: 0; font-size: 1.2rem;">💰 Debe Haber en Caja</h3>`;
+    html += `<p style="margin: 10px 0 5px 0; font-size: 1.8rem; font-weight: bold;">${debeHaberFormateado}</p>`;
+    html += `<p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">(Entradas banco no incluidas)</p>`;
     html += `</div>`;
     
-    // 2. Nueva sección: "¿Cuánto hay?"
-    html += `<div style="background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%); 
+    // 2. Nueva sección: "¿Cuánto hay en Caja?" - Color verde
+    html += `<div style="background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%); 
                         padding: 15px; 
                         border-radius: 10px; 
-                        margin-bottom: 15px;">`;
-    html += `<label style="display: block; font-weight: 700; margin-bottom: 10px; color: white; font-size: 1.1rem; text-align: center;">¿Cuánto hay?</label>`;
+                        margin-bottom: 15px;
+                        box-shadow: 0 4px 10px rgba(67, 160, 71, 0.3);">`;
+    html += `<label style="display: block; font-weight: 700; margin-bottom: 10px; color: white; font-size: 1.1rem; text-align: center;">¿Cuánto hay en Caja?</label>`;
     html += `<input id="swal-cuanto-hay" type="text" class="form-control-modern" placeholder="$ 0" value="" style="width: 100%; padding: 14px; border-radius: 8px; border: 3px solid white; font-size: 22px; font-weight: 700; text-align: center; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">`;
     html += `</div>`;
     
@@ -253,12 +260,12 @@ async function openCerrarModal(){
             
             // Función principal que recalcula todo
             const recalcularTodo = () => {
-                // 1. Validar "Cuánto hay" vs "Debe Haber"
+                // 1. Validar "Cuánto hay" vs "Debe Haber en Caja" (sin entradas banco)
                 const cuantoHayLimpio = limpiarNumero(cuantoHayInput.value || '0');
                 const cuantoHay = parseFloat(cuantoHayLimpio) || 0;
                 
                 if (cuantoHay > 0) {
-                    const diferencia = cuantoHay - totalDisponible;
+                    const diferencia = cuantoHay - debeHaberEnCaja;
                     
                     if (Math.abs(diferencia) < 0.01) {
                         // Sin diferencias

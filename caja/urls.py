@@ -4,6 +4,7 @@ Renzzo Eléctricos - Villavicencio, Meta
 """
 from django.urls import path
 from . import views
+from . import views_tesoreria
 
 app_name = 'caja'
 
@@ -35,4 +36,13 @@ urlpatterns = [
     path('tipos-movimiento/', views.obtener_tipos_movimiento, name='tipos_movimiento'),
     path('estado-caja/', views.obtener_estado_caja, name='estado_caja'),
     path('ultimo-cierre/', views.obtener_ultimo_cierre, name='ultimo_cierre'),
+    
+    # ============================================================================
+    # TESORERÍA
+    # ============================================================================
+    path('tesoreria/', views_tesoreria.tesoreria_dashboard, name='tesoreria_dashboard'),
+    path('tesoreria/saldos/', views_tesoreria.get_saldos_tesoreria, name='tesoreria_saldos'),
+    path('tesoreria/tipos-movimiento/', views_tesoreria.get_tipos_movimiento_tesoreria, name='tesoreria_tipos'),
+    path('tesoreria/registrar-egreso/', views_tesoreria.registrar_egreso_tesoreria, name='tesoreria_registrar_egreso'),
+    path('tesoreria/transferir-fondos/', views_tesoreria.transferir_fondos, name='tesoreria_transferir'),
 ]

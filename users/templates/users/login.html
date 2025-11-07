@@ -35,7 +35,7 @@
             </div>
             
             <!-- Formulario -->
-            <form id="loginForm" action="{% url 'login' %}" method="POST">
+            <form id="loginForm" action="{% url 'users:login' %}" method="POST">
                 {% csrf_token %}
                 
                 {% if form.errors %}

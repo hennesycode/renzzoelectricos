@@ -1,3 +1,7 @@
+"""
+Vistas del Dashboard Personalizado
+Renzzo Eléctricos - Villavicencio, Meta
+"""
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
@@ -10,11 +14,6 @@ from caja.models import CajaRegistradora, MovimientoCaja
 from facturacion.models import Factura
 
 User = get_user_model()
-
-
-def home_view(request):
-    """Vista para la página de inicio (landing page)"""
-    return render(request, 'home.html')
 
 
 @login_required
@@ -49,7 +48,7 @@ def dashboard_home(request):
         'facturas_mes': facturas_mes,
     }
     
-    return render(request, 'dashboard/home.html', context)
+    return render(request, 'dashboard_custom/home.html', context)
 
 
 @login_required
@@ -87,7 +86,7 @@ def usuarios_list(request):
         'status_filter': status_filter,
     }
     
-    return render(request, 'dashboard/usuarios.html', context)
+    return render(request, 'dashboard_custom/usuarios.html', context)
 
 
 @login_required
@@ -166,4 +165,4 @@ def estadisticas_caja(request):
         'ultimos_movimientos': ultimos_movimientos,
     }
     
-    return render(request, 'dashboard/estadisticas.html', context)
+    return render(request, 'dashboard_custom/estadisticas.html', context)
