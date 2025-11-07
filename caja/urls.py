@@ -45,4 +45,5 @@ urlpatterns = [
     path('tesoreria/tipos-movimiento/', views_tesoreria.get_tipos_movimiento_tesoreria, name='tesoreria_tipos'),
     path('tesoreria/registrar-egreso/', views_tesoreria.registrar_egreso_tesoreria, name='tesoreria_registrar_egreso'),
     path('tesoreria/transferir-fondos/', views_tesoreria.transferir_fondos, name='tesoreria_transferir'),
+    path('tesoreria/aplicar-balance/', views_tesoreria.aplicar_balance_cuentas, name='tesoreria_aplicar_balance'),
 ]

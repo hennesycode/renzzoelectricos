@@ -4,6 +4,7 @@ Renzzo Eléctricos - Villavicencio, Meta
 """
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 from django.db.models import Sum, Q
 from django.db import transaction
@@ -74,31 +75,8 @@ def tesoreria_dashboard(request):
     saldo_banco = cuenta_banco.saldo_actual if cuenta_banco else Decimal('0.00')
     
     # ========== CALCULAR DINERO GUARDADO ==========
-    # Suma de TODO el dinero guardado de TODAS las cajas cerradas
-    total_guardado_cajas = CajaRegistradora.objects.filter(
-        estado='CERRADA',
-        dinero_guardado__gt=0
-    ).aggregate(total=Sum('dinero_guardado'))['total'] or Decimal('0.00')
-    
-    # MENOS: Egresos desde Dinero Guardado
-    egresos_reserva = Decimal('0.00')
-    ingresos_reserva = Decimal('0.00')
-    
-    if cuenta_reserva:
-        # Egresos desde reserva (gastos y compras)
-        egresos_reserva = TransaccionGeneral.objects.filter(
-            cuenta=cuenta_reserva,
-            tipo='EGRESO'
-        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-        
-        # Ingresos a reserva (transferencias hacia reserva)
-        ingresos_reserva = TransaccionGeneral.objects.filter(
-            cuenta=cuenta_reserva,
-            tipo='INGRESO'
-        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-    
-    # CALCULAR: Dinero Guardado = Total de cajas + Ingresos - Egresos
-    saldo_reserva = total_guardado_cajas + ingresos_reserva - egresos_reserva
+    # USAR SALDO_ACTUAL DIRECTAMENTE DE LA CUENTA RESERVA (como en banco)
+    saldo_reserva = cuenta_reserva.saldo_actual if cuenta_reserva else Decimal('0.00')
     
     # ========== TOTAL DISPONIBLE ==========
     saldo_total = saldo_caja + saldo_banco + saldo_reserva
@@ -175,35 +153,10 @@ def get_saldos_tesoreria(request):
     saldo_banco = cuenta_banco.saldo_actual if cuenta_banco else Decimal('0.00')
     
     # ========== DINERO GUARDADO (RESERVA) ==========
-    # Suma de TODO el dinero guardado de TODAS las cajas cerradas
-    total_guardado_cajas = CajaRegistradora.objects.filter(
-        estado='CERRADA',
-        dinero_guardado__gt=0
-    ).aggregate(total=Sum('dinero_guardado'))['total'] or Decimal('0.00')
-    
-    # MENOS: Egresos desde Dinero Guardado
+    # USAR SALDO_ACTUAL DIRECTAMENTE DE LA CUENTA RESERVA (como en banco)
     cuenta_reserva = Cuenta.objects.filter(tipo='RESERVA', activo=True).first()
-    egresos_reserva = Decimal('0.00')
-    ingresos_reserva = Decimal('0.00')
-    reserva_id = None
-    
-    if cuenta_reserva:
-        reserva_id = cuenta_reserva.id
-        
-        # Egresos desde reserva (gastos y compras)
-        egresos_reserva = TransaccionGeneral.objects.filter(
-            cuenta=cuenta_reserva,
-            tipo='EGRESO'
-        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-        
-        # Ingresos a reserva (transferencias hacia reserva)
-        ingresos_reserva = TransaccionGeneral.objects.filter(
-            cuenta=cuenta_reserva,
-            tipo='INGRESO'
-        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-    
-    # Dinero Guardado = Total guardado de cajas + Ingresos - Egresos
-    saldo_reserva = total_guardado_cajas + ingresos_reserva - egresos_reserva
+    reserva_id = cuenta_reserva.id if cuenta_reserva else None
+    saldo_reserva = cuenta_reserva.saldo_actual if cuenta_reserva else Decimal('0.00')
     
     return JsonResponse({
         'success': True,
@@ -524,3 +477,114 @@ def transferir_fondos(request):
         return JsonResponse({'error': str(e)}, status=400)
     except Exception as e:
         return JsonResponse({'error': f'Error al transferir fondos: {str(e)}'}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def aplicar_balance_cuentas(request):
+    """
+    Aplica balance/ajuste de cuentas creando transacciones para corregir diferencias.
+    Crea una transacción individual por cada cuenta que tenga diferencias.
+    """
+    try:
+        data = json.loads(request.body)
+        cambios = data.get('cambios', [])
+        
+        if not cambios:
+            return JsonResponse({'error': 'No hay cambios para aplicar'}, status=400)
+        
+        transacciones_creadas = 0
+        resumen_cambios = []
+        
+        # Obtener cuentas necesarias
+        cuenta_banco = Cuenta.objects.filter(tipo='BANCO', activo=True).first()
+        cuenta_reserva = Cuenta.objects.filter(tipo='RESERVA', activo=True).first()
+        
+        # Obtener tipo de movimiento para balance
+        tipo_balance, created = TipoMovimiento.objects.get_or_create(
+            codigo='BALANCE',
+            defaults={
+                'nombre': 'Balance de Cuentas',
+                'descripcion': 'Ajuste por diferencias de balance',
+                'tipo_base': TipoMovimiento.TipoBaseChoices.INTERNO,
+                'activo': True
+            }
+        )
+        
+        with transaction.atomic():
+            for cambio in cambios:
+                cuenta_tipo = cambio['cuenta']  # solo 'banco', 'reserva' (caja no aplica para balance)
+                saldo_sistema = Decimal(str(cambio['saldo_sistema']))
+                saldo_real = Decimal(str(cambio['saldo_real']))
+                diferencia = Decimal(str(cambio['diferencia']))
+                
+                if diferencia == 0:
+                    continue  # Sin diferencia, saltar
+                
+                # Determinar tipo de transacción y descripción
+                if diferencia > 0:
+                    tipo_transaccion = TransaccionGeneral.TipoTransaccionChoices.INGRESO
+                    descripcion = f"Balance: Ajuste positivo en "
+                else:
+                    tipo_transaccion = TransaccionGeneral.TipoTransaccionChoices.EGRESO
+                    descripcion = f"Balance: Ajuste negativo en "
+                
+                # Procesar según el tipo de cuenta (solo banco y reserva)
+                if cuenta_tipo == 'banco' and cuenta_banco:
+                    descripcion += f"Banco Principal (${saldo_sistema:,.0f} → ${saldo_real:,.0f})"
+                    
+                    # Crear transacción en banco
+                    TransaccionGeneral.objects.create(
+                        fecha=timezone.now(),
+                        tipo=tipo_transaccion,
+                        monto=abs(diferencia),
+                        descripcion=descripcion,
+                        referencia=f"Balance-{timezone.now().strftime('%Y%m%d-%H%M%S')}",
+                        tipo_movimiento=tipo_balance,
+                        cuenta=cuenta_banco,
+                        usuario=request.user
+                    )
+                    
+                    # Actualizar saldo de la cuenta banco
+                    cuenta_banco.saldo_actual = saldo_real
+                    cuenta_banco.save()
+                    
+                    transacciones_creadas += 1
+                    resumen_cambios.append(f"Banco Principal: ${diferencia:+,.0f}")
+                    
+                elif cuenta_tipo == 'reserva' and cuenta_reserva:
+                    descripcion += f"Dinero Guardado (${saldo_sistema:,.0f} → ${saldo_real:,.0f})"
+                    
+                    # Crear transacción en reserva
+                    TransaccionGeneral.objects.create(
+                        fecha=timezone.now(),
+                        tipo=tipo_transaccion,
+                        monto=abs(diferencia),
+                        descripcion=descripcion,
+                        referencia=f"Balance-{timezone.now().strftime('%Y%m%d-%H%M%S')}",
+                        tipo_movimiento=tipo_balance,
+                        cuenta=cuenta_reserva,
+                        usuario=request.user
+                    )
+                    
+                    # ACTUALIZAR DIRECTAMENTE EL SALDO DE LA CUENTA RESERVA AL VALOR REAL
+                    cuenta_reserva.saldo_actual = saldo_real
+                    cuenta_reserva.save()
+                    
+                    transacciones_creadas += 1
+                    resumen_cambios.append(f"Dinero Guardado: ${diferencia:+,.0f}")
+        
+        # Mensaje de respuesta
+        mensaje = f"Balance aplicado exitosamente. {', '.join(resumen_cambios)}."
+        
+        return JsonResponse({
+            'success': True,
+            'message': mensaje,
+            'transacciones_creadas': transacciones_creadas,
+            'cambios_aplicados': resumen_cambios
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Datos JSON inválidos'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'Error al aplicar balance: {str(e)}'}, status=500)

@@ -649,6 +649,113 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para Balance/Ajuste de Cuentas -->
+<div class="modal fade" id="modalBalanceCuentas" tabindex="-1" aria-labelledby="modalBalanceCuentasLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #FF6F00 0%, #E65100 100%); color: white;">
+                <h5 class="modal-title" id="modalBalanceCuentasLabel">
+                    <i class="bi bi-calculator me-2"></i>
+                    Balance y Ajuste de Cuentas
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <strong>Balance de Cuentas:</strong> Ajuste los saldos bancarios y de dinero guardado al valor real que tienes. Solo modifique los valores que necesiten corrección.
+                </div>
+                
+                <form id="form-balance-cuentas">
+                    <div class="row g-4 justify-content-center">
+                        <!-- Banco Principal -->
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-bank me-2"></i>
+                                        Banco Principal
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label small text-muted">Saldo Sistema:</label>
+                                        <div class="fw-bold text-success" id="balance-banco-sistema">
+                                            ${{ saldo_banco|formato_pesos_colombia }}
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="balance-banco-real" class="form-label">Saldo Real:</label>
+                                        <input type="text" class="form-control balance-input" 
+                                               id="balance-banco-real" 
+                                               name="banco_real" 
+                                               placeholder="$0"
+                                               data-cuenta="banco"
+                                               data-saldo-sistema="{{ saldo_banco }}">
+                                    </div>
+                                    <div class="diferencia-container">
+                                        <label class="form-label small">Diferencia:</label>
+                                        <div class="fw-bold diferencia-valor" id="diferencia-banco">$0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dinero Guardado -->
+                        <div class="col-md-6">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-safe me-2"></i>
+                                        Dinero Guardado
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label small text-muted">Saldo Sistema:</label>
+                                        <div class="fw-bold text-warning" id="balance-reserva-sistema">
+                                            ${{ saldo_reserva|formato_pesos_colombia }}
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="balance-reserva-real" class="form-label">Saldo Real:</label>
+                                        <input type="text" class="form-control balance-input" 
+                                               id="balance-reserva-real" 
+                                               name="reserva_real" 
+                                               placeholder="$0"
+                                               data-cuenta="reserva"
+                                               data-saldo-sistema="{{ saldo_reserva }}">
+                                    </div>
+                                    <div class="diferencia-container">
+                                        <label class="form-label small">Diferencia:</label>
+                                        <div class="fw-bold diferencia-valor" id="diferencia-reserva">$0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumen de cambios -->
+                    <div class="mt-4" id="resumen-cambios" style="display: none;">
+                        <div class="alert alert-warning">
+                            <h6><i class="bi bi-exclamation-triangle-fill me-2"></i>Resumen de Ajustes:</h6>
+                            <div id="lista-cambios"></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-warning" id="btn-guardar-balance" disabled>
+                    <i class="bi bi-calculator"></i> Aplicar Balance
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -659,6 +766,7 @@
             tipos_movimiento: "{% url 'caja:tesoreria_tipos' %}",
             registrar_egreso: "{% url 'caja:tesoreria_registrar_egreso' %}",
             transferir_fondos: "{% url 'caja:tesoreria_transferir' %}",
+            aplicar_balance: "{% url 'caja:tesoreria_aplicar_balance' %}",
             dashboard: "{% url 'caja:tesoreria_dashboard' %}"
         };
     </script>
