@@ -17,6 +17,14 @@ class UserAdmin(BaseUserAdmin):
     search_fields = ('username', 'first_name', 'last_name', 'email')
     ordering = ('-fecha_creacion',)
     
+    def get_readonly_fields(self, request, obj=None):
+        """
+        Superusuarios pueden editar TODO, incluidas fechas.
+        """
+        if request.user.is_superuser:
+            return ('last_login', 'date_joined')  # Solo las generadas automáticamente
+        return ('last_login', 'date_joined', 'fecha_creacion', 'fecha_modificacion')
+    
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         (_('Información Personal'), {'fields': ('first_name', 'last_name', 'email', 'telefono', 'direccion')}),
@@ -34,7 +42,11 @@ class UserAdmin(BaseUserAdmin):
         }),
     )
     
-    readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'last_login', 'date_joined')
+    def has_delete_permission(self, request, obj=None):
+        """
+        Solo superusuarios pueden eliminar usuarios.
+        """
+        return request.user.is_superuser
     
     def save_model(self, request, obj, form, change):
         """
@@ -55,18 +67,32 @@ class PermisoPersonalizadoAdmin(admin.ModelAdmin):
     search_fields = ('usuario__username', 'nombre', 'recurso', 'descripcion')
     ordering = ('-fecha_creacion',)
     
+    def get_readonly_fields(self, request, obj=None):
+        """
+        Superusuarios pueden editar TODO, incluida fecha_creacion.
+        """
+        if request.user.is_superuser:
+            return ()  # Pueden editar todo
+        return ('fecha_creacion',)
+    
     fieldsets = (
         (_('Usuario y Recurso'), {
             'fields': ('usuario', 'nombre', 'recurso', 'descripcion')
         }),
         (_('Permisos CRUD'), {
             'fields': ('puede_crear', 'puede_leer', 'puede_actualizar', 'puede_eliminar'),
-            'classes': ('wide',)
         }),
         (_('Estado'), {
             'fields': ('activo',)
         }),
+        (_('Metadata'), {
+            'fields': ('fecha_creacion',)
+        }),
     )
     
-    readonly_fields = ('fecha_creacion',)
+    def has_delete_permission(self, request, obj=None):
+        """
+        Solo superusuarios pueden eliminar permisos personalizados.
+        """
+        return request.user.is_superuser
 

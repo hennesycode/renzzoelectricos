@@ -48,16 +48,23 @@ class FacturaAdmin(admin.ModelAdmin):
         'cliente__email',
     )
     
-    readonly_fields = (
-        'codigo_factura',
-        'fecha_creacion',
-        'fecha_modificacion',
-        'subtotal',
-        'total_descuentos',
-        'subtotal_neto',
-        'total_iva',
-        'total_pagar',
-    )
+    def get_readonly_fields(self, request, obj=None):
+        """
+        Superusuarios pueden editar TODO, incluidas fechas y totales calculados.
+        """
+        if request.user.is_superuser:
+            return ()  # Pueden editar todo, incluso subtotal, totales, etc.
+        # Staff solo lectura en campos calculados y código
+        return (
+            'codigo_factura',
+            'fecha_creacion',
+            'fecha_modificacion',
+            'subtotal',
+            'total_descuentos',
+            'subtotal_neto',
+            'total_iva',
+            'total_pagar',
+        )
     
     fieldsets = (
         ('Información General', {
@@ -76,7 +83,8 @@ class FacturaAdmin(admin.ModelAdmin):
                 'subtotal_neto',
                 'total_iva',
                 'total_pagar',
-            )
+            ),
+            'description': '⚠️ Superusuarios pueden editar estos valores manualmente.'
         }),
         ('Condiciones de Pago', {
             'fields': (
@@ -89,12 +97,18 @@ class FacturaAdmin(admin.ModelAdmin):
             'fields': (
                 'fecha_creacion',
                 'fecha_modificacion',
-            ),
-            'classes': ('collapse',)
+            )
         }),
     )
     
     inlines = [DetalleFacturaInline]
+    
+    def has_delete_permission(self, request, obj=None):
+        """
+        Solo superusuarios pueden eliminar facturas.
+        Staff solo puede desactivarlas (activa=False).
+        """
+        return request.user.is_superuser
     
     def cliente_nombre(self, obj):
         """Muestra el nombre completo del cliente"""
@@ -118,10 +132,6 @@ class FacturaAdmin(admin.ModelAdmin):
                 '<span style="background-color: #dc3545; color: white; padding: 3px 10px; border-radius: 3px;">✗ Anulada</span>'
             )
     activa_badge.short_description = 'Estado'
-    
-    def has_delete_permission(self, request, obj=None):
-        """Evitar borrado de facturas, solo desactivar"""
-        return False
 
 
 @admin.register(DetalleFactura)
@@ -148,7 +158,19 @@ class DetalleFacturaAdmin(admin.ModelAdmin):
         'descripcion',
     )
     
-    readonly_fields = ('valor_unitario', 'total')
+    def get_readonly_fields(self, request, obj=None):
+        """
+        Superusuarios pueden editar TODO, incluidos valores calculados.
+        """
+        if request.user.is_superuser:
+            return ()  # Pueden editar todo
+        return ('valor_unitario', 'total')  # Staff solo lectura en calculados
+    
+    def has_delete_permission(self, request, obj=None):
+        """
+        Solo superusuarios pueden eliminar detalles de factura.
+        """
+        return request.user.is_superuser
     
     def total_formatted(self, obj):
         """Formatea el total con símbolo de pesos"""

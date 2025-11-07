@@ -98,15 +98,25 @@ class CajaRegistradoraAdmin(admin.ModelAdmin):
     list_filter = ('estado', 'fecha_apertura', 'fecha_cierre', 'cajero')
     search_fields = ('id', 'cajero__username', 'cajero__first_name', 'cajero__last_name', 'observaciones_apertura', 'observaciones_cierre')
     ordering = ('-fecha_apertura',)
-    readonly_fields = (
-        'fecha_apertura', 
-        'monto_final_sistema', 
-        'diferencia',
-        'total_ingresos',
-        'total_egresos',
-        'duracion_formateada'
-    )
     inlines = [MovimientoCajaInline, ConteoEfectivoInline]
+    
+    def get_readonly_fields(self, request, obj=None):
+        """
+        Superusuarios pueden editar TODO.
+        Staff y otros usuarios tienen campos readonly.
+        """
+        if request.user.is_superuser:
+            # Superusuarios pueden editar TODO, solo mostrar campos calculados como readonly
+            return ('total_ingresos', 'total_egresos', 'duracion_formateada')
+        # Para staff y otros, mantener campos readonly
+        return (
+            'fecha_apertura', 
+            'monto_final_sistema', 
+            'diferencia',
+            'total_ingresos',
+            'total_egresos',
+            'duracion_formateada'
+        )
     
     fieldsets = (
         (_('Información Básica'), {
@@ -120,16 +130,20 @@ class CajaRegistradoraAdmin(admin.ModelAdmin):
         }),
         (_('Distribución del Dinero'), {
             'fields': ('dinero_en_caja', 'dinero_guardado'),
-            'classes': ('collapse',)
         }),
         (_('Resumen de Movimientos'), {
             'fields': ('total_ingresos', 'total_egresos'),
-            'classes': ('collapse',)
         }),
         (_('Observaciones'), {
             'fields': ('observaciones_apertura', 'observaciones_cierre')
         }),
     )
+    
+    def has_delete_permission(self, request, obj=None):
+        """
+        Solo superusuarios pueden eliminar cajas.
+        """
+        return request.user.is_superuser
     
     def cajero_info(self, obj):
         """Muestra información completa del cajero."""
@@ -321,8 +335,15 @@ class MovimientoCajaAdmin(admin.ModelAdmin):
         'caja__id'
     )
     ordering = ('-fecha_movimiento',)
-    readonly_fields = ('fecha_movimiento',)
     date_hierarchy = 'fecha_movimiento'
+    
+    def get_readonly_fields(self, request, obj=None):
+        """
+        Superusuarios pueden editar TODO, incluidas fechas.
+        """
+        if request.user.is_superuser:
+            return ()  # Pueden editar todo
+        return ('fecha_movimiento',)  # Staff solo lectura en fecha
     
     fieldsets = (
         (_('Información del Movimiento'), {
@@ -332,6 +353,12 @@ class MovimientoCajaAdmin(admin.ModelAdmin):
             'fields': ('monto', 'descripcion', 'referencia')
         }),
     )
+    
+    def has_delete_permission(self, request, obj=None):
+        """
+        Solo superusuarios pueden eliminar movimientos.
+        """
+        return request.user.is_superuser
     
     def caja_info(self, obj):
         """Muestra información de la caja."""
@@ -412,7 +439,7 @@ class TipoMovimientoAdmin(admin.ModelAdmin):
     
     fieldsets = (
         (_('Información Básica'), {
-            'fields': ('codigo', 'nombre', 'activo')
+            'fields': ('codigo', 'nombre', 'tipo_base', 'activo')
         }),
         (_('Descripción'), {
             'fields': ('descripcion',)
@@ -420,12 +447,16 @@ class TipoMovimientoAdmin(admin.ModelAdmin):
     )
 
     def has_add_permission(self, request):
-        """Deshabilitar creación de nuevos tipos desde el admin (las categorías por defecto son fijas)."""
-        return False
+        """
+        Solo superusuarios pueden crear tipos de movimiento.
+        """
+        return request.user.is_superuser
 
     def has_delete_permission(self, request, obj=None):
-        """Deshabilitar eliminación desde el admin."""
-        return False
+        """
+        Solo superusuarios pueden eliminar tipos de movimiento.
+        """
+        return request.user.is_superuser
     
     def activo_badge(self, obj):
         """Muestra el estado activo con color."""
@@ -463,6 +494,12 @@ class DenominacionMonedaAdmin(admin.ModelAdmin):
             'fields': ('valor', 'tipo', 'activo', 'orden')
         }),
     )
+    
+    def has_delete_permission(self, request, obj=None):
+        """
+        Solo superusuarios pueden eliminar denominaciones.
+        """
+        return request.user.is_superuser
     
     def valor_fmt(self, obj):
         """Formatea el valor."""
@@ -546,9 +583,16 @@ class ConteoEfectivoAdmin(admin.ModelAdmin):
         'observaciones'
     )
     ordering = ('-fecha_conteo',)
-    readonly_fields = ('fecha_conteo', 'total_calculado')
     date_hierarchy = 'fecha_conteo'
     inlines = [DetalleConteoInline]
+    
+    def get_readonly_fields(self, request, obj=None):
+        """
+        Superusuarios pueden editar TODO, incluidas fechas y totales.
+        """
+        if request.user.is_superuser:
+            return ()  # Pueden editar todo
+        return ('fecha_conteo', 'total_calculado')  # Staff solo lectura
     
     fieldsets = (
         (_('Información del Conteo'), {
@@ -558,10 +602,15 @@ class ConteoEfectivoAdmin(admin.ModelAdmin):
             'fields': ('total', 'total_calculado')
         }),
         (_('Observaciones'), {
-            'fields': ('observaciones',),
-            'classes': ('collapse',)
+            'fields': ('observaciones',)
         }),
     )
+    
+    def has_delete_permission(self, request, obj=None):
+        """
+        Solo superusuarios pueden eliminar conteos.
+        """
+        return request.user.is_superuser
     
     def caja_info(self, obj):
         """Muestra información de la caja."""
@@ -656,13 +705,26 @@ class DetalleConteoAdmin(admin.ModelAdmin):
         'denominacion__valor'
     )
     ordering = ('-conteo__fecha_conteo', '-denominacion__valor')
-    readonly_fields = ('subtotal',)
+    
+    def get_readonly_fields(self, request, obj=None):
+        """
+        Superusuarios pueden editar TODO.
+        """
+        if request.user.is_superuser:
+            return ()  # Pueden editar todo, incluido subtotal
+        return ('subtotal',)  # Staff solo lectura en subtotal
     
     fieldsets = (
         (_('Información del Detalle'), {
             'fields': ('conteo', 'denominacion', 'cantidad', 'subtotal')
         }),
     )
+    
+    def has_delete_permission(self, request, obj=None):
+        """
+        Solo superusuarios pueden eliminar detalles de conteo.
+        """
+        return request.user.is_superuser
     
     def conteo_info(self, obj):
         """Muestra información del conteo."""
@@ -731,20 +793,33 @@ class CuentaAdmin(admin.ModelAdmin):
     list_filter = ('tipo', 'activo', 'fecha_creacion')
     search_fields = ('nombre',)
     ordering = ('tipo', 'nombre')
-    readonly_fields = ('fecha_creacion', 'saldo_actual')
+    
+    def get_readonly_fields(self, request, obj=None):
+        """
+        Superusuarios pueden editar TODOS los campos, incluido saldo_actual.
+        """
+        if request.user.is_superuser:
+            return ('fecha_creacion',)  # Solo fecha_creacion readonly
+        return ('fecha_creacion', 'saldo_actual')  # Staff no puede editar saldo manualmente
     
     fieldsets = (
         (_('Información Básica'), {
             'fields': ('nombre', 'tipo', 'activo')
         }),
         (_('Saldo'), {
-            'fields': ('saldo_actual',)
+            'fields': ('saldo_actual',),
+            'description': '⚠️ Superusuarios pueden editar el saldo manualmente. Usar con precaución.'
         }),
         (_('Metadata'), {
-            'fields': ('fecha_creacion',),
-            'classes': ('collapse',)
+            'fields': ('fecha_creacion',)
         }),
     )
+    
+    def has_delete_permission(self, request, obj=None):
+        """
+        Solo superusuarios pueden eliminar cuentas.
+        """
+        return request.user.is_superuser
     
     def tipo_badge(self, obj):
         """Muestra el tipo con icono."""
@@ -812,8 +887,15 @@ class TransaccionGeneralAdmin(admin.ModelAdmin):
         'tipo_movimiento__nombre'
     )
     ordering = ('-fecha',)
-    readonly_fields = ('fecha',)
     date_hierarchy = 'fecha'
+    
+    def get_readonly_fields(self, request, obj=None):
+        """
+        Superusuarios pueden editar TODO, incluidas fechas.
+        """
+        if request.user.is_superuser:
+            return ()  # Pueden editar todo
+        return ('fecha',)  # Staff solo lectura en fecha
     
     fieldsets = (
         (_('Información de la Transacción'), {
@@ -826,10 +908,15 @@ class TransaccionGeneralAdmin(admin.ModelAdmin):
             'fields': ('monto', 'descripcion', 'referencia')
         }),
         (_('Relaciones'), {
-            'fields': ('movimiento_caja_asociado',),
-            'classes': ('collapse',)
+            'fields': ('movimiento_caja_asociado',)
         }),
     )
+    
+    def has_delete_permission(self, request, obj=None):
+        """
+        Solo superusuarios pueden eliminar transacciones.
+        """
+        return request.user.is_superuser
     
     def tipo_badge(self, obj):
         """Muestra el tipo con color."""
