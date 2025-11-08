@@ -441,8 +441,8 @@ class Command(BaseCommand):
                 }
             )
             
-            # Crear transacción de ingreso en reserva
-            TransaccionGeneral.objects.create(
+            # Crear transacción de ingreso en reserva usando la fecha de apertura de la caja
+            transaccion = TransaccionGeneral.objects.create(
                 tipo='INGRESO',
                 monto=dinero_guardado,
                 descripcion=f'Cierre caja #{caja.id} - Dinero guardado por {usuario.username}',
@@ -451,6 +451,17 @@ class Command(BaseCommand):
                 cuenta=cuenta_reserva,
                 usuario=usuario
             )
+            
+            # Actualizar la fecha de la transacción para que coincida con la fecha de apertura de la caja
+            # (el cierre debe ser el mismo día que la apertura)
+            colombia_tz = pytz.timezone('America/Bogota')
+            fecha_caja = caja.fecha_apertura.date()
+            hora_actual = datetime.now().time()
+            fecha_cierre = colombia_tz.localize(
+                datetime.combine(fecha_caja, hora_actual)
+            )
+            transaccion.fecha = fecha_cierre
+            transaccion.save(update_fields=['fecha'])
             
         except Exception as e:
             self.stdout.write(f'⚠️ Advertencia: No se pudo crear transacción de tesorería: {str(e)}')
