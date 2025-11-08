@@ -6,7 +6,8 @@ from decimal import Decimal
 from datetime import datetime, date
 from caja.models import (
     CajaRegistradora, MovimientoCaja, TipoMovimiento, 
-    DenominacionMoneda, ConteoEfectivo, DetalleConteo, Cuenta
+    DenominacionMoneda, ConteoEfectivo, DetalleConteo, 
+    Cuenta, TransaccionGeneral
 )
 import re
 
@@ -67,7 +68,12 @@ class Command(BaseCommand):
         try:
             usuario = User.objects.get(username=username)
         except User.DoesNotExist:
-            raise CommandError(f'Usuario "{username}" no existe')
+            # Mostrar usuarios disponibles para ayudar
+            usuarios_disponibles = User.objects.filter(is_active=True).values_list('username', flat=True)
+            raise CommandError(
+                f'Usuario "{username}" no existe.\n'
+                f'Usuarios disponibles: {", ".join(usuarios_disponibles)}'
+            )
 
         # Verificar si ya existe una caja en esa fecha
         if CajaRegistradora.objects.filter(fecha_apertura__date=fecha_apertura).exists():
@@ -177,8 +183,6 @@ class Command(BaseCommand):
                         movimiento.save(update_fields=['fecha_movimiento'])
 
                         # Crear la transacción en tesorería manualmente (ya que deshabilitamos el signal)
-                        from caja.models import TransaccionGeneral, Cuenta
-                        
                         # Obtener o crear cuenta "Caja Virtual" para tracking
                         cuenta_caja_virtual, _ = Cuenta.objects.get_or_create(
                             nombre='Caja Virtual',
@@ -189,24 +193,27 @@ class Command(BaseCommand):
                             }
                         )
                         
-                        # Crear transacción en tesorería
-                        transaccion = TransaccionGeneral.objects.create(
-                            tipo='INGRESO',
-                            monto=total_inicial,
-                            descripcion=f'Apertura caja - Cajero: {usuario.username}',
-                            referencia=f'APERTURA-CAJA-{caja.id}',
-                            tipo_movimiento=tipo_apertura,
-                            cuenta=cuenta_caja_virtual,
-                            usuario=usuario
-                        )
-                        
-                        # Actualizar la fecha de la transacción
-                        transaccion.fecha = fecha_datetime
-                        transaccion.save(update_fields=['fecha'])
-                        
-                        # Vincular movimiento y transacción
-                        movimiento.transaccion_asociada = transaccion
-                        movimiento.save()
+                        # Crear transacción en tesorería (opcional, no crítica)
+                        try:
+                            transaccion = TransaccionGeneral.objects.create(
+                                tipo='INGRESO',
+                                monto=total_inicial,
+                                descripcion=f'Apertura caja - Cajero: {usuario.username}',
+                                referencia=f'APERTURA-CAJA-{caja.id}',
+                                tipo_movimiento=tipo_apertura,
+                                cuenta=cuenta_caja_virtual,
+                                usuario=usuario
+                            )
+                            
+                            # Actualizar la fecha de la transacción
+                            transaccion.fecha = fecha_datetime
+                            transaccion.save(update_fields=['fecha'])
+                            
+                            # Vincular movimiento y transacción
+                            movimiento.transaccion_asociada = transaccion
+                            movimiento.save()
+                        except Exception as e:
+                            self.stdout.write(f'⚠️ Advertencia: No se pudo crear transacción de tesorería: {str(e)}')
                 
                 finally:
                     # Reactivar el signal
@@ -231,13 +238,16 @@ class Command(BaseCommand):
                             subtotal=conteo_data['subtotal']
                         )
 
-                # Actualizar cuenta principal si existe
+                # Actualizar cuenta principal si existe (no es crítico si falla)
                 try:
-                    cuenta_principal = Cuenta.objects.get(nombre='Cuenta Principal')
-                    cuenta_principal.saldo += total_inicial
-                    cuenta_principal.save()
-                except Cuenta.DoesNotExist:
-                    self.stdout.write('⚠️ Advertencia: No se encontró la cuenta principal para actualizar')
+                    cuenta_principal = Cuenta.objects.filter(
+                        nombre__in=['Cuenta Principal', 'Banco Principal', 'Principal']
+                    ).first()
+                    if cuenta_principal and total_inicial > 0:
+                        cuenta_principal.saldo_actual += total_inicial
+                        cuenta_principal.save()
+                except Exception as e:
+                    self.stdout.write(f'⚠️ Advertencia: No se pudo actualizar cuenta principal: {str(e)}')
 
                 self.stdout.write('\n✅ CAJA ABIERTA EXITOSAMENTE')
                 self.stdout.write(f'📋 ID de Caja: {caja.id}')
