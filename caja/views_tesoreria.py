@@ -120,10 +120,10 @@ def tesoreria_dashboard(request):
     # ========== TOTAL DISPONIBLE ==========
     saldo_total = saldo_caja + saldo_banco + saldo_reserva
     
-    # Obtener últimas transacciones de Tesorería
+    # Obtener TODAS las transacciones de Tesorería
     transacciones = TransaccionGeneral.objects.select_related(
         'tipo_movimiento', 'cuenta', 'usuario'
-    ).order_by('-fecha')[:20]
+    ).order_by('-fecha')
     
     context = {
         'saldo_caja': saldo_caja,
