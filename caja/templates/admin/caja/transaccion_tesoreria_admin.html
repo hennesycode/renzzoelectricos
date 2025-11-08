@@ -1,0 +1,372 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+<style>
+    .admin-form-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .form-section {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .form-section h3 {
+        color: #333;
+        border-bottom: 2px solid #79aec8;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        font-size: 18px;
+    }
+    
+    .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+        align-items: flex-start;
+    }
+    
+    .form-field {
+        flex: 1;
+    }
+    
+    .form-field label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #333;
+    }
+    
+    .form-field input,
+    .form-field select,
+    .form-field textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .form-field input:focus,
+    .form-field select:focus,
+    .form-field textarea:focus {
+        border-color: #79aec8;
+        outline: none;
+        box-shadow: 0 0 5px rgba(121, 174, 200, 0.3);
+    }
+    
+    .help-text {
+        font-size: 12px;
+        color: #666;
+        margin-top: 3px;
+    }
+    
+    .error-list {
+        list-style: none;
+        padding: 0;
+        margin: 5px 0 0 0;
+    }
+    
+    .error-list li {
+        color: #d32f2f;
+        font-size: 12px;
+        background: #ffebee;
+        padding: 5px 10px;
+        border-radius: 3px;
+        margin-bottom: 3px;
+    }
+    
+    .btn-submit {
+        background: #79aec8;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    
+    .btn-submit:hover {
+        background: #6a9bc1;
+    }
+    
+    .btn-cancel {
+        background: #6c757d;
+        color: white;
+        text-decoration: none;
+        padding: 12px 30px;
+        border-radius: 5px;
+        font-size: 16px;
+        margin-left: 10px;
+        display: inline-block;
+        transition: background 0.3s;
+    }
+    
+    .btn-cancel:hover {
+        background: #5a6268;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .validation-info {
+        background: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .validation-info h4 {
+        color: #1976d2;
+        margin-bottom: 10px;
+    }
+    
+    .funds-indicator {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-left: 10px;
+    }
+    
+    .funds-ok {
+        background: #c8e6c9;
+        color: #2e7d32;
+    }
+    
+    .funds-insufficient {
+        background: #ffcdd2;
+        color: #c62828;
+    }
+    
+    .tipo-section {
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .tipo-section.selected {
+        border-color: #79aec8;
+        background: #f8f9fa;
+    }
+    
+    @media (max-width: 768px) {
+        .form-row {
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .admin-form-container {
+            padding: 10px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-form-container">
+    <h1>{{ title }}</h1>
+    <p class="subtitle">{{ subtitle }}</p>
+    
+    {% if form.non_field_errors %}
+        <div class="error-list" style="background: #ffebee; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            {% for error in form.non_field_errors %}
+                <div style="color: #d32f2f; font-weight: bold;">{{ error }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    <div class="validation-info">
+        <h4>🔧 Transacción Individual de Tesorería</h4>
+        <p>Esta herramienta permite crear transacciones individuales con fecha personalizada.</p>
+        <ul>
+            <li><strong>Ingreso:</strong> Añade dinero a una cuenta</li>
+            <li><strong>Egreso:</strong> Retira dinero de una cuenta</li>
+            <li><strong>Transferencia:</strong> Mueve dinero entre dos cuentas</li>
+        </ul>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <!-- DATOS BÁSICOS -->
+        <div class="form-section">
+            <h3>📋 Datos Básicos</h3>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="{{ form.fecha.id_for_label }}">{{ form.fecha.label }}</label>
+                    {{ form.fecha }}
+                    {% if form.fecha.help_text %}
+                        <div class="help-text">{{ form.fecha.help_text }}</div>
+                    {% endif %}
+                    {{ form.fecha.errors }}
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.usuario.id_for_label }}">{{ form.usuario.label }}</label>
+                    {{ form.usuario }}
+                    {% if form.usuario.help_text %}
+                        <div class="help-text">{{ form.usuario.help_text }}</div>
+                    {% endif %}
+                    {{ form.usuario.errors }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- TIPO DE TRANSACCIÓN -->
+        <div class="form-section">
+            <h3>🔄 Tipo de Transacción</h3>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+                    {{ form.tipo }}
+                    {% if form.tipo.help_text %}
+                        <div class="help-text">{{ form.tipo.help_text }}</div>
+                    {% endif %}
+                    {{ form.tipo.errors }}
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.tipo_movimiento.id_for_label }}">{{ form.tipo_movimiento.label }}</label>
+                    {{ form.tipo_movimiento }}
+                    {% if form.tipo_movimiento.help_text %}
+                        <div class="help-text">{{ form.tipo_movimiento.help_text }}</div>
+                    {% endif %}
+                    {{ form.tipo_movimiento.errors }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- CUENTAS -->
+        <div class="form-section">
+            <h3>🏦 Cuentas</h3>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="{{ form.cuenta.id_for_label }}">{{ form.cuenta.label }}</label>
+                    {{ form.cuenta }}
+                    {% if form.cuenta.help_text %}
+                        <div class="help-text">{{ form.cuenta.help_text }}</div>
+                    {% endif %}
+                    {{ form.cuenta.errors }}
+                </div>
+                <div class="form-field" id="cuenta-destino-field" style="display: none;">
+                    <label for="{{ form.cuenta_destino.id_for_label }}">{{ form.cuenta_destino.label }}</label>
+                    {{ form.cuenta_destino }}
+                    {% if form.cuenta_destino.help_text %}
+                        <div class="help-text">{{ form.cuenta_destino.help_text }}</div>
+                    {% endif %}
+                    {{ form.cuenta_destino.errors }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- DETALLES -->
+        <div class="form-section">
+            <h3>💰 Detalles de la Transacción</h3>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="{{ form.monto.id_for_label }}">{{ form.monto.label }}</label>
+                    {{ form.monto }}
+                    {% if form.monto.help_text %}
+                        <div class="help-text">{{ form.monto.help_text }}</div>
+                    {% endif %}
+                    {{ form.monto.errors }}
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.referencia.id_for_label }}">{{ form.referencia.label }}</label>
+                    {{ form.referencia }}
+                    {% if form.referencia.help_text %}
+                        <div class="help-text">{{ form.referencia.help_text }}</div>
+                    {% endif %}
+                    {{ form.referencia.errors }}
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="{{ form.descripcion.id_for_label }}">{{ form.descripcion.label }}</label>
+                    {{ form.descripcion }}
+                    {% if form.descripcion.help_text %}
+                        <div class="help-text">{{ form.descripcion.help_text }}</div>
+                    {% endif %}
+                    {{ form.descripcion.errors }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- BOTONES -->
+        <div class="form-section">
+            <button type="submit" class="btn-submit">✅ Crear Transacción</button>
+            <a href="{% url 'admin:index' %}" class="btn-cancel">❌ Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoSelect = document.getElementById('{{ form.tipo.id_for_label }}');
+    const cuentaDestinoField = document.getElementById('cuenta-destino-field');
+    const cuentaSelect = document.getElementById('{{ form.cuenta.id_for_label }}');
+    const montoInput = document.getElementById('{{ form.monto.id_for_label }}');
+    
+    // Mostrar/ocultar cuenta destino según el tipo
+    function toggleCuentaDestino() {
+        if (tipoSelect.value === 'TRANSFERENCIA') {
+            cuentaDestinoField.style.display = 'block';
+        } else {
+            cuentaDestinoField.style.display = 'none';
+        }
+    }
+    
+    // Validar fondos
+    async function validarFondos() {
+        if (!cuentaSelect.value || !montoInput.value || tipoSelect.value === 'INGRESO') {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`{% url 'caja:ajax_validar_fondos' %}?cuenta_id=${cuentaSelect.value}&monto=${montoInput.value}`);
+            const data = await response.json();
+            
+            // Remover indicadores anteriores
+            const existingIndicator = cuentaSelect.parentNode.querySelector('.funds-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+            
+            // Agregar nuevo indicador
+            const indicator = document.createElement('span');
+            if (data.tiene_fondos) {
+                indicator.className = 'funds-indicator funds-ok';
+                indicator.textContent = `✓ Fondos OK (${data.saldo_formateado})`;
+            } else {
+                indicator.className = 'funds-indicator funds-insufficient';
+                indicator.textContent = `✗ Fondos insuficientes (${data.saldo_formateado})`;
+            }
+            
+            cuentaSelect.parentNode.appendChild(indicator);
+            
+        } catch (error) {
+            console.error('Error validando fondos:', error);
+        }
+    }
+    
+    // Event listeners
+    tipoSelect.addEventListener('change', toggleCuentaDestino);
+    cuentaSelect.addEventListener('change', validarFondos);
+    montoInput.addEventListener('blur', validarFondos);
+    
+    // Inicializar
+    toggleCuentaDestino();
+});
+</script>
+{% endblock %}

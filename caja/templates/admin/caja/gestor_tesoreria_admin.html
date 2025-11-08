@@ -1,0 +1,602 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+<style>
+    .admin-form-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .form-section {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .form-section h3 {
+        color: #333;
+        border-bottom: 2px solid #79aec8;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        font-size: 18px;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: linear-gradient(135deg, #79aec8, #6a9bc1);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    .stat-card h4 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+    }
+    
+    .stat-card .value {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    
+    .form-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+        align-items: flex-start;
+    }
+    
+    .form-field {
+        flex: 1;
+    }
+    
+    .form-field label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #333;
+    }
+    
+    .form-field input,
+    .form-field select,
+    .form-field textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .form-field input:focus,
+    .form-field select:focus,
+    .form-field textarea:focus {
+        border-color: #79aec8;
+        outline: none;
+        box-shadow: 0 0 5px rgba(121, 174, 200, 0.3);
+    }
+    
+    .help-text {
+        font-size: 12px;
+        color: #666;
+        margin-top: 3px;
+    }
+    
+    .error-list {
+        list-style: none;
+        padding: 0;
+        margin: 5px 0 0 0;
+    }
+    
+    .error-list li {
+        color: #d32f2f;
+        font-size: 12px;
+        background: #ffebee;
+        padding: 5px 10px;
+        border-radius: 3px;
+        margin-bottom: 3px;
+    }
+    
+    .btn-submit {
+        background: #79aec8;
+        color: white;
+        padding: 15px 40px;
+        border: none;
+        border-radius: 5px;
+        font-size: 18px;
+        cursor: pointer;
+        transition: background 0.3s;
+        width: 200px;
+    }
+    
+    .btn-submit:hover {
+        background: #6a9bc1;
+    }
+    
+    .btn-cancel {
+        background: #6c757d;
+        color: white;
+        text-decoration: none;
+        padding: 15px 40px;
+        border-radius: 5px;
+        font-size: 18px;
+        margin-left: 15px;
+        display: inline-block;
+        transition: background 0.3s;
+        width: 200px;
+        text-align: center;
+    }
+    
+    .btn-cancel:hover {
+        background: #5a6268;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .validation-info {
+        background: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .validation-info h4 {
+        color: #1976d2;
+        margin-bottom: 10px;
+    }
+    
+    .section-gastos {
+        border-left: 4px solid #f44336;
+    }
+    
+    .section-compras {
+        border-left: 4px solid #ff9800;
+    }
+    
+    .section-sueldos {
+        border-left: 4px solid #9c27b0;
+    }
+    
+    .section-transferencias {
+        border-left: 4px solid #4caf50;
+    }
+    
+    .monto-zero {
+        background: #f5f5f5;
+        border-color: #e0e0e0;
+    }
+    
+    .funds-indicator {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-left: 10px;
+    }
+    
+    .funds-ok {
+        background: #c8e6c9;
+        color: #2e7d32;
+    }
+    
+    .funds-insufficient {
+        background: #ffcdd2;
+        color: #c62828;
+    }
+    
+    .total-calculado {
+        background: #fff3e0;
+        border: 2px solid #ff9800;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+        text-align: center;
+    }
+    
+    .total-calculado h4 {
+        color: #f57c00;
+        margin-bottom: 10px;
+    }
+    
+    .total-value {
+        font-size: 28px;
+        font-weight: bold;
+        color: #e65100;
+    }
+    
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-row {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .admin-form-container {
+            padding: 10px;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-form-container">
+    <h1>{{ title }}</h1>
+    <p class="subtitle">{{ subtitle }}</p>
+    
+    {% if form.non_field_errors %}
+        <div class="error-list" style="background: #ffebee; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            {% for error in form.non_field_errors %}
+                <div style="color: #d32f2f; font-weight: bold;">{{ error }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    <!-- ESTADÍSTICAS ACTUALES -->
+    {% if estadisticas %}
+    <div class="stats-grid">
+        {% for cuenta in estadisticas.cuentas %}
+        <div class="stat-card">
+            <h4>{{ cuenta.nombre }} ({{ cuenta.tipo }})</h4>
+            <div class="value">{{ cuenta.saldo_formateado }}</div>
+            <small>{{ cuenta.transacciones_hoy }} transacciones hoy</small>
+        </div>
+        {% endfor %}
+        <div class="stat-card" style="background: linear-gradient(135deg, #4caf50, #388e3c);">
+            <h4>Total Activos</h4>
+            <div class="value">{{ estadisticas.total_activos_formateado }}</div>
+            <small>{{ estadisticas.total_transacciones_hoy }} transacciones hoy</small>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="validation-info">
+        <h4>🏦 Gestor Avanzado de Tesorería</h4>
+        <p>Esta herramienta permite crear múltiples transacciones de tesorería con fecha personalizada.</p>
+        <ul>
+            <li><strong>Gastos Operativos:</strong> Servicios, suministros, mantenimiento</li>
+            <li><strong>Compras e Inversiones:</strong> Mercancía, equipos, activos</li>
+            <li><strong>Sueldos:</strong> Pagos a empleados</li>
+            <li><strong>Transferencias:</strong> Movimientos entre cuentas</li>
+        </ul>
+    </div>
+    
+    <form method="post" id="tesoreria-form">
+        {% csrf_token %}
+        
+        <!-- DATOS GENERALES -->
+        <div class="form-section">
+            <h3>📋 Configuración General</h3>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="{{ form.fecha_base.id_for_label }}">{{ form.fecha_base.label }}</label>
+                    {{ form.fecha_base }}
+                    {% if form.fecha_base.help_text %}
+                        <div class="help-text">{{ form.fecha_base.help_text }}</div>
+                    {% endif %}
+                    {{ form.fecha_base.errors }}
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.usuario.id_for_label }}">{{ form.usuario.label }}</label>
+                    {{ form.usuario }}
+                    {% if form.usuario.help_text %}
+                        <div class="help-text">{{ form.usuario.help_text }}</div>
+                    {% endif %}
+                    {{ form.usuario.errors }}
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.cuenta_origen_gastos.id_for_label }}">{{ form.cuenta_origen_gastos.label }}</label>
+                    {{ form.cuenta_origen_gastos }}
+                    {% if form.cuenta_origen_gastos.help_text %}
+                        <div class="help-text">{{ form.cuenta_origen_gastos.help_text }}</div>
+                    {% endif %}
+                    {{ form.cuenta_origen_gastos.errors }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-grid">
+            <!-- GASTOS OPERATIVOS -->
+            <div class="form-section section-gastos">
+                <h3>🔴 Gastos Operativos</h3>
+                
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.gastos_servicios_monto.id_for_label }}">{{ form.gastos_servicios_monto.label }}</label>
+                        {{ form.gastos_servicios_monto }}
+                        {% if form.gastos_servicios_monto.help_text %}
+                            <div class="help-text">{{ form.gastos_servicios_monto.help_text }}</div>
+                        {% endif %}
+                        {{ form.gastos_servicios_monto.errors }}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.gastos_servicios_descripcion.id_for_label }}">{{ form.gastos_servicios_descripcion.label }}</label>
+                        {{ form.gastos_servicios_descripcion }}
+                        {{ form.gastos_servicios_descripcion.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.gastos_suministros_monto.id_for_label }}">{{ form.gastos_suministros_monto.label }}</label>
+                        {{ form.gastos_suministros_monto }}
+                        {{ form.gastos_suministros_monto.errors }}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.gastos_suministros_descripcion.id_for_label }}">{{ form.gastos_suministros_descripcion.label }}</label>
+                        {{ form.gastos_suministros_descripcion }}
+                        {{ form.gastos_suministros_descripcion.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.gastos_mantenimiento_monto.id_for_label }}">{{ form.gastos_mantenimiento_monto.label }}</label>
+                        {{ form.gastos_mantenimiento_monto }}
+                        {{ form.gastos_mantenimiento_monto.errors }}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.gastos_mantenimiento_descripcion.id_for_label }}">{{ form.gastos_mantenimiento_descripcion.label }}</label>
+                        {{ form.gastos_mantenimiento_descripcion }}
+                        {{ form.gastos_mantenimiento_descripcion.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.gastos_otros_monto.id_for_label }}">{{ form.gastos_otros_monto.label }}</label>
+                        {{ form.gastos_otros_monto }}
+                        {{ form.gastos_otros_monto.errors }}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.gastos_otros_descripcion.id_for_label }}">{{ form.gastos_otros_descripcion.label }}</label>
+                        {{ form.gastos_otros_descripcion }}
+                        {{ form.gastos_otros_descripcion.errors }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- COMPRAS E INVERSIONES -->
+            <div class="form-section section-compras">
+                <h3>🟠 Compras e Inversiones</h3>
+                
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.compras_mercancia_monto.id_for_label }}">{{ form.compras_mercancia_monto.label }}</label>
+                        {{ form.compras_mercancia_monto }}
+                        {{ form.compras_mercancia_monto.errors }}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.compras_mercancia_descripcion.id_for_label }}">{{ form.compras_mercancia_descripcion.label }}</label>
+                        {{ form.compras_mercancia_descripcion }}
+                        {{ form.compras_mercancia_descripcion.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.compras_equipos_monto.id_for_label }}">{{ form.compras_equipos_monto.label }}</label>
+                        {{ form.compras_equipos_monto }}
+                        {{ form.compras_equipos_monto.errors }}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.compras_equipos_descripcion.id_for_label }}">{{ form.compras_equipos_descripcion.label }}</label>
+                        {{ form.compras_equipos_descripcion }}
+                        {{ form.compras_equipos_descripcion.errors }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-grid">
+            <!-- SUELDOS -->
+            <div class="form-section section-sueldos">
+                <h3>🟣 Sueldos y Personal</h3>
+                
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.sueldos_monto.id_for_label }}">{{ form.sueldos_monto.label }}</label>
+                        {{ form.sueldos_monto }}
+                        {{ form.sueldos_monto.errors }}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.sueldos_descripcion.id_for_label }}">{{ form.sueldos_descripcion.label }}</label>
+                        {{ form.sueldos_descripcion }}
+                        {{ form.sueldos_descripcion.errors }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TRANSFERENCIAS -->
+            <div class="form-section section-transferencias">
+                <h3>🟢 Transferencias</h3>
+                
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.transferencia_banco_reserva_monto.id_for_label }}">{{ form.transferencia_banco_reserva_monto.label }}</label>
+                        {{ form.transferencia_banco_reserva_monto }}
+                        {{ form.transferencia_banco_reserva_monto.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.transferencia_reserva_banco_monto.id_for_label }}">{{ form.transferencia_reserva_banco_monto.label }}</label>
+                        {{ form.transferencia_reserva_banco_monto }}
+                        {{ form.transferencia_reserva_banco_monto.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.transferencia_descripcion.id_for_label }}">{{ form.transferencia_descripcion.label }}</label>
+                        {{ form.transferencia_descripcion }}
+                        {{ form.transferencia_descripcion.errors }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TOTAL CALCULADO -->
+        <div class="total-calculado">
+            <h4>💰 Total a Procesar</h4>
+            <div class="total-value" id="total-calculado">$0.00</div>
+            <small>Se calcularán automáticamente las transacciones necesarias</small>
+        </div>
+        
+        <!-- BOTONES -->
+        <div class="form-section">
+            <button type="submit" class="btn-submit">🚀 Procesar Transacciones</button>
+            <a href="{% url 'admin:index' %}" class="btn-cancel">❌ Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('tesoreria-form');
+    const totalElement = document.getElementById('total-calculado');
+    const cuentaOrigenSelect = document.getElementById('{{ form.cuenta_origen_gastos.id_for_label }}');
+    
+    // Campos de monto
+    const camposMontos = [
+        '{{ form.gastos_servicios_monto.id_for_label }}',
+        '{{ form.gastos_suministros_monto.id_for_label }}',
+        '{{ form.gastos_mantenimiento_monto.id_for_label }}',
+        '{{ form.gastos_otros_monto.id_for_label }}',
+        '{{ form.compras_mercancia_monto.id_for_label }}',
+        '{{ form.compras_equipos_monto.id_for_label }}',
+        '{{ form.sueldos_monto.id_for_label }}',
+        '{{ form.transferencia_banco_reserva_monto.id_for_label }}',
+        '{{ form.transferencia_reserva_banco_monto.id_for_label }}'
+    ];
+    
+    // Calcular total
+    function calcularTotal() {
+        let total = 0;
+        
+        camposMontos.forEach(campoId => {
+            const campo = document.getElementById(campoId);
+            if (campo && campo.value) {
+                const valor = parseFloat(campo.value) || 0;
+                total += valor;
+            }
+        });
+        
+        totalElement.textContent = `$${total.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        
+        // Validar fondos si hay cuenta origen seleccionada
+        if (cuentaOrigenSelect.value && total > 0) {
+            validarFondos(total);
+        }
+    }
+    
+    // Validar fondos
+    async function validarFondos(monto) {
+        if (!cuentaOrigenSelect.value) return;
+        
+        try {
+            const response = await fetch(`{% url 'caja:ajax_validar_fondos' %}?cuenta_id=${cuentaOrigenSelect.value}&monto=${monto}`);
+            const data = await response.json();
+            
+            // Remover indicadores anteriores
+            const existingIndicator = cuentaOrigenSelect.parentNode.querySelector('.funds-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+            
+            // Agregar nuevo indicador
+            const indicator = document.createElement('span');
+            if (data.tiene_fondos) {
+                indicator.className = 'funds-indicator funds-ok';
+                indicator.textContent = `✓ Fondos OK (${data.saldo_formateado})`;
+            } else {
+                indicator.className = 'funds-indicator funds-insufficient';
+                indicator.textContent = `✗ Fondos insuficientes (${data.saldo_formateado})`;
+            }
+            
+            cuentaOrigenSelect.parentNode.appendChild(indicator);
+            
+        } catch (error) {
+            console.error('Error validando fondos:', error);
+        }
+    }
+    
+    // Event listeners para calcular total
+    camposMontos.forEach(campoId => {
+        const campo = document.getElementById(campoId);
+        if (campo) {
+            campo.addEventListener('input', calcularTotal);
+            campo.addEventListener('blur', calcularTotal);
+        }
+    });
+    
+    // Event listener para cambio de cuenta origen
+    cuentaOrigenSelect.addEventListener('change', calcularTotal);
+    
+    // Calcular total inicial
+    calcularTotal();
+    
+    // Validación antes del envío
+    form.addEventListener('submit', function(e) {
+        const total = parseFloat(totalElement.textContent.replace(/[$,]/g, '')) || 0;
+        
+        if (total === 0) {
+            e.preventDefault();
+            alert('Debes especificar al menos una transacción con monto mayor a cero.');
+            return false;
+        }
+        
+        if (!cuentaOrigenSelect.value) {
+            e.preventDefault();
+            alert('Debes seleccionar una cuenta origen para los gastos.');
+            return false;
+        }
+        
+        return confirm(`¿Confirmas procesar transacciones por un total de ${totalElement.textContent}?`);
+    });
+});
+</script>
+{% endblock %}

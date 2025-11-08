@@ -46,4 +46,15 @@ urlpatterns = [
     path('tesoreria/registrar-egreso/', views_tesoreria.registrar_egreso_tesoreria, name='tesoreria_registrar_egreso'),
     path('tesoreria/transferir-fondos/', views_tesoreria.transferir_fondos, name='tesoreria_transferir'),
     path('tesoreria/aplicar-balance/', views_tesoreria.aplicar_balance_cuentas, name='tesoreria_aplicar_balance'),
+    
+    # ============================================================================
+    # ADMINISTRACIÓN AVANZADA (Solo Superusuarios)
+    # ============================================================================
+    # Importar las vistas admin
+    path('admin/caja-completa/', lambda request: __import__('caja.admin_views', fromlist=['crear_caja_completa_admin']).crear_caja_completa_admin(request), name='crear_caja_completa_admin'),
+    
+    # Tesorería administrativa
+    path('admin/transaccion-tesoreria/', lambda request: __import__('caja.tesoreria_admin_views', fromlist=['transaccion_tesoreria_admin']).transaccion_tesoreria_admin(request), name='transaccion_tesoreria_admin'),
+    path('admin/gestor-tesoreria/', lambda request: __import__('caja.tesoreria_admin_views', fromlist=['gestor_tesoreria_admin']).gestor_tesoreria_admin(request), name='gestor_tesoreria_admin'),
+    path('admin/validar-fondos/', lambda request: __import__('caja.tesoreria_admin_views', fromlist=['ajax_validar_fondos']).ajax_validar_fondos(request), name='ajax_validar_fondos'),
 ]

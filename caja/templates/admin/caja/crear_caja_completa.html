@@ -1,0 +1,383 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style>
+        .form-row {
+            margin-bottom: 20px;
+        }
+        
+        .form-section {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .form-section h3 {
+            color: #495057;
+            margin-top: 0;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e9ecef;
+            font-size: 1.1rem;
+        }
+        
+        .form-section.datos-basicos { border-left: 4px solid #007bff; }
+        .form-section.ingresos { border-left: 4px solid #28a745; }
+        .form-section.banco { border-left: 4px solid #17a2b8; }
+        .form-section.egresos { border-left: 4px solid #dc3545; }
+        .form-section.cierre { border-left: 4px solid #6f42c1; }
+        
+        .field-row {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .field-row .form-row {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        
+        .help-text {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .required-field label:after {
+            content: " *";
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .submit-row {
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            padding: 15px 20px;
+            margin: 30px -20px -20px -20px;
+        }
+        
+        .btn-admin {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        .btn-admin:hover {
+            background: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .alert {
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        
+        .alert-warning {
+            color: #856404;
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+        }
+        
+        .monospace {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="colMS">
+    {% if subtitle %}
+    <div class="alert alert-warning">
+        <strong>⚠️ {{ subtitle }}</strong><br>
+        Esta funcionalidad está disponible únicamente para superusuarios y permite crear cajas con fechas personalizadas.
+        Todos los movimientos y transacciones se crearán automáticamente usando las mismas funciones del sistema normal.
+    </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+        
+        <!-- DATOS BÁSICOS -->
+        <div class="form-section datos-basicos">
+            <h3>📋 Datos Básicos de la Caja</h3>
+            
+            <div class="field-row">
+                <div class="form-row{% if form.cajero.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.cajero.id_for_label }}" class="required">{{ form.cajero.label }}:</label>
+                        {{ form.cajero }}
+                        {% if form.cajero.help_text %}<p class="help-text">{{ form.cajero.help_text }}</p>{% endif %}
+                        {{ form.cajero.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row{% if form.fecha_apertura.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.fecha_apertura.id_for_label }}" class="required">{{ form.fecha_apertura.label }}:</label>
+                        {{ form.fecha_apertura }}
+                        {% if form.fecha_apertura.help_text %}<p class="help-text">{{ form.fecha_apertura.help_text }}</p>{% endif %}
+                        {{ form.fecha_apertura.errors }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="field-row">
+                <div class="form-row{% if form.monto_inicial.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.monto_inicial.id_for_label }}">{{ form.monto_inicial.label }}:</label>
+                        {{ form.monto_inicial }}
+                        {% if form.monto_inicial.help_text %}<p class="help-text">{{ form.monto_inicial.help_text }}</p>{% endif %}
+                        {{ form.monto_inicial.errors }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-row{% if form.observaciones_apertura.errors %} errors{% endif %}">
+                <div>
+                    <label for="{{ form.observaciones_apertura.id_for_label }}">{{ form.observaciones_apertura.label }}:</label>
+                    {{ form.observaciones_apertura }}
+                    {% if form.observaciones_apertura.help_text %}<p class="help-text">{{ form.observaciones_apertura.help_text }}</p>{% endif %}
+                    {{ form.observaciones_apertura.errors }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- INGRESOS -->
+        <div class="form-section ingresos">
+            <h3>💰 Ingresos en Efectivo</h3>
+            
+            <div class="field-row">
+                <div class="form-row{% if form.ventas_monto.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.ventas_monto.id_for_label }}">{{ form.ventas_monto.label }}:</label>
+                        {{ form.ventas_monto }}
+                        {% if form.ventas_monto.help_text %}<p class="help-text">{{ form.ventas_monto.help_text }}</p>{% endif %}
+                        {{ form.ventas_monto.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row{% if form.cobros_cxc_monto.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.cobros_cxc_monto.id_for_label }}">{{ form.cobros_cxc_monto.label }}:</label>
+                        {{ form.cobros_cxc_monto }}
+                        {% if form.cobros_cxc_monto.help_text %}<p class="help-text">{{ form.cobros_cxc_monto.help_text }}</p>{% endif %}
+                        {{ form.cobros_cxc_monto.errors }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="field-row">
+                <div class="form-row{% if form.otros_ingresos_monto.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.otros_ingresos_monto.id_for_label }}">{{ form.otros_ingresos_monto.label }}:</label>
+                        {{ form.otros_ingresos_monto }}
+                        {% if form.otros_ingresos_monto.help_text %}<p class="help-text">{{ form.otros_ingresos_monto.help_text }}</p>{% endif %}
+                        {{ form.otros_ingresos_monto.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row{% if form.otros_ingresos_descripcion.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.otros_ingresos_descripcion.id_for_label }}">{{ form.otros_ingresos_descripcion.label }}:</label>
+                        {{ form.otros_ingresos_descripcion }}
+                        {% if form.otros_ingresos_descripcion.help_text %}<p class="help-text">{{ form.otros_ingresos_descripcion.help_text }}</p>{% endif %}
+                        {{ form.otros_ingresos_descripcion.errors }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ENTRADAS AL BANCO -->
+        <div class="form-section banco">
+            <h3>🏦 Entradas al Banco</h3>
+            
+            <div class="field-row">
+                <div class="form-row{% if form.entradas_banco_monto.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.entradas_banco_monto.id_for_label }}">{{ form.entradas_banco_monto.label }}:</label>
+                        {{ form.entradas_banco_monto }}
+                        {% if form.entradas_banco_monto.help_text %}<p class="help-text">{{ form.entradas_banco_monto.help_text }}</p>{% endif %}
+                        {{ form.entradas_banco_monto.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row{% if form.entradas_banco_descripcion.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.entradas_banco_descripcion.id_for_label }}">{{ form.entradas_banco_descripcion.label }}:</label>
+                        {{ form.entradas_banco_descripcion }}
+                        {% if form.entradas_banco_descripcion.help_text %}<p class="help-text">{{ form.entradas_banco_descripcion.help_text }}</p>{% endif %}
+                        {{ form.entradas_banco_descripcion.errors }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- EGRESOS -->
+        <div class="form-section egresos">
+            <h3>💸 Egresos y Gastos</h3>
+            
+            <div class="field-row">
+                <div class="form-row{% if form.gastos_monto.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.gastos_monto.id_for_label }}">{{ form.gastos_monto.label }}:</label>
+                        {{ form.gastos_monto }}
+                        {% if form.gastos_monto.help_text %}<p class="help-text">{{ form.gastos_monto.help_text }}</p>{% endif %}
+                        {{ form.gastos_monto.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row{% if form.gastos_descripcion.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.gastos_descripcion.id_for_label }}">{{ form.gastos_descripcion.label }}:</label>
+                        {{ form.gastos_descripcion }}
+                        {% if form.gastos_descripcion.help_text %}<p class="help-text">{{ form.gastos_descripcion.help_text }}</p>{% endif %}
+                        {{ form.gastos_descripcion.errors }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="field-row">
+                <div class="form-row{% if form.compras_monto.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.compras_monto.id_for_label }}">{{ form.compras_monto.label }}:</label>
+                        {{ form.compras_monto }}
+                        {% if form.compras_monto.help_text %}<p class="help-text">{{ form.compras_monto.help_text }}</p>{% endif %}
+                        {{ form.compras_monto.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row{% if form.compras_descripcion.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.compras_descripcion.id_for_label }}">{{ form.compras_descripcion.label }}:</label>
+                        {{ form.compras_descripcion }}
+                        {% if form.compras_descripcion.help_text %}<p class="help-text">{{ form.compras_descripcion.help_text }}</p>{% endif %}
+                        {{ form.compras_descripcion.errors }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="field-row">
+                <div class="form-row{% if form.otros_egresos_monto.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.otros_egresos_monto.id_for_label }}">{{ form.otros_egresos_monto.label }}:</label>
+                        {{ form.otros_egresos_monto }}
+                        {% if form.otros_egresos_monto.help_text %}<p class="help-text">{{ form.otros_egresos_monto.help_text }}</p>{% endif %}
+                        {{ form.otros_egresos_monto.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row{% if form.otros_egresos_descripcion.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.otros_egresos_descripcion.id_for_label }}">{{ form.otros_egresos_descripcion.label }}:</label>
+                        {{ form.otros_egresos_descripcion }}
+                        {% if form.otros_egresos_descripcion.help_text %}<p class="help-text">{{ form.otros_egresos_descripcion.help_text }}</p>{% endif %}
+                        {{ form.otros_egresos_descripcion.errors }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CIERRE DE CAJA -->
+        <div class="form-section cierre">
+            <h3>🔒 Cierre de Caja</h3>
+            
+            <div class="form-row{% if form.cerrar_caja.errors %} errors{% endif %}">
+                <div>
+                    {{ form.cerrar_caja }} <label for="{{ form.cerrar_caja.id_for_label }}">{{ form.cerrar_caja.label }}</label>
+                    {% if form.cerrar_caja.help_text %}<p class="help-text">{{ form.cerrar_caja.help_text }}</p>{% endif %}
+                    {{ form.cerrar_caja.errors }}
+                </div>
+            </div>
+            
+            <div class="field-row">
+                <div class="form-row{% if form.fecha_cierre.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.fecha_cierre.id_for_label }}">{{ form.fecha_cierre.label }}:</label>
+                        {{ form.fecha_cierre }}
+                        {% if form.fecha_cierre.help_text %}<p class="help-text">{{ form.fecha_cierre.help_text }}</p>{% endif %}
+                        {{ form.fecha_cierre.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row{% if form.monto_final_declarado.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.monto_final_declarado.id_for_label }}">{{ form.monto_final_declarado.label }}:</label>
+                        {{ form.monto_final_declarado }}
+                        {% if form.monto_final_declarado.help_text %}<p class="help-text">{{ form.monto_final_declarado.help_text }}</p>{% endif %}
+                        {{ form.monto_final_declarado.errors }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="field-row">
+                <div class="form-row{% if form.dinero_en_caja.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.dinero_en_caja.id_for_label }}">{{ form.dinero_en_caja.label }}:</label>
+                        {{ form.dinero_en_caja }}
+                        {% if form.dinero_en_caja.help_text %}<p class="help-text">{{ form.dinero_en_caja.help_text }}</p>{% endif %}
+                        {{ form.dinero_en_caja.errors }}
+                    </div>
+                </div>
+                
+                <div class="form-row{% if form.dinero_guardado.errors %} errors{% endif %}">
+                    <div>
+                        <label for="{{ form.dinero_guardado.id_for_label }}">{{ form.dinero_guardado.label }}:</label>
+                        {{ form.dinero_guardado }}
+                        {% if form.dinero_guardado.help_text %}<p class="help-text">{{ form.dinero_guardado.help_text }}</p>{% endif %}
+                        {{ form.dinero_guardado.errors }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-row{% if form.observaciones_cierre.errors %} errors{% endif %}">
+                <div>
+                    <label for="{{ form.observaciones_cierre.id_for_label }}">{{ form.observaciones_cierre.label }}:</label>
+                    {{ form.observaciones_cierre }}
+                    {% if form.observaciones_cierre.help_text %}<p class="help-text">{{ form.observaciones_cierre.help_text }}</p>{% endif %}
+                    {{ form.observaciones_cierre.errors }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="submit-row">
+            <button type="submit" class="btn-admin">✅ Crear Caja Completa</button>
+            <a href="{% url 'admin:caja_cajaregistradora_changelist' %}" class="btn-secondary">❌ Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

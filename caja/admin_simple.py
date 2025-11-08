@@ -3,9 +3,6 @@ Configuración simplificada del administrador para la app caja.
 """
 from django.contrib import admin
 from django.utils.html import format_html
-from django.urls import reverse
-from django.template.response import TemplateResponse
-from django.shortcuts import redirect
 from .models import (
     CajaRegistradora, MovimientoCaja, TipoMovimiento,
     DenominacionMoneda, ConteoEfectivo, DetalleConteo,
@@ -25,8 +22,7 @@ class CajaRegistradoraAdmin(admin.ModelAdmin):
         'estado',
         'monto_inicial',
         'monto_final_declarado',
-        'diferencia',
-        'acciones_admin'
+        'diferencia'
     )
     list_filter = ('estado', 'fecha_apertura', 'cajero')
     search_fields = ('id', 'cajero__username')
@@ -45,48 +41,6 @@ class CajaRegistradoraAdmin(admin.ModelAdmin):
     
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
-    
-    def acciones_admin(self, obj):
-        """Botones de acciones administrativas para superusuarios."""
-        if hasattr(self, '_request') and self._request.user.is_superuser:
-            resumen_url = reverse('admin:caja_resumen_detallado', args=[obj.id])
-            return format_html(
-                '<a href="{}" class="button" style="background: #17a2b8; color: white; padding: 5px 10px; border-radius: 3px; text-decoration: none; font-size: 12px;">📊 Resumen</a>',
-                resumen_url
-            )
-        return '-'
-    acciones_admin.short_description = 'Acciones Admin'
-    
-    def changelist_view(self, request, extra_context=None):
-        """Personalizar la vista de lista para agregar botones de superusuario."""
-        self._request = request
-        extra_context = extra_context or {}
-        
-        if request.user.is_superuser:
-            extra_context.update({
-                'title': 'Gestión de Cajas Registradoras',
-                'subtitle': 'Panel de Administración - Superusuario',
-                'show_admin_buttons': True,
-                'crear_caja_url': reverse('admin:crear_caja_completa'),
-            })
-        
-        return super().changelist_view(request, extra_context)
-    
-    def get_urls(self):
-        """Agregar URLs personalizadas para funciones administrativas."""
-        from django.urls import path
-        from . import admin_views
-        
-        urls = super().get_urls()
-        custom_urls = [
-            path('crear-caja-completa/', 
-                 self.admin_site.admin_view(admin_views.crear_caja_completa_admin),
-                 name='crear_caja_completa'),
-            path('<int:caja_id>/resumen-detallado/', 
-                 self.admin_site.admin_view(admin_views.resumen_caja_admin),
-                 name='caja_resumen_detallado'),
-        ]
-        return custom_urls + urls
 
 
 @admin.register(MovimientoCaja)

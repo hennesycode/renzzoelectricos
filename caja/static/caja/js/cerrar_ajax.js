@@ -23,10 +23,34 @@ async function fetchDenominaciones(){
 }
 
 async function fetchEstadoCaja(){
-    const resp = await fetch(window.CAJA_URLS.estado_caja);
-    const data = await resp.json();
-    if (resp.ok && data.success) return data;
-    return null;
+    try {
+        const resp = await fetch(window.CAJA_URLS.estado_caja);
+        
+        if (!resp.ok) {
+            console.error('Error en fetchEstadoCaja:', resp.status, resp.statusText);
+            
+            // Intentar obtener mensaje de error del servidor
+            try {
+                const errorData = await resp.json();
+                console.error('Detalles del error:', errorData);
+                throw new Error(errorData.error || `Error ${resp.status}: ${resp.statusText}`);
+            } catch (jsonError) {
+                // Si no puede parsear JSON, es probable que sea una página de error HTML
+                const errorText = await resp.text();
+                console.error('Respuesta del servidor:', errorText.substring(0, 200));
+                throw new Error(`Error ${resp.status}: El servidor respondió con una página de error. Revisar logs del servidor.`);
+            }
+        }
+        
+        const data = await resp.json();
+        if (data.success) return data;
+        
+        throw new Error(data.error || 'Error desconocido al obtener estado de caja');
+        
+    } catch (error) {
+        console.error('Error en fetchEstadoCaja:', error);
+        throw error;
+    }
 }
 
 const formatearMoneda = (valor) => {
@@ -43,14 +67,21 @@ const limpiarNumero = (texto) => {
 };
 
 async function openCerrarModal(){
-    // Cargar denominaciones y estado de la caja
-    const denoms = await fetchDenominaciones();
-    const estadoCaja = await fetchEstadoCaja();
+    let result = null; // Declarar result al inicio de la función para que tenga scope global
     
-    if (!estadoCaja) {
-        Swal.fire({icon: 'error', title: 'Error', text: 'No se pudo obtener el estado de la caja'});
-        return;
-    }
+    try {
+        // Cargar denominaciones y estado de la caja
+        const denoms = await fetchDenominaciones();
+        const estadoCaja = await fetchEstadoCaja();
+        
+        if (!estadoCaja) {
+            Swal.fire({
+                icon: 'error', 
+                title: 'Error', 
+                text: 'No se pudo obtener el estado de la caja'
+            });
+            return;
+        }
     
     const totalDisponible = estadoCaja.total_disponible;
     const totalEntradasBanco = estadoCaja.total_entradas_banco || 0;
@@ -189,7 +220,7 @@ async function openCerrarModal(){
     html += '<textarea id="swal-observaciones" class="swal2-textarea" placeholder="Observaciones (opcional)" style="margin-top: 15px;"></textarea>';
     html += '</div>'; // Fin container
 
-    const { value: result } = await Swal.fire({
+    const swalResult = await Swal.fire({
         title: '🔒 Cerrar Caja',
         html: html,
         width: 900,
@@ -443,8 +474,36 @@ async function openCerrarModal(){
             };
         }
     });
+    
+    result = swalResult.value;
 
     if (!result) return; // cancel
+
+    } catch (error) {
+        console.error('Error al abrir modal de cierre:', error);
+        
+        let errorMessage = 'Error al comunicarse con el servidor';
+        if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        Swal.fire({
+            icon: 'error',
+            title: '❌ Error del Servidor',
+            html: `
+                <p><strong>No se puede cerrar la caja en este momento.</strong></p>
+                <p style="color: #666; font-size: 0.9rem; margin-top: 10px;">${errorMessage}</p>
+                <hr style="margin: 15px 0;">
+                <p style="font-size: 0.85rem; color: #888;">
+                    Si el problema persiste, contacta al administrador del sistema.
+                    El servidor puede necesitar configuración adicional.
+                </p>
+            `,
+            confirmButtonText: 'Entendido',
+            width: 500
+        });
+        return;
+    }
 
     // Enviar cierre via AJAX
     try{

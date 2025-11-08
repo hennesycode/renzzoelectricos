@@ -1,0 +1,383 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style>
+        .resumen-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .resumen-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .resumen-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 1.5rem;
+        }
+        
+        .estado-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .estado-abierta { background: #28a745; color: white; }
+        .estado-cerrada { background: #6c757d; color: white; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-card.positivo { border-left: 4px solid #28a745; }
+        .stat-card.negativo { border-left: 4px solid #dc3545; }
+        .stat-card.neutro { border-left: 4px solid #17a2b8; }
+        .stat-card.warning { border-left: 4px solid #ffc107; }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .movimientos-section {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .section-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .movimientos-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .movimientos-table th,
+        .movimientos-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        
+        .movimientos-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+        
+        .tipo-ingreso { color: #28a745; font-weight: 600; }
+        .tipo-egreso { color: #dc3545; font-weight: 600; }
+        
+        .monto-positivo { color: #28a745; font-weight: 600; }
+        .monto-negativo { color: #dc3545; font-weight: 600; }
+        
+        .descripcion-banco {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            color: #0d47a1;
+            font-weight: 600;
+        }
+        
+        .btn-volver {
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        
+        .btn-volver:hover {
+            background: #545b62;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .empty-message {
+            text-align: center;
+            color: #6c757d;
+            padding: 30px;
+            font-style: italic;
+        }
+        
+        .cierre-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .diferencia-positiva { color: #28a745; font-weight: 600; }
+        .diferencia-negativa { color: #dc3545; font-weight: 600; }
+        .diferencia-cero { color: #6c757d; font-weight: 600; }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="resumen-container">
+    <a href="{% url 'admin:caja_cajaregistradora_changelist' %}" class="btn-volver">
+        ← Volver a Lista de Cajas
+    </a>
+    
+    <div class="resumen-header">
+        <h1>{{ title }}</h1>
+        <p>
+            <strong>Cajero:</strong> {{ caja.cajero.get_full_name|default:caja.cajero.username }} |
+            <strong>Apertura:</strong> {{ caja.fecha_apertura|date:"d/m/Y H:i" }} |
+            {% if caja.fecha_cierre %}
+                <strong>Cierre:</strong> {{ caja.fecha_cierre|date:"d/m/Y H:i" }}
+            {% endif %}
+            <span class="estado-badge estado-{{ caja.estado|lower }}">{{ caja.get_estado_display }}</span>
+        </p>
+    </div>
+    
+    <!-- ESTADÍSTICAS GENERALES -->
+    <div class="stats-grid">
+        <div class="stat-card neutro">
+            <div class="stat-value">${{ caja.monto_inicial|floatformat:0 }}</div>
+            <div class="stat-label">Monto Inicial</div>
+        </div>
+        
+        <div class="stat-card positivo">
+            <div class="stat-value">${{ total_ingresos|floatformat:0 }}</div>
+            <div class="stat-label">Total Ingresos</div>
+        </div>
+        
+        <div class="stat-card negativo">
+            <div class="stat-value">${{ total_egresos|floatformat:0 }}</div>
+            <div class="stat-label">Total Egresos</div>
+        </div>
+        
+        <div class="stat-card warning">
+            <div class="stat-value">${{ total_entradas_banco|floatformat:0 }}</div>
+            <div class="stat-label">Entradas Banco</div>
+        </div>
+    </div>
+    
+    <!-- INFORMACIÓN DE CIERRE -->
+    {% if caja.estado == 'CERRADA' %}
+    <div class="cierre-info">
+        <h3>🔒 Información de Cierre</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div>
+                <strong>Monto Declarado:</strong><br>
+                ${{ caja.monto_final_declarado|floatformat:0 }}
+            </div>
+            <div>
+                <strong>Monto Sistema:</strong><br>
+                ${{ caja.monto_final_sistema|floatformat:0 }}
+            </div>
+            <div>
+                <strong>Diferencia:</strong><br>
+                {% if caja.diferencia > 0 %}
+                    <span class="diferencia-positiva">+${{ caja.diferencia|floatformat:0 }} (Sobrante)</span>
+                {% elif caja.diferencia < 0 %}
+                    <span class="diferencia-negativa">${{ caja.diferencia|floatformat:0 }} (Faltante)</span>
+                {% else %}
+                    <span class="diferencia-cero">$0 (Sin diferencias)</span>
+                {% endif %}
+            </div>
+            {% if caja.dinero_en_caja is not None %}
+            <div>
+                <strong>Dinero en Caja:</strong><br>
+                ${{ caja.dinero_en_caja|floatformat:0 }}
+            </div>
+            {% endif %}
+            {% if caja.dinero_guardado is not None %}
+            <div>
+                <strong>Dinero Guardado:</strong><br>
+                ${{ caja.dinero_guardado|floatformat:0 }}
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if caja.observaciones_cierre %}
+        <div style="margin-top: 15px;">
+            <strong>Observaciones de Cierre:</strong><br>
+            <em>{{ caja.observaciones_cierre }}</em>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- MOVIMIENTO DE APERTURA -->
+    {% if movimientos_apertura %}
+    <div class="movimientos-section">
+        <div class="section-header">
+            📋 Movimiento de Apertura
+        </div>
+        <table class="movimientos-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Monto</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mov in movimientos_apertura %}
+                <tr>
+                    <td>{{ mov.fecha_movimiento|date:"d/m/Y H:i" }}</td>
+                    <td class="tipo-{{ mov.tipo|lower }}">{{ mov.get_tipo_display }}</td>
+                    <td class="monto-positivo">${{ mov.monto|floatformat:0 }}</td>
+                    <td>{{ mov.descripcion }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    <!-- MOVIMIENTOS DE INGRESOS -->
+    {% if movimientos_ingresos %}
+    <div class="movimientos-section">
+        <div class="section-header">
+            💰 Movimientos de Ingresos ({{ movimientos_ingresos.count }})
+        </div>
+        <table class="movimientos-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo Movimiento</th>
+                    <th>Monto</th>
+                    <th>Descripción</th>
+                    <th>Referencia</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mov in movimientos_ingresos %}
+                <tr>
+                    <td>{{ mov.fecha_movimiento|date:"d/m/Y H:i" }}</td>
+                    <td>{{ mov.tipo_movimiento.nombre }}</td>
+                    <td class="monto-positivo">${{ mov.monto|floatformat:0 }}</td>
+                    <td>
+                        {% if '[BANCO]' in mov.descripcion %}
+                            <span class="descripcion-banco">BANCO</span>
+                        {% endif %}
+                        {{ mov.descripcion }}
+                    </td>
+                    <td>{{ mov.referencia|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    <!-- MOVIMIENTOS DE EGRESOS -->
+    {% if movimientos_egresos %}
+    <div class="movimientos-section">
+        <div class="section-header">
+            💸 Movimientos de Egresos ({{ movimientos_egresos.count }})
+        </div>
+        <table class="movimientos-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo Movimiento</th>
+                    <th>Monto</th>
+                    <th>Descripción</th>
+                    <th>Referencia</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mov in movimientos_egresos %}
+                <tr>
+                    <td>{{ mov.fecha_movimiento|date:"d/m/Y H:i" }}</td>
+                    <td>{{ mov.tipo_movimiento.nombre }}</td>
+                    <td class="monto-negativo">-${{ mov.monto|floatformat:0 }}</td>
+                    <td>{{ mov.descripcion }}</td>
+                    <td>{{ mov.referencia|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    <!-- TRANSACCIONES DE TESORERÍA -->
+    {% if transacciones %}
+    <div class="movimientos-section">
+        <div class="section-header">
+            🏛️ Transacciones de Tesorería Asociadas ({{ transacciones.count }})
+        </div>
+        <table class="movimientos-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Cuenta</th>
+                    <th>Monto</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trans in transacciones %}
+                <tr>
+                    <td>{{ trans.fecha|date:"d/m/Y H:i" }}</td>
+                    <td class="tipo-{{ trans.tipo|lower }}">{{ trans.get_tipo_display }}</td>
+                    <td>{{ trans.cuenta.nombre }}</td>
+                    <td class="{% if trans.tipo == 'INGRESO' %}monto-positivo{% else %}monto-negativo{% endif %}">
+                        {% if trans.tipo == 'EGRESO' %}-{% endif %}${{ trans.monto|floatformat:0 }}
+                    </td>
+                    <td>{{ trans.descripcion }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    {% if not movimientos %}
+    <div class="empty-message">
+        <h3>Sin movimientos registrados</h3>
+        <p>Esta caja no tiene movimientos adicionales aparte de la apertura.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -599,48 +599,62 @@ def obtener_estado_caja(request):
         caja = CajaRegistradora.objects.get(estado='ABIERTA')
     except CajaRegistradora.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'No hay una caja abierta'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Error al consultar caja: {str(e)}'}, status=500)
     
-    # Calcular totales
-    movimientos = MovimientoCaja.objects.filter(caja=caja)
-    
-    # Calcular total de entradas al banco
-    total_entradas_banco = movimientos.filter(
-        tipo='INGRESO',
-        descripcion__icontains='[BANCO]'
-    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-    
-    # Total de ingresos EN EFECTIVO (incluir apertura, excluir banco)
-    total_ingresos = movimientos.filter(
-        tipo='INGRESO'
-    ).exclude(
-        descripcion__icontains='[BANCO]'
-    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-    
-    total_egresos = movimientos.filter(
-        tipo='EGRESO'
-    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-    
-    # Dinero en caja = total ingresos efectivo - total egresos
-    dinero_en_caja = total_ingresos - total_egresos
-    
-    # Total disponible en CAJA = solo dinero físico (sin entradas banco)
-    total_disponible = dinero_en_caja
-    
-    # Calcular denominaciones esperadas (distribución óptima)
-    # Este es un cálculo aproximado - en la realidad el efectivo puede variar
-    denominaciones_esperadas = calcular_denominaciones_esperadas(total_disponible)
-    
-    return JsonResponse({
-        'success': True,
-        'caja_id': caja.id,
-        'monto_inicial': float(caja.monto_inicial),
-        'total_ingresos': float(total_ingresos),
-        'total_egresos': float(total_egresos),
-        'dinero_en_caja': float(dinero_en_caja),
-        'total_disponible': float(total_disponible),
-        'total_entradas_banco': float(total_entradas_banco),
-        'denominaciones_esperadas': denominaciones_esperadas
-    })
+    try:
+        # Calcular totales
+        movimientos = MovimientoCaja.objects.filter(caja=caja)
+        
+        # Calcular total de entradas al banco
+        total_entradas_banco = movimientos.filter(
+            tipo='INGRESO',
+            descripcion__icontains='[BANCO]'
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+        
+        # Total de ingresos EN EFECTIVO (incluir apertura, excluir banco)
+        total_ingresos = movimientos.filter(
+            tipo='INGRESO'
+        ).exclude(
+            descripcion__icontains='[BANCO]'
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+        
+        total_egresos = movimientos.filter(
+            tipo='EGRESO'
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+        
+        # Dinero en caja = total ingresos efectivo - total egresos
+        dinero_en_caja = total_ingresos - total_egresos
+        
+        # Total disponible en CAJA = solo dinero físico (sin entradas banco)
+        total_disponible = dinero_en_caja
+        
+        # Calcular denominaciones esperadas (distribución óptima)
+        # Este es un cálculo aproximado - en la realidad el efectivo puede variar
+        denominaciones_esperadas = calcular_denominaciones_esperadas(total_disponible)
+        
+        return JsonResponse({
+            'success': True,
+            'caja_id': caja.id,
+            'monto_inicial': float(caja.monto_inicial),
+            'total_ingresos': float(total_ingresos),
+            'total_egresos': float(total_egresos),
+            'dinero_en_caja': float(dinero_en_caja),
+            'total_disponible': float(total_disponible),
+            'total_entradas_banco': float(total_entradas_banco),
+            'denominaciones_esperadas': denominaciones_esperadas
+        })
+        
+    except Exception as e:
+        # Log del error para debugging en servidor
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error en obtener_estado_caja: {str(e)}", exc_info=True)
+        
+        return JsonResponse({
+            'success': False, 
+            'error': f'Error interno del servidor: {str(e)}'
+        }, status=500)
 
 
 def calcular_denominaciones_esperadas(total):
@@ -650,21 +664,41 @@ def calcular_denominaciones_esperadas(total):
     """
     from decimal import Decimal
     
-    # Obtener denominaciones ordenadas de mayor a menor
-    denoms = DenominacionMoneda.objects.filter(activo=True).order_by('-valor')
-    
-    resultado = {}
-    resto = Decimal(str(total))
-    
-    for denom in denoms:
-        if resto >= denom.valor:
-            cantidad = int(resto / denom.valor)
-            resultado[str(denom.id)] = cantidad
-            resto = resto - (denom.valor * cantidad)
-        else:
-            resultado[str(denom.id)] = 0
-    
-    return resultado
+    try:
+        # Obtener denominaciones ordenadas de mayor a menor
+        denoms = DenominacionMoneda.objects.filter(activo=True).order_by('-valor')
+        
+        # Verificar que hay denominaciones disponibles
+        if not denoms.exists():
+            # Log del error para debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning("No hay denominaciones de moneda configuradas. Ejecutar: python manage.py poblar_denominaciones")
+            
+            # Retornar diccionario vacío si no hay denominaciones
+            return {}
+        
+        resultado = {}
+        resto = Decimal(str(total))
+        
+        for denom in denoms:
+            if resto >= denom.valor:
+                cantidad = int(resto / denom.valor)
+                resultado[str(denom.id)] = cantidad
+                resto = resto - (denom.valor * cantidad)
+            else:
+                resultado[str(denom.id)] = 0
+        
+        return resultado
+        
+    except Exception as e:
+        # Log del error para debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error en calcular_denominaciones_esperadas: {str(e)}", exc_info=True)
+        
+        # Retornar diccionario vacío en caso de error
+        return {}
 
 
 @staff_or_permission_required('users.can_view_caja')

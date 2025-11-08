@@ -1,0 +1,170 @@
+{% extends "admin/index.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .admin-tools-section {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+    
+    .admin-tools-section h2 {
+        color: #495057;
+        border-bottom: 2px solid #79aec8;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .admin-tools-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    
+    .admin-tool-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 20px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .admin-tool-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .admin-tool-card h3 {
+        color: #79aec8;
+        margin-bottom: 10px;
+        font-size: 18px;
+    }
+    
+    .admin-tool-card p {
+        color: #6c757d;
+        margin-bottom: 15px;
+        line-height: 1.4;
+    }
+    
+    .admin-tool-card .features {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .admin-tool-card .features li {
+        padding: 3px 0;
+        font-size: 14px;
+        color: #495057;
+    }
+    
+    .admin-tool-card .features li:before {
+        content: "✓ ";
+        color: #28a745;
+        font-weight: bold;
+    }
+    
+    .superuser-only {
+        background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+        border-color: #ffc107;
+    }
+    
+    .superuser-badge {
+        display: inline-block;
+        background: #dc3545;
+        color: white;
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-weight: bold;
+        margin-left: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+
+{% if user.is_superuser %}
+<div class="admin-tools-section">
+    <h2>🔧 Herramientas Avanzadas de Administración <span class="superuser-badge">SUPERUSER</span></h2>
+    <p style="color: #6c757d; margin-bottom: 20px;">
+        Estas herramientas están disponibles únicamente para superusuarios y permiten 
+        gestionar datos históricos y operaciones avanzadas del sistema.
+    </p>
+    
+    <div class="admin-tools-grid">
+        <!-- CAJA REGISTRADORA COMPLETA -->
+        <a href="{% url 'caja:crear_caja_completa_admin' %}" class="admin-tool-card superuser-only">
+            <h3>📦 Caja Registradora Completa</h3>
+            <p>Crear cajas registradoras históricas con todos los movimientos y fecha personalizada.</p>
+            <ul class="features">
+                <li>Fecha y hora personalizada</li>
+                <li>Movimientos de entrada completos</li>
+                <li>Egresos y banco detallados</li>
+                <li>Cierre automático con arqueo</li>
+                <li>Validación de datos integrada</li>
+            </ul>
+        </a>
+        
+        <!-- TRANSACCIÓN INDIVIDUAL DE TESORERÍA -->
+        <a href="{% url 'caja:transaccion_tesoreria_admin' %}" class="admin-tool-card superuser-only">
+            <h3>💰 Transacción de Tesorería</h3>
+            <p>Crear transacciones individuales de tesorería con fecha personalizada.</p>
+            <ul class="features">
+                <li>Ingresos, egresos y transferencias</li>
+                <li>Fecha personalizada</li>
+                <li>Validación de fondos automática</li>
+                <li>Categorización por tipo de movimiento</li>
+                <li>Referencias y documentación</li>
+            </ul>
+        </a>
+        
+        <!-- GESTOR MASIVO DE TESORERÍA -->
+        <a href="{% url 'caja:gestor_tesoreria_admin' %}" class="admin-tool-card superuser-only">
+            <h3>🏦 Gestor Masivo de Tesorería</h3>
+            <p>Procesar múltiples operaciones de tesorería en lote con fecha personalizada.</p>
+            <ul class="features">
+                <li>Gastos operativos (servicios, suministros)</li>
+                <li>Compras e inversiones</li>
+                <li>Sueldos y pagos de personal</li>
+                <li>Transferencias entre cuentas</li>
+                <li>Validación de fondos en tiempo real</li>
+            </ul>
+        </a>
+        
+        <!-- ACCESO AL DASHBOARD REGULAR -->
+        <a href="{% url 'caja:dashboard' %}" class="admin-tool-card">
+            <h3>📊 Dashboard de Caja</h3>
+            <p>Acceder al sistema regular de caja registradora y tesorería.</p>
+            <ul class="features">
+                <li>Operaciones diarias normales</li>
+                <li>Apertura y cierre de caja</li>
+                <li>Movimientos en tiempo real</li>
+                <li>Informes y estadísticas</li>
+                <li>Gestión de tesorería</li>
+            </ul>
+        </a>
+    </div>
+</div>
+
+<div style="background: #d1ecf1; border: 1px solid #b8daff; border-radius: 5px; padding: 15px; margin: 20px 0;">
+    <h4 style="color: #0c5460; margin-bottom: 10px;">📋 Información Importante</h4>
+    <ul style="color: #0c5460; margin: 0;">
+        <li><strong>Herramientas de Superusuario:</strong> Solo visibles para cuentas con privilegios de superusuario</li>
+        <li><strong>Fechas Personalizadas:</strong> Permiten crear registros históricos con fechas específicas</li>
+        <li><strong>Validación Automática:</strong> Todas las herramientas validan datos y fondos antes de procesar</li>
+        <li><strong>Transacciones Atómicas:</strong> Las operaciones se realizan de forma segura y consistente</li>
+        <li><strong>Respaldo Automático:</strong> Los cambios se integran con el sistema de señales Django</li>
+    </ul>
+</div>
+{% endif %}
+{% endblock %}
